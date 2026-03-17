@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aquorix MVP - Local Test Chat</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #e5ddd5;
+      display: flex;
+      justify-content: center;
+      height: 100vh;
+    }
+    .chat-container {
+      width: 100%;
+      max-width: 600px;
+      background: #efeae2;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .header {
+      background-color: #008069;
+      color: white;
+      padding: 15px 20px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .message {
+      max-width: 80%;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      position: relative;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+    .message.received {
+      background-color: #fff;
+      align-self: flex-start;
+      border-top-left-radius: 0;
+    }
+    .message.sent {
+      background-color: #d9fdd3;
+      align-self: flex-end;
+      border-top-right-radius: 0;
+    }
+    .timestamp {
+      font-size: 0.7rem;
+      color: #667781;
+      float: right;
+      margin-top: 5px;
+      margin-left: 10px;
+    }
+    .input-area {
+      background-color: #f0f2f5;
+      padding: 15px;
+      display: flex;
+      gap: 10px;
+    }
+    app-input {
+      flex: 1;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 15px;
+      border: none;
+      border-radius: 20px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      outline: none;
+    }
+    button {
+      background-color: #00a884;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2rem;
+    }
+    button:hover {
+      background-color: #008f6f;
+    }
+    .system-msg {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #667781;
+      margin: 10px 0;
+      background: #e1f3fb;
+      padding: 5px 10px;
+      border-radius: 10px;
+      align-self: center;
+    }
+    .phone-config {
+      padding: 10px 20px;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .phone-config input {
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="chat-container">
+    <div class="header">
+      🦐 Aquorix MVP (Local Test)
+    </div>
+    
+    <div class="phone-config">
+      <label for="simulate-phone">Simulate Phone No:</label>
+      <input type="text" id="simulate-phone" value="919999999999" />
+    </div>
+
+    <div class="messages" id="messages-container">
+      <div class="system-msg">Messages are sent locally to your backend. WhatsApp API is bypassed.</div>
+      <!-- Messages will appear here -->
+    </div>
+
+    <form class="input-area" id="chat-form">
+      <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" />
+      <button type="button" id="send-btn">➤</button>
+    </form>
+  </div>
+
+  <script>
+    try {
+      const form = document.getElementById('chat-form');
+      const input = document.getElementById('message-input');
+      const phoneInput = document.getElementById('simulate-phone');
+      const messagesContainer = document.getElementById('messages-container');
+
+      console.log("Chat UI loaded.");
+
+      function getTime() {
+        const now = new Date();
+        return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      }
+
+      function addMessage(text, type) {
+        const div = document.createElement('div');
+        div.className = `message ${type}`;
+        div.innerHTML = `${text} <span class="timestamp">${getTime()}</span>`;
+        messagesContainer.appendChild(div);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+      // Connect to Server-Sent Events
+      const eventSource = new EventSource('/api/test/stream');
+      
+      eventSource.onopen = () => console.log("SSE Connection opened.");
+      eventSource.onerror = (e) => console.warn("SSE Connection lost. Reconnecting...");
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.to === phoneInput.value) {
+            addMessage(data.text, 'received');
+          }
+        } catch (e) {
+          console.error("Error parsing SSE message:", e);
+        }
+      };
+
+      const sendBtn = document.getElementById('send-btn');
+
+      function sendMessage() {
+        const text = input.value.trim();
+        if (!text) return;
+
+        const phone = phoneInput.value.trim();
+
+        // Show user message
+        addMessage(text, 'sent');
+        input.value = '';
+
+        // Send to local test endpoint
+        fetch('/api/test/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, text })
+        }).then(res => {
+          if (!res.ok) addMessage('⚠️ Error: Server returned ' + res.status, 'received');
+        }).catch(err => {
+          addMessage('⚠️ Connection error: ' + err.message, 'received');
+        });
+      }
+
+      sendBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        sendMessage();
+      });
+
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      addMessage("Bot is ready. Say 'Hi' to start!", "system-msg");
+
+    } catch (err) {
+      alert("Critical Error in Chat UI: " + err.message);
+      console.error(err);
+    }
+  </script>
+
+</body>
+</html>

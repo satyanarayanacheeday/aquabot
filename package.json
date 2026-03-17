@@ -1,0 +1,29 @@
+{
+  "name": "aquorix-mvp",
+  "version": "1.0.0",
+  "description": "Aquaculture WhatsApp AI Assistant MVP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:prod": "NODE_ENV=production node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node scripts/seed_knowledge.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.45.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.0",
+    "express": "^4.21.0",
+    "express-rate-limit": "^8.3.1",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "morgan": "^1.10.1",
+    "node-cron": "^3.0.3",
+    "openai": "^4.60.0",
+    "uuid": "^10.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
