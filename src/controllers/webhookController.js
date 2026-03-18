@@ -135,7 +135,7 @@ async function handleTextMessage(phone, text) {
   }
 
   console.log('handleTextMessage: Step 4: Checking triggers');
-  if (normalizedText === 'update' || normalizedText === 'daily' || normalizedText === 'pond data') {
+  if (normalizedText === 'update' || normalizedText === 'daily') {
     console.log('handleTextMessage: Step 4: Daily trigger detected');
     await startDailyCollection(phone, farmer.id);
     return;
