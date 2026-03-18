@@ -91,7 +91,7 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
     // 4. Get recent chat history for continuity
     let contents = [];
     try {
-      const recentChats = await getRecentChats(farmerId, 5);
+      const recentChats = await getRecentChats(farmerId, 12);
       if (recentChats.length > 0) {
         // Build role-based history for Gemini
         recentChats.forEach(c => {
