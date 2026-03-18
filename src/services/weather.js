@@ -43,6 +43,13 @@ async function getWeather(location) {
     };
   } catch (error) {
     console.error('❌ Weather fetch failed:', error.message);
+    
+    // If it was a 404 (location not found), try a general fallback like the state
+    if (error.response?.status === 404 && location !== 'Andhra Pradesh, India') {
+      console.log('🔄 Weather: Falling back to general region (Andhra Pradesh)');
+      return getWeather('Andhra Pradesh, India');
+    }
+    
     return null;
   }
 }

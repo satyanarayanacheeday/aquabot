@@ -60,22 +60,29 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
         console.log(`Step 3: Fetching weather for ${farmerData.location}`);
         const weather = await getWeather(farmerData.location);
         if (weather) {
-          weatherContext = `\n\n## Current Weather in ${weather.location}:\n- Temp: ${weather.temperature}°C (Feels like ${weather.feelsLike}°C)\n- Humidity: ${weather.humidity}%\n- Condition: ${weather.description}\n- Rainfall: ${weather.rainfall}mm/h\n- Wind: ${weather.windSpeed}m/s`;
+          weatherContext = `\n\n## 🌍 CURRENT WEATHER (REAL-TIME):\n- Location: ${weather.location}\n- Temp: ${weather.temperature}°C (Feels like ${weather.feelsLike}°C)\n- Humidity: ${weather.humidity}%\n- Condition: ${weather.description}\n- Rainfall: ${weather.rainfall}mm/h\n- Wind: ${weather.windSpeed}m/s`;
           console.log('Step 3: Weather data integrated');
+        } else {
+          // Add a minimal note so AI knows we tried but found nothing
+          weatherContext = `\n\n## 🌍 CURRENT WEATHER:\n(No real-time weather available for this specific town right now)`;
         }
       }
 
       const farm = await getFirstFarmByFarmer(farmerId);
       if (farm) {
-        farmContext = `\n\n## Farmer's Farm Info:\n- Species: ${farm.species}\n- Pond Size: ${farm.pond_size}\n- Stocking Date: ${farm.stocking_date}\n- PL Count: ${farm.pl_count}`;
+        farmContext = `\n\n## 🏘️ FARM RECORD (OWNED BY USER):\n- Species: ${farm.species}\n- Pond Size: ${farm.pond_size} acres\n- Stocking Date: ${farm.stocking_date}\n- Total Seeds Stocked: ${farm.pl_count} animals`;
 
         const recentData = await getRecentDailyData(farm.id, 3);
         if (recentData.length > 0) {
-          farmContext += `\n\n## Recent Pond Data:\n`;
+          farmContext += `\n\n## 📊 RECENT POND MEASUREMENTS (LAST 3 RECORDS):\n`;
           recentData.forEach(d => {
-            farmContext += `- ${d.date}: DO=${d.dissolved_oxygen}, pH=${d.ph}, Feed=${d.feed_amount}kg\n`;
+            farmContext += `- Date ${d.date}: DO=${d.dissolved_oxygen} mg/L, pH=${d.ph}, Feed=${d.feed_amount} kg\n`;
           });
+        } else {
+          farmContext += `\n\n## 📊 RECENT POND MEASUREMENTS:\n(No daily records found for this pond yet. Ask the user to type "update" to start recording data.)`;
         }
+      } else {
+        farmContext = `\n\n## 🏘️ FARM RECORD:\n(User has not registered a farm yet.)`;
       }
     } catch (err) {
       console.warn('⚠️ Could not fetch farm context:', err.message);
@@ -105,7 +112,7 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
     const systemInstruction = SYSTEM_PROMPT + knowledgeContext + farmContext + weatherContext + langInstruction;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: contents,
       config: {
         systemInstruction: systemInstruction,
