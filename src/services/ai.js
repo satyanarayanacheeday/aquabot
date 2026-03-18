@@ -107,12 +107,12 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
     contents.push({ role: 'user', parts: [{ text: question }] });
 
     // 5. Call Gemini
-    console.log('Step 5: Calling Gemini (gemini-1.5-flash)');
+    console.log('Step 5: Calling Gemini (gemini-2.5-flash)');
     const langInstruction = `\n\n## Language Constraints\nYou MUST reply in **${preferredLanguage}**. Use casual, communicative language. Do NOT use overly deep, formal, or complex literary vocabulary.`;
     const systemInstruction = SYSTEM_PROMPT + knowledgeContext + farmContext + weatherContext + langInstruction;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       contents: contents,
       config: {
         systemInstruction: systemInstruction,
@@ -120,12 +120,12 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
         maxOutputTokens: 1000,
       }
     });
-    
+
     const textRes = response.text;
     return textRes;
   } catch (error) {
     console.error('❌ AI answer failed:', error);
-    
+
     // Check for 404 specifically to give better advice in logs
     if (error.message?.includes('404') || error.status === 404) {
       console.error('💡 TIP: This 404 error usually means the Gemini API is disabled for your project or the model name is incorrect.');
