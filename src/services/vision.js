@@ -28,11 +28,12 @@ async function analyzeImage(imageBuffer, preferredLanguage = 'English') {
     
     const langInstruction = `\n\n## Language Constraints\nYou MUST reply in **${preferredLanguage}**. Use casual, communicative language. Do NOT use overly deep, formal, or complex literary vocabulary.`;
 
-    // Using gemini-2.5-flash which has vision capabilities native
+    // Using gemini-1.5-flash which has vision capabilities native
+    // NOTE: Fixed typo from gemini-2.5-flash
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: [
-        VISION_PROMPT + langInstruction,
+        { role: 'user', parts: [{ text: VISION_PROMPT + langInstruction }] },
         {
           inlineData: {
             data: base64Image,

@@ -125,6 +125,13 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
     return textRes;
   } catch (error) {
     console.error('❌ AI answer failed:', error);
+    
+    // Check for 404 specifically to give better advice in logs
+    if (error.message?.includes('404') || error.status === 404) {
+      console.error('💡 TIP: This 404 error usually means the Gemini API is disabled for your project or the model name is incorrect.');
+      console.error('Check: https://aistudio.google.com/app/apikey');
+    }
+
     return `I'm having trouble processing your question right now. Please try again in a moment.\n\nIf this is urgent, please consult your local aquaculture expert. 🙏`;
   }
 }
