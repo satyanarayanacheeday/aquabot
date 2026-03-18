@@ -13,8 +13,12 @@ const eventBus = require('./src/utils/eventBus');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Standard JSON parsing
-app.use(express.json());
+// Standard JSON parsing with raw body access for webhook signatures
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 
 // Security 
 app.use(helmet({ contentSecurityPolicy: false }));
