@@ -33,12 +33,17 @@ async function analyzeImage(imageBuffer, preferredLanguage = 'English') {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [
-        { role: 'user', parts: [{ text: VISION_PROMPT + langInstruction }] },
         {
-          inlineData: {
-            data: base64Image,
-            mimeType: 'image/jpeg'
-          }
+          role: 'user',
+          parts: [
+            { text: VISION_PROMPT + langInstruction },
+            {
+              inlineData: {
+                data: base64Image,
+                mimeType: 'image/jpeg'
+              }
+            }
+          ]
         }
       ]
     });
