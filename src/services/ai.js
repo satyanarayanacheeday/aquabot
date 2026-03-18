@@ -11,7 +11,7 @@ async function generateEmbedding(text) {
     console.log('generateEmbedding: Calling ai.models.embedContent (text-embedding-004)');
     const response = await ai.models.embedContent({
       model: 'text-embedding-004',
-      content: { parts: [{ text: text }] }
+      contents: text
     });
     console.log('generateEmbedding: Success');
     return response.embedding.values;

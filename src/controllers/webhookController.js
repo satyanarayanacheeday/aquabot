@@ -154,7 +154,6 @@ async function handleTextMessage(phone, text) {
   }
   
   console.log('handleTextMessage: Step 5: Routing to AI Q&A');
-  await sendTextMessage(phone, '🤔 Let me think about that...');
 
   console.log('handleTextMessage: Step 5: Calling answerQuestion (Gemini)');
   const answer = await answerQuestion(text, farmer.id, farmer.preferred_language);
