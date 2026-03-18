@@ -25,13 +25,13 @@ IMPORTANT: Never diagnose with 100% certainty. Always say "possible" or "may ind
 async function analyzeImage(imageBuffer, preferredLanguage = 'English') {
   try {
     const base64Image = imageBuffer.toString('base64');
-    
+
     const langInstruction = `\n\n## Language Constraints\nYou MUST reply in **${preferredLanguage}**. Use casual, communicative language. Do NOT use overly deep, formal, or complex literary vocabulary.`;
 
     // Using gemini-1.5-flash which has vision capabilities native
     // NOTE: Fixed typo from gemini-2.5-flash
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       contents: [
         { role: 'user', parts: [{ text: VISION_PROMPT + langInstruction }] },
         {

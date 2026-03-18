@@ -63,7 +63,7 @@ async function generateAdvisory(farmerId, farmerLocation, preferredLanguage = 'E
 
     // 5. Call Gemini
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       contents: [{ role: 'user', parts: [{ text: context + langInstruction }] }],
       config: {
         systemInstruction: SYSTEM_PROMPT,
