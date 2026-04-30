@@ -8,11 +8,6 @@ const { verifyWebhook, handleIncoming } = require('../controllers/webhookControl
  * Requires process.env.WHATSAPP_APP_SECRET
  */
 function verifyMetaSignature(req, res, next) {
-  // During local test mock (from our own test UI), we skip validation
-  if (req.body?.object === 'whatsapp_business_account' && req.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.id?.startsWith('mock_msg_')) {
-    return next();
-  }
-
   const signaturePath = req.headers['x-hub-signature-256'];
   const appSecret = process.env.WHATSAPP_APP_SECRET;
 
@@ -46,10 +41,21 @@ function verifyMetaSignature(req, res, next) {
   next();
 }
 
+const rateLimit = require('express-rate-limit');
+
+// Rate limiter specifically for the webhook to prevent abuse and API exhaustion
+const webhookLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests to webhook, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
 // Webhook verification (Meta sends GET to verify your endpoint)
-router.get('/', verifyWebhook);
+router.get('/', webhookLimiter, verifyWebhook);
 
 // Incoming messages (Meta sends POST with message payloads)
-router.post('/', verifyMetaSignature, handleIncoming);
+router.post('/', webhookLimiter, verifyMetaSignature, handleIncoming);
 
 module.exports = router;

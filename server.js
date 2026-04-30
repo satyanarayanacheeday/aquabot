@@ -9,12 +9,18 @@ const hpp = require('hpp');
 const webhookRoutes = require('./src/routes/webhook');
 const { handleIncoming } = require('./src/controllers/webhookController');
 const eventBus = require('./src/utils/eventBus');
+const { startScheduler } = require('./src/utils/scheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust reverse proxies (needed for rate-limiting behind Ngrok/Render)
+app.set('trust proxy', 1);
+
 // Standard JSON parsing with raw body access for webhook signatures
+// Strict size limit to prevent payload bloat attacks
 app.use(express.json({
+  limit: '1mb',
   verify: (req, res, buf) => {
     req.rawBody = buf;
   }
@@ -97,7 +103,10 @@ eventBus.on('message', (data) => {
 app.use('/webhook', webhookRoutes);
 
 app.listen(PORT, () => {
-  console.log(`🚀 STABLE SERVER RUNNING ON PORT ${PORT}`);
+  console.log(`🚀 AQUORIX v2 RUNNING ON PORT ${PORT}`);
+
+  // Start the scheduler for daily/weekly check-in reminders
+  startScheduler();
 });
 
 // Minimal fatal error logging

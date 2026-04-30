@@ -1,0 +1,1350 @@
+{
+  "kb_version": "2.0",
+  "region_focus": "India — Andhra Pradesh (Godavari Belt, Krishna, Nellore, Srikakulam)",
+  "description": "Brand → Product → Dosage → Use-case recommendation engine database",
+
+  "recommendation_engine_schema": {
+    "how_to_use": "Match: problem_keyword → category → filter by species + season + salinity → return brand + product + dosage + expected_result",
+    "problem_keywords": ["white_gut", "slow_growth", "mass_mortality", "low_DO", "high_ammonia", "loose_shell", "red_body", "white_spots", "black_spots", "pond_color_bad", "low_FCR", "high_Vibrio", "gill_rot", "muscle_necrosis"]
+  },
+
+  "categories": {
+
+    "feed": {
+      "category_name": "Aquaculture Feed",
+      "ap_market_share": "AP accounts for ~54% of India's shrimp feed market",
+
+      "brands": {
+
+        "avanti_feeds": {
+          "company": "Avanti Feeds Limited",
+          "hq": "Hyderabad, Telangana",
+          "factories": ["Kovvur (West Godavari, AP)", "Vemuluru (West Godavari, AP)", "Vapi (Gujarat)"],
+          "capacity_MT": 600000,
+          "certifications": ["BAP", "ISO 22000", "HACCP", "BRC", "USFDA"],
+          "partner": "Thai Union Group (Thailand) — technology tie-up",
+          "ap_presence": "VERY STRONG — headquartered in AP belt",
+          "market_position": "Market leader in India",
+
+          "products": [
+            {
+              "product_name": "Profeed",
+              "type": "Pellet shrimp feed",
+              "species": ["vannamei", "monodon"],
+              "stage": "Grow-out (0.5g – harvest)",
+              "protein_pct": 32,
+              "sizes_mm": [1.2, 1.5, 1.8, 2.0, 2.5],
+              "use_case": "Main grow-out feed; general culture",
+              "dosage": "Per ABW-based feeding table; 2–5% BW/day",
+              "fcr_target": "1.3–1.6",
+              "notes": "Most popular brand in AP coastal belt; Kovvur distribution hub"
+            },
+            {
+              "product_name": "Prostar",
+              "type": "Premium pellet shrimp feed",
+              "species": ["vannamei"],
+              "stage": "Grow-out — premium performance",
+              "protein_pct": 35,
+              "use_case": "High-density intensive culture; better FCR target",
+              "dosage": "Per ABW-based feeding table; 2–4% BW/day",
+              "fcr_target": "1.2–1.4",
+              "notes": "Premium line; preferred by large-scale intensive farmers"
+            },
+            {
+              "product_name": "Titan",
+              "type": "Shrimp feed",
+              "species": ["monodon", "vannamei"],
+              "stage": "Grow-out",
+              "protein_pct": 33,
+              "use_case": "Tiger shrimp culture; semi-intensive systems",
+              "dosage": "Per ABW feeding table",
+              "notes": "Formulated for higher salinity conditions; good palatability"
+            },
+            {
+              "product_name": "Manamei",
+              "type": "Shrimp starter / early grow-out feed",
+              "species": ["vannamei"],
+              "stage": "PL12 – 2g",
+              "protein_pct": 40,
+              "sizes_mm": [0.8, 1.2],
+              "use_case": "Nursery and early grow-out stage",
+              "dosage": "8–15% BW/day; 4–5x/day feeding",
+              "notes": "High protein for juveniles; promotes early growth"
+            }
+          ]
+        },
+
+        "cp_aquaculture": {
+          "company": "Charoen Pokphand India (CP India) / CP Aquaculture",
+          "hq": "Thailand-origin; India operations",
+          "parent": "CP Group Thailand — world's largest integrated shrimp producer",
+          "ap_presence": "STRONG — major competitor to Avanti in AP",
+          "market_position": "Top 2 in India (with Avanti)",
+
+          "products": [
+            {
+              "product_name": "CP Hi-Q Shrimp Feed",
+              "type": "Pellet shrimp feed",
+              "species": ["vannamei", "monodon"],
+              "stage": "Grow-out",
+              "protein_pct": 33,
+              "sizes_mm": [1.2, 1.5, 1.8, 2.0, 2.5],
+              "use_case": "Intensive and semi-intensive shrimp farming",
+              "dosage": "Per body weight feeding chart; 2–5% BW",
+              "fcr_target": "1.3–1.5",
+              "notes": "Known for water stability and palatability; Thai technology"
+            },
+            {
+              "product_name": "CP Aqua PL Feed",
+              "type": "Post-larvae starter feed",
+              "species": ["vannamei"],
+              "stage": "PL10 – PL30 (nursery phase)",
+              "protein_pct": 40,
+              "sizes_mm": [0.3, 0.5, 0.8],
+              "use_case": "Nursery phase feeding; early survival improvement",
+              "dosage": "Broadcast; 10–15% BW; 6–8x/day",
+              "notes": "Critical for first-month survival and EMS prevention window"
+            },
+            {
+              "product_name": "CP Fish Feed (Floating)",
+              "type": "Floating extruded fish feed",
+              "species": ["tilapia", "catfish", "rohu", "catla"],
+              "stage": "Fingerling to grow-out",
+              "protein_pct": 28,
+              "use_case": "Freshwater fish intensive farming",
+              "dosage": "2–5% BW/day; 2–3x/day",
+              "fcr_target": "1.5–2.0",
+              "notes": "Good distribution in AP freshwater zones"
+            }
+          ]
+        },
+
+        "growel_feeds": {
+          "company": "Growel Feeds Pvt. Ltd.",
+          "hq": "Hyderabad, Telangana",
+          "parent": "Growel Group (also operates Growel Formulations — aqua health)",
+          "capacity_MT": 188000,
+          "established": 2014,
+          "ap_presence": "VERY STRONG — Hyderabad-based; strong Godavari distribution",
+          "differentiator": "Only Indian company with dedicated indoor + outdoor trial facility; known for innovation",
+
+          "products": [
+            {
+              "product_name": "Nutriva",
+              "type": "Standard pellet shrimp feed",
+              "species": ["vannamei"],
+              "stage": "Grow-out (2g – harvest)",
+              "protein_pct": 32,
+              "sizes_mm": [1.5, 1.8, 2.0, 2.5, 3.0],
+              "use_case": "Semi-intensive to intensive shrimp culture; cost-effective",
+              "dosage": "Per ABW chart; 2–4% BW/day",
+              "fcr_target": "1.4–1.7",
+              "notes": "Strong farmer brand recall in AP; competitive pricing"
+            },
+            {
+              "product_name": "Nutriva F15",
+              "type": "Functional shrimp feed",
+              "species": ["vannamei"],
+              "stage": "Grow-out — stress periods",
+              "protein_pct": 34,
+              "use_case": "During disease challenge periods; stress events; rainy season",
+              "dosage": "Per ABW; switch from standard to F15 during stress",
+              "notes": "Contains functional ingredients for immune support; good for Godavari belt rainy season"
+            },
+            {
+              "product_name": "Marigold",
+              "type": "Premium shrimp feed",
+              "species": ["vannamei", "monodon"],
+              "stage": "Grow-out premium",
+              "protein_pct": 35,
+              "use_case": "High-density intensive pond; FCR optimization",
+              "dosage": "2–3% BW/day; 4x/day",
+              "fcr_target": "1.2–1.4",
+              "notes": "Top-tier product; better water stability than Nutriva"
+            },
+            {
+              "product_name": "Tigeron",
+              "type": "Tiger shrimp feed",
+              "species": ["monodon"],
+              "stage": "Grow-out",
+              "protein_pct": 36,
+              "use_case": "P. monodon semi-intensive culture; high salinity ponds",
+              "dosage": "1.5–3% BW/day; 3–4x/day",
+              "notes": "Formulated for monodon's higher protein requirement; good palatability"
+            },
+            {
+              "product_name": "Sprint-LS",
+              "type": "Low salinity shrimp feed",
+              "species": ["vannamei"],
+              "stage": "Grow-out — low salinity conditions",
+              "protein_pct": 33,
+              "use_case": "Low salinity ponds (2–10 ppt) — common in Krishna, West Godavari",
+              "dosage": "2–4% BW/day",
+              "notes": "CRITICAL for AP inland low-salinity shrimp culture zones; specially formulated minerals for low-sal"
+            }
+          ]
+        },
+
+        "waterbase": {
+          "company": "The Waterbase Limited",
+          "hq": "Chennai (listed company)",
+          "factories": "Nellore, AP (primary); Vapi, Gujarat",
+          "established": 1993,
+          "status": "India's first fully integrated aquaculture enterprise",
+          "capacity_MT": 60000,
+          "ap_presence": "STRONG — Nellore belt; one of earliest AP players",
+          "certifications": ["BAP", "ISO QMS", "ISO EMS"],
+
+          "products": [
+            {
+              "product_name": "Baywhite Enriched",
+              "type": "Enriched pellet shrimp feed",
+              "species": ["vannamei"],
+              "stage": "Grow-out",
+              "protein_pct": 33,
+              "use_case": "Standard vannamei grow-out; enriched with functional additives",
+              "dosage": "Per ABW chart; 2–4% BW/day",
+              "fcr_target": "1.3–1.6",
+              "notes": "Strong presence in Nellore district; good post-molting recovery"
+            },
+            {
+              "product_name": "Ultra XL",
+              "type": "High-performance shrimp feed",
+              "species": ["vannamei"],
+              "stage": "Grow-out — intensive",
+              "protein_pct": 35,
+              "use_case": "High-density intensive farms targeting premium size grades",
+              "dosage": "2–3% BW/day; 4x/day",
+              "fcr_target": "1.2–1.4",
+              "notes": "Premium product; good palatability and water stability"
+            },
+            {
+              "product_name": "Tiger Bay XL",
+              "type": "Tiger shrimp feed",
+              "species": ["monodon"],
+              "stage": "Grow-out",
+              "protein_pct": 36,
+              "use_case": "Black tiger shrimp semi-intensive / extensive culture",
+              "dosage": "1.5–3% BW/day",
+              "notes": "One of few dedicated monodon feeds from AP-based manufacturer"
+            }
+          ]
+        },
+
+        "skretting_india": {
+          "company": "Skretting India (Nutreco Group)",
+          "hq": "Hyderabad (office); Gujarat (factory)",
+          "parent": "Nutreco / SHV Holdings (Netherlands) — global #1 aqua nutrition",
+          "established_india": 2018,
+          "ap_presence": "MODERATE — premium segment; growing",
+          "differentiator": "Global R&D; best nutritional science; aquacare probiotic system",
+
+          "products": [
+            {
+              "product_name": "Gamma",
+              "type": "High-digestibility pellet shrimp feed",
+              "species": ["vannamei"],
+              "stage": "Grow-out",
+              "protein_pct": 38,
+              "sizes_mm": [0.8, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5],
+              "use_case": "All stages grow-out; premium intensive culture",
+              "dosage": "Per growth stage chart; 2–4% BW",
+              "fcr_target": "1.2–1.4",
+              "notes": "8 pellet sizes reduces size variation; highest digestibility in market; premium price"
+            },
+            {
+              "product_name": "LORICA",
+              "type": "Functional nursery feed",
+              "species": ["vannamei", "monodon"],
+              "stage": "Nursery (post-hatchery to 2g)",
+              "protein_pct": 42,
+              "use_case": "Stress resistance in nursery phase; pre-transfer to pond",
+              "dosage": "5–10% BW; 6x/day in nursery tanks",
+              "notes": "Strengthens PLs before environmental challenges; reduces EMS mortality in first 30 days"
+            },
+            {
+              "product_name": "White Tiger",
+              "type": "Larval / PL nutrition feed",
+              "species": ["vannamei", "monodon"],
+              "stage": "Zoea – PL stage (hatchery)",
+              "protein_pct": 45,
+              "use_case": "Hatchery larval feeding; zoea to PL20",
+              "dosage": "Broadcast; multiple feeds per day in hatchery",
+              "notes": "For hatchery operators; not farm-level"
+            },
+            {
+              "product_name": "Kuroline",
+              "type": "Tiger shrimp grow-out feed",
+              "species": ["monodon"],
+              "stage": "Grow-out intensive/semi-intensive",
+              "protein_pct": 38,
+              "use_case": "Premium P. monodon culture; high-value export market",
+              "dosage": "1.5–3% BW/day; 3–4x/day",
+              "notes": "Specifically designed for monodon's nutritional requirements; superior water stability"
+            },
+            {
+              "product_name": "AquaCare Probiotic (Skretting)",
+              "type": "Water bioremediation probiotic",
+              "category_cross": "probiotics",
+              "use_case": "Water quality management; controlling ammonia and sludge",
+              "dosage": "500g – 1kg/ha/week",
+              "notes": "Skretting's own probiotic — ecosystem approach with their feed"
+            },
+            {
+              "product_name": "Micro (Fish starter)",
+              "type": "Hatchery/nursery fish feed",
+              "species": ["tilapia", "catfish", "murrel", "anabas"],
+              "stage": "Fry to fingerling",
+              "protein_pct": 42,
+              "use_case": "Freshwater fish hatchery and nursery",
+              "dosage": "8–15% BW; 4–6x/day",
+              "notes": "Global Skretting technology adapted for Indian freshwater species"
+            }
+          ]
+        },
+
+        "godrej_agrovet": {
+          "company": "Godrej Agrovet Limited",
+          "hq": "Mumbai; subsidiary of Godrej Industries",
+          "ap_presence": "MODERATE — growing aqua segment",
+
+          "products": [
+            {
+              "product_name": "Real Aqua Shrimp Feed",
+              "type": "Pellet shrimp feed",
+              "species": ["vannamei"],
+              "stage": "Grow-out",
+              "protein_pct": 32,
+              "use_case": "Semi-intensive culture; value segment",
+              "dosage": "2–4% BW/day; 3–4x/day",
+              "fcr_target": "1.5–1.8",
+              "notes": "Distributed through Godrej's wide agri network; accessibility advantage"
+            },
+            {
+              "product_name": "Godrej Real Fish Feed (Floating)",
+              "type": "Floating extruded fish feed",
+              "species": ["rohu", "catla", "tilapia", "catfish"],
+              "stage": "Fingerling to grow-out",
+              "protein_pct": 28,
+              "use_case": "Freshwater fish grow-out; inland ponds",
+              "dosage": "2–4% BW/day; 2–3x/day",
+              "notes": "Strong in inland AP freshwater zones; leverages Godrej brand trust"
+            }
+          ]
+        },
+
+        "uno_feeds": {
+          "company": "UNO Feeds",
+          "ap_presence": "STRONG in southern India and AP",
+          "differentiator": "Value-for-money; strong small-farmer reach",
+
+          "products": [
+            {
+              "product_name": "UNO Shrimp Feed",
+              "type": "Pellet shrimp feed",
+              "species": ["vannamei"],
+              "stage": "Grow-out",
+              "protein_pct": 30,
+              "use_case": "Small-to-medium farmer semi-intensive ponds",
+              "dosage": "2–4% BW/day; 3–4x/day",
+              "fcr_target": "1.5–2.0",
+              "notes": "Cost-effective option; strong in smaller AP farm segments"
+            },
+            {
+              "product_name": "UNO Fish Feed",
+              "type": "Floating fish feed",
+              "species": ["tilapia", "rohu", "catla"],
+              "stage": "Grow-out",
+              "protein_pct": 26,
+              "use_case": "Freshwater fish; inland AP ponds",
+              "dosage": "2–3% BW/day"
+            }
+          ]
+        }
+      }
+    },
+
+    "probiotics": {
+      "category_name": "Probiotics (Water + Feed)",
+      "note": "Critical in AP conditions — high temp, high organic load, Vibrio pressure",
+
+      "brands": {
+
+        "growel_formulations": {
+          "company": "Growel Formulations Pvt. Ltd.",
+          "hq": "Hyderabad, Telangana",
+          "established": 1994,
+          "status": "Pioneer in India for aquaculture feed additives and healthcare; market leader in minerals, probiotics, sanitizers",
+          "ap_presence": "DOMINANT",
+          "differentiator": "First to develop 'Water Stable' products in India; bio-polymer coating technology",
+
+          "products": [
+            {
+              "product_name": "Growel Gut Pro",
+              "type": "Feed probiotic (gut health)",
+              "active": "Bacillus subtilis, B. licheniformis, Lactobacillus spp.",
+              "CFU": "1×10⁹ CFU/g",
+              "use_case": ["White gut syndrome", "Poor FCR", "Low feed consumption", "Digestive disorders"],
+              "dosage_feed": "5–10 g/kg of feed",
+              "dosage_water": "500g – 1kg/acre",
+              "species": ["vannamei", "monodon", "tilapia", "catfish"],
+              "frequency": "Every 5–7 days or during disease challenge",
+              "expected_result": "Improved gut microflora, better FCR within 2–3 weeks",
+              "season_note": "Increase dose during monsoon and hot summer"
+            },
+            {
+              "product_name": "Growel Pond Pro",
+              "type": "Water/pond probiotic (bioremediation)",
+              "active": "Bacillus subtilis, B. amyloliquefaciens, Nitrosomonas, Nitrobacter",
+              "CFU": "2×10⁹ CFU/g",
+              "use_case": ["High ammonia", "Sludge buildup", "Poor water color", "H₂S smell from pond bottom", "Algae bloom management"],
+              "dosage_water": "1–2 kg/acre/week",
+              "dosage_soil": "2–3 kg/acre for pond bottom treatment",
+              "species": "All aquaculture",
+              "frequency": "Weekly; increase in disease pressure or post-rain",
+              "expected_result": "Ammonia reduction within 48–72h; improved water color; sludge reduction",
+              "ap_note": "Very effective in high-temperature AP ponds; apply early morning"
+            },
+            {
+              "product_name": "Growel Aqua Mineral",
+              "category_cross": "minerals",
+              "type": "Chelated mineral supplement (water)",
+              "active": "Ca, Mg, K, Na, Fe, Zn, Mn, Cu (chelated form)",
+              "use_case": ["Loose/soft shell", "Poor molting", "Low salinity mineral deficiency", "Post-rain mineral crash"],
+              "dosage_water": "2–5 kg/acre",
+              "species": ["vannamei", "monodon"],
+              "frequency": "After every molting event; after rain; fortnightly",
+              "expected_result": "Shell hardening within 24–48h post-molting; reduced cannibalism",
+              "ap_note": "Critical in low-salinity zones (Krishna, West Godavari); post-monsoon application"
+            }
+          ]
+        },
+
+        "biostadt_india": {
+          "company": "Biostadt India Limited",
+          "hq": "Mumbai",
+          "ap_presence": "STRONG",
+          "product_range": "Probiotics, disinfectants, water treatment, mineral supplements",
+
+          "products": [
+            {
+              "product_name": "Biostadt Terragard-SP",
+              "type": "Soil/water probiotic",
+              "active": "Bacillus spp. multi-strain + enzymes",
+              "use_case": ["Pond bottom sludge", "Ammonia control", "Black soil/H₂S zones"],
+              "dosage_water": "500g – 1kg/acre",
+              "dosage_soil": "2–3 kg/acre (broadcast in morning)",
+              "frequency": "Every 7–10 days",
+              "expected_result": "Sludge degradation; ammonia drop; pond bottom improvement"
+            },
+            {
+              "product_name": "Biostadt Optibact",
+              "type": "Water probiotic",
+              "active": "Bacillus subtilis, Lactobacillus acidophilus, S. cerevisiae",
+              "CFU": "5×10⁸ CFU/g",
+              "use_case": ["General water quality", "Vibrio competition", "Post-disease recovery"],
+              "dosage_water": "500g/acre/week",
+              "expected_result": "Vibrio suppression; improved water clarity"
+            },
+            {
+              "product_name": "Biostadt Aqua BKC 50",
+              "category_cross": "disinfectants",
+              "type": "Disinfectant (Benzalkonium Chloride 50%)",
+              "use_case": ["Bacterial control in pond water", "Disease outbreak management", "Hatchery disinfection"],
+              "dosage_water": "100–200 mL/acre (diluted)",
+              "caution": "Do not use with probiotics within 48 hours"
+            }
+          ]
+        },
+
+        "kemin_industries": {
+          "company": "Kemin Industries South Asia Pvt. Ltd.",
+          "hq": "Bangalore (India HQ); USA parent company",
+          "ap_presence": "MODERATE — premium professional segment",
+          "differentiator": "Scientifically validated products; strong nutritional additives division",
+
+          "products": [
+            {
+              "product_name": "Kemin Clostat Aqua",
+              "type": "Feed probiotic (Bacillus subtilis)",
+              "active": "Bacillus subtilis PB6 (patented strain)",
+              "CFU": "1×10⁹ CFU/g",
+              "use_case": ["Vibrio reduction in gut", "FCR improvement", "Immune stimulation"],
+              "dosage_feed": "500g – 1kg per MT of feed",
+              "species": ["vannamei", "monodon", "tilapia"],
+              "expected_result": "20–30% reduction in Vibrio count in gut; FCR improvement 0.1–0.2 units",
+              "science_note": "Clinically validated B. subtilis PB6 with patented mode of action"
+            },
+            {
+              "product_name": "Kemin KEMZYME Aqua",
+              "type": "Enzyme supplement (feed additive)",
+              "active": "Phytase, Xylanase, Glucanase, Cellulase, Protease",
+              "use_case": ["Poor feed digestibility", "High FCR", "Plant-protein-based diet optimization"],
+              "dosage_feed": "500g per MT of feed",
+              "expected_result": "FCR reduction 0.1–0.2; better nutrient utilization; less ammonia excretion"
+            },
+            {
+              "product_name": "Kemin AQUANIL",
+              "type": "Antifungal / mold inhibitor (feed preservation)",
+              "active": "Propionic acid, Citric acid blend",
+              "use_case": ["Feed quality preservation in humid AP conditions", "Aflatoxin control", "Feed storage quality"],
+              "dosage_feed": "1–3 kg per MT of feed",
+              "notes": "Critical for AP humid monsoon season feed storage"
+            },
+            {
+              "product_name": "Kemin Lysoforte Aqua",
+              "type": "Lysolecithin emulsifier",
+              "use_case": ["Fat utilization", "Reduce FCR", "Lipid absorption improvement"],
+              "dosage_feed": "250–500g per MT",
+              "expected_result": "Better energy use; FCR improvement; shrimp energy efficiency"
+            }
+          ]
+        },
+
+        "alltech": {
+          "company": "Alltech India",
+          "hq": "Kentucky USA; India presence",
+          "ap_presence": "MODERATE — professional/premium segment",
+
+          "products": [
+            {
+              "product_name": "Alltech Bioplex Aqua (Chelated Minerals)",
+              "type": "Organic chelated trace minerals",
+              "active": "Organic Zn, Mn, Cu, Fe, Co, Se (proteinate form)",
+              "use_case": ["Trace mineral deficiency", "Immune support", "Better absorption than inorganic minerals"],
+              "dosage_feed": "1–2 kg per MT of feed",
+              "expected_result": "Better immunity; improved growth; superior bioavailability vs sulfate minerals",
+              "notes": "Premium chelated minerals; best bioavailability"
+            },
+            {
+              "product_name": "Alltech Sel-Plex Aqua (Organic Selenium)",
+              "type": "Organic selenium supplement",
+              "use_case": ["Antioxidant protection", "Immune system", "Stress resistance"],
+              "dosage_feed": "250–500g per MT",
+              "notes": "Organic selenium for better absorption"
+            },
+            {
+              "product_name": "Alltech Yea-Sacc (Yeast Probiotic)",
+              "type": "Yeast culture (S. cerevisiae)",
+              "active": "Saccharomyces cerevisiae live yeast",
+              "use_case": ["Gut microbiome balance", "FCR improvement", "Stress resilience", "Immune modulation"],
+              "dosage_feed": "1–3 kg per MT of feed",
+              "expected_result": "Improved gut health; FCR improvement 0.1–0.2; better survival rates"
+            }
+          ]
+        },
+
+        "virbac_india": {
+          "company": "Virbac Animal Health India",
+          "hq": "France parent; India operations",
+          "ap_presence": "STRONG in medicines + probiotics",
+          "product_range": "Probiotics, gut health, medicines, aquaculture specific",
+
+          "products": [
+            {
+              "product_name": "Virbac Pro Marine",
+              "type": "Multi-function probiotic (feed + gut)",
+              "active": "Bacillus subtilis, Bacillus licheniformis, Saccharomyces cerevisiae",
+              "use_case": ["Digestion improvement", "Growth promotion", "FCR optimization", "Immune support"],
+              "dosage_feed": "5–10 g/kg feed",
+              "dosage_water": "500g – 1kg/acre",
+              "species": ["vannamei", "monodon", "tilapia", "catfish"],
+              "expected_result": "FCR improvement; better growth rate; Vibrio suppression in gut"
+            },
+            {
+              "product_name": "Virbac Aqua Plex",
+              "type": "Vitamin + mineral supplement",
+              "use_case": ["Vitamin deficiency", "Stress recovery", "Post-disease recuperation"],
+              "dosage_feed": "5–10 g/kg feed",
+              "notes": "Broad-spectrum supplement; useful post-stress events"
+            }
+          ]
+        },
+
+        "zeus_biotech": {
+          "company": "Zeus Biotech Limited",
+          "hq": "Bharuch, Gujarat",
+          "ap_presence": "MODERATE",
+          "specialty": "Veterinary biologicals; some aqua products",
+
+          "products": [
+            {
+              "product_name": "Zeus Aqua Bacto Pro",
+              "type": "Multi-strain water probiotic",
+              "active": "Bacillus subtilis, B. megaterium, Lactobacillus sp.",
+              "use_case": ["Water quality management", "Bloom stability", "Ammonia reduction"],
+              "dosage_water": "500g – 1kg/acre/week",
+              "notes": "Good for maintaining stable water color"
+            }
+          ]
+        }
+      }
+    },
+
+    "water_treatment": {
+      "category_name": "Water Treatment Chemicals",
+      "note": "Essential for AP aquaculture — managing pH, ammonia, DO, algae",
+
+      "brands": {
+
+        "aquatic_remedies": {
+          "company": "Aquatic Remedies Pvt. Ltd.",
+          "hq": "Mumbai",
+          "ap_presence": "STRONG",
+
+          "products": [
+            {
+              "product_name": "Zeolite (Natural Zeolite Powder)",
+              "type": "Ammonia adsorber / water conditioner",
+              "active": "Natural clinoptilolite zeolite",
+              "use_case": ["High TAN/ammonia", "Post-rain ammonia spike", "New pond conditioning", "Emergency ammonia control"],
+              "dosage": "50–100 kg/acre (broadcast in morning)",
+              "frequency": "As needed; repeat every 7–10 days in high-load ponds",
+              "expected_result": "Ammonia reduction within 12–24 hours",
+              "ap_note": "Must-have during early summer and monsoon; stock every farm"
+            },
+            {
+              "product_name": "Aquatic Remedies Potassium Permanganate",
+              "type": "Oxidizing disinfectant",
+              "use_case": ["Parasite treatment (flukes, protozoa)", "Bacterial control", "H₂S oxidation", "Gill disease treatment"],
+              "dosage_bath": "10–20 ppm × 30–60 min",
+              "dosage_pond": "2–5 ppm",
+              "notes": "Purple turns brown = demand met; aerate during application"
+            },
+            {
+              "product_name": "Aquatic Remedies Aqua BKC",
+              "type": "Disinfectant (BKC 50%)",
+              "use_case": ["Bacterial bloom control", "Vibrio reduction in water", "Disinfection during disease"],
+              "dosage_water": "100–200 mL/acre diluted in water",
+              "caution": "Avoid probiotics for 48h after application"
+            }
+          ]
+        },
+
+        "blue_aqua_international": {
+          "company": "Blue Aqua International",
+          "hq": "Singapore; India operations",
+          "ap_presence": "GROWING — premium technical segment",
+          "differentiator": "Science-based water management; strong technical support",
+
+          "products": [
+            {
+              "product_name": "Blue Aqua Aqua Clean",
+              "type": "Pond cleaner / water quality manager",
+              "active": "Oxidizers + natural chelating agents",
+              "use_case": ["Sludge decomposition", "Water clarity", "Organic matter reduction"],
+              "dosage": "500g – 1kg/acre",
+              "frequency": "Weekly"
+            },
+            {
+              "product_name": "Blue Aqua Nitro Clear",
+              "type": "Nitrite/ammonia reducer",
+              "use_case": ["High nitrite", "High ammonia", "Water toxicity management"],
+              "dosage": "1 kg/acre",
+              "expected_result": "Nitrite reduction within 24h"
+            }
+          ]
+        },
+
+        "sr_aqua": {
+          "company": "SR Aqua (Regional AP supplier)",
+          "hq": "Andhra Pradesh",
+          "ap_presence": "LOCAL STRONG — distribution in Krishna, Godavari, Nellore",
+          "note": "Regional brand with good last-mile distribution; trusted by small farmers",
+
+          "products": [
+            {
+              "product_name": "SR Aqua Zeolite",
+              "type": "Zeolite ammonia adsorber",
+              "use_case": ["Ammonia control", "Water conditioning"],
+              "dosage": "50–100 kg/acre",
+              "notes": "Local brand; cost-effective for AP small farmers"
+            },
+            {
+              "product_name": "SR Aqua Lime",
+              "type": "Agricultural lime / CaCO₃",
+              "use_case": ["pH correction", "Alkalinity management", "Post-rain pH crash"],
+              "dosage": "50–200 kg/acre depending on need",
+              "ap_note": "Used heavily in AP post-rain season; cost-effective"
+            }
+          ]
+        }
+      }
+    },
+
+    "minerals_supplements": {
+      "category_name": "Minerals & Supplements",
+
+      "brands": {
+
+        "intas_animal_health": {
+          "company": "Intas Animal Health (division of Intas Pharmaceuticals)",
+          "hq": "Ahmedabad, Gujarat",
+          "ap_presence": "STRONG",
+
+          "products": [
+            {
+              "product_name": "Intas AquaMins",
+              "type": "Mineral supplement for aquaculture",
+              "active": "Ca, Mg, Zn, Mn, Fe, Cu, Se, I",
+              "use_case": ["Soft shell", "Low salinity mineral deficiency", "Molting support", "Growth optimization"],
+              "dosage_feed": "5–10 g/kg feed",
+              "dosage_water": "2–5 kg/acre",
+              "expected_result": "Shell hardening; better molting; reduced post-molt mortality"
+            },
+            {
+              "product_name": "Intas Aqua Vit-C",
+              "type": "Vitamin C supplement",
+              "active": "Ascorbic acid (stabilized/coated)",
+              "use_case": ["Disease stress recovery", "Post-disease immune boost", "Anti-stress during handling", "EMS prevention support"],
+              "dosage_feed": "1–3 g/kg feed (1000–3000 mg/kg)",
+              "dosage_water": "250–500 g/acre during stress events",
+              "frequency": "Daily during stress; weekly maintenance",
+              "expected_result": "Improved stress tolerance; faster recovery; better survival during challenge"
+            },
+            {
+              "product_name": "Intas Hepatocare Aqua",
+              "type": "Liver/hepatopancreas health supplement",
+              "active": "Silymarin, Betaine, Choline, Liver stimulants + Vitamins",
+              "use_case": ["Hepatopancreas dysfunction", "EMS recovery support", "Poor feed intake", "HP pale/atrophy signs"],
+              "dosage_feed": "5–10 g/kg feed",
+              "expected_result": "HP recovery; improved feed intake; better FCR"
+            }
+          ]
+        },
+
+        "growel_minerals": {
+          "company": "Growel Formulations / Growel Agrovet",
+          "note": "See also Growel under probiotics — full-spectrum company",
+
+          "products": [
+            {
+              "product_name": "Growel Chelated Growmin",
+              "type": "Chelated mineral mixture",
+              "active": "Vit A, D3, E; Ca 30%, P 15%; Co, Cu, I, Fe, Mg, Mn, K, Na, S, Zn",
+              "use_case": ["Mineral deficiency", "Low salinity ponds", "Immune support", "Plankton development", "FCR optimization"],
+              "dosage_feed": "5–10 g/kg feed",
+              "dosage_water": "2–5 kg/acre/week",
+              "expected_result": "Improved immune response; plankton enrichment; better FCR and productivity"
+            },
+            {
+              "product_name": "Growel Grow B-Plex",
+              "type": "Vitamin B complex + amino acid feed premix",
+              "active": "19 vitamins, essential amino acids, trace minerals, Lactic acid bacillus",
+              "use_case": ["B-vitamin deficiency", "Growth promotion", "Anti-stress", "FCR improvement"],
+              "dosage_feed": "5–10 g/kg feed",
+              "expected_result": "Better growth rate; improved FCR; stress resilience"
+            },
+            {
+              "product_name": "Growel Toxin Binder",
+              "type": "Mycotoxin binder + feed acidifier",
+              "active": "Broad-spectrum mycotoxin binders + organic acids",
+              "use_case": ["Feed mycotoxin contamination", "Poor feed quality storage", "Gut health", "Aflatoxin risk"],
+              "dosage_feed": "2–5 kg per MT of feed",
+              "ap_note": "Critical in AP humid monsoon season when feed storage conditions are poor"
+            },
+            {
+              "product_name": "Growel Growlive Forte",
+              "type": "Liver tonic / hepatoprotective feed premix",
+              "active": "Silymarin, Betaine, Choline, Methionine, Vitamins",
+              "use_case": ["Liver/HP support", "Improve FCR", "Detoxification", "Post-disease recovery"],
+              "dosage_feed": "5–10 g/kg feed",
+              "expected_result": "Better feed utilization; HP health improvement; FCR improvement"
+            }
+          ]
+        }
+      }
+    },
+
+    "medicines": {
+      "category_name": "Aquaculture Medicines",
+      "compliance_warning": "⚠️ Antibiotics require veterinary prescription. Observe withdrawal periods. Non-compliant residues risk export market bans.",
+      "caa_note": "All aqua medicines must be CAA (Coastal Aquaculture Authority) approved for shrimp culture in India",
+
+      "brands": {
+
+        "virbac_medicines": {
+          "company": "Virbac Animal Health India",
+          "ap_presence": "STRONG",
+
+          "products": [
+            {
+              "product_name": "Virbac Florvet Aqua (Florfenicol)",
+              "type": "Antibiotic — broad spectrum",
+              "active": "Florfenicol",
+              "target_bacteria": ["Aeromonas", "Edwardsiella", "Streptococcus", "Vibrio", "Columnaris"],
+              "use_case": ["Aeromonas septicemia in fish", "Edwardsiellosis in catfish", "Streptococcosis in tilapia", "Bacterial disease in shrimp"],
+              "dosage_feed": "10–15 mg/kg body weight/day × 7–14 days",
+              "withdrawal_days": 15,
+              "prescription_required": true,
+              "export_safe": true,
+              "notes": "First-choice antibiotic for most bacterial infections; residue-safe for exports"
+            },
+            {
+              "product_name": "Virbac Aqua-Tet (Oxytetracycline)",
+              "type": "Antibiotic",
+              "active": "Oxytetracycline HCl",
+              "target_bacteria": ["Vibrio", "Aeromonas", "NHP-B", "Columnaris", "Edwardsiella"],
+              "use_case": ["Vibriosis in shrimp", "MAS in fish", "NHP bacterial infections"],
+              "dosage_feed": "50–75 mg/kg body weight × 10–14 days",
+              "withdrawal_days": 21,
+              "prescription_required": true,
+              "notes": "Broad spectrum; some resistance developing in Vibrio; culture + sensitivity test recommended"
+            }
+          ]
+        },
+
+        "intas_medicines": {
+          "company": "Intas Animal Health",
+
+          "products": [
+            {
+              "product_name": "Intas Aquamox (Amoxicillin)",
+              "type": "Antibiotic — beta-lactam",
+              "active": "Amoxicillin trihydrate",
+              "target_bacteria": ["Streptococcus", "Aeromonas", "Pasteurella"],
+              "use_case": ["Streptococcosis in tilapia/salmon", "Gram-positive infections"],
+              "dosage_feed": "80 mg/kg BW × 10 days",
+              "withdrawal_days": 14,
+              "prescription_required": true
+            }
+          ]
+        },
+
+        "vetoquinol": {
+          "company": "Vetoquinol India Animal Health Pvt. Ltd.",
+          "hq": "France parent",
+          "ap_presence": "MODERATE",
+
+          "products": [
+            {
+              "product_name": "Vetoquinol Sulfatrim Aqua",
+              "type": "Antibiotic — Sulfonamide combination",
+              "active": "Trimethoprim + Sulfadiazine",
+              "target_bacteria": "Broad-spectrum Gram-negative",
+              "use_case": ["Systemic bacterial infections", "Mixed infections"],
+              "dosage_feed": "30 mg/kg BW × 10 days",
+              "withdrawal_days": 14,
+              "prescription_required": true
+            }
+          ]
+        },
+
+        "hester_biosciences": {
+          "company": "Hester Biosciences Limited",
+          "hq": "Ahmedabad",
+          "specialty": "Vaccines and biologicals",
+
+          "products": [
+            {
+              "product_name": "Hester Aqua Shield (Immunostimulant)",
+              "type": "Immunostimulant (non-antibiotic)",
+              "active": "Beta-glucan + Levamisole + Vitamins",
+              "use_case": ["Pre-disease immune boost", "Post-stress recovery", "Routine health management"],
+              "dosage_feed": "5 g/kg feed",
+              "notes": "No withdrawal period; can be used without prescription"
+            }
+          ]
+        }
+      }
+    },
+
+    "disinfectants": {
+      "category_name": "Disinfectants & Pond Sanitizers",
+
+      "brands": {
+
+        "neogen_chemicals": {
+          "company": "Neogen Chemicals Limited",
+          "hq": "Mumbai",
+          "ap_presence": "MODERATE",
+
+          "products": [
+            {
+              "product_name": "Neogen BKC 50%",
+              "type": "Benzalkonium Chloride 50%",
+              "use_case": ["Water disinfection", "Equipment sanitization", "Hatchery biosecurity", "Vibrio control in water"],
+              "dosage_water": "100–200 mL/acre (diluted)",
+              "dosage_equipment": "200 ppm solution × 30 min contact",
+              "caution": "Avoid probiotics for 48h after; toxic to fish at high concentrations — dose carefully"
+            }
+          ]
+        },
+
+        "vinkem_labs": {
+          "company": "Vinkem Labs Pvt. Ltd.",
+          "hq": "Mumbai",
+
+          "products": [
+            {
+              "product_name": "Vinkem Aqua Iodin (Povidone Iodine 10%)",
+              "type": "Iodophor disinfectant",
+              "active": "Povidone Iodine 10%",
+              "use_case": ["Wound/lesion treatment in fish", "Egg disinfection in hatchery", "Equipment surface disinfection", "Bacterial skin infections"],
+              "dosage_bath": "25–50 ppm × 15–30 min",
+              "dosage_surface": "100–200 ppm solution",
+              "notes": "Safe for use on fish; excellent for gill rot and external lesions"
+            }
+          ]
+        },
+
+        "aqua_clean_regional": {
+          "company": "Aqua Clean (Regional AP brands)",
+          "ap_presence": "LOCAL DISTRIBUTION — Godavari, Krishna, Nellore",
+          "note": "Multiple regional brands under 'Aqua Clean' label; widely distributed to small farmers",
+
+          "products": [
+            {
+              "product_name": "Aqua Clean Pond Prep Kit",
+              "type": "Pond preparation chemical set",
+              "contents": ["Chlorine bleaching powder", "Agricultural lime", "Zeolite"],
+              "use_case": ["Between-crop pond preparation", "Disease pond disinfection", "New pond conditioning"],
+              "dosage": "Chlorine 20–30 kg/acre + Lime 200 kg/acre + Zeolite 50 kg/acre",
+              "notes": "Complete pond prep protocol; local AP distribution advantage"
+            },
+            {
+              "product_name": "Aqua Clean BKC 50",
+              "type": "Disinfectant",
+              "dosage_water": "100–200 mL/acre"
+            }
+          ]
+        }
+      }
+    },
+
+    "hatcheries_seed": {
+      "category_name": "Seed / Hatcheries (AP)",
+      "critical_note": "Seed quality determines 50% of crop success — SPF certification and PCR testing are non-negotiable",
+
+      "brands": {
+
+        "avanti_hatcheries": {
+          "company": "Avanti Hatcheries (Avanti Feeds Ltd.)",
+          "locations": "AP coast (West and East Godavari belt)",
+          "species": ["vannamei"],
+          "certifications": ["SPF", "BAP"],
+          "PL_quality": "High; PCR tested for WSSV, EHP, AHPND before sale",
+          "ap_reputation": "EXCELLENT — premium price; high survival track record",
+          "notes": "Integrated with Avanti feed division; technical support included"
+        },
+
+        "cp_hatcheries": {
+          "company": "CP Hatcheries (CP India)",
+          "species": ["vannamei"],
+          "certifications": ["SPF"],
+          "PL_quality": "High; Thai Union genetics",
+          "ap_reputation": "VERY STRONG — consistent quality; popular in intensive farms",
+          "notes": "CP feed + CP seed = common combination in AP intensive farms"
+        },
+
+        "bmr_hatcheries": {
+          "company": "BMR Hatcheries / BMR Industries",
+          "location": "Andhra Pradesh",
+          "species": ["vannamei"],
+          "ap_reputation": "STRONG — local AP brand; good reach in rural zones",
+          "notes": "Major AP-native hatchery; serves mid-level farmers"
+        },
+
+        "sandhya_aqua_hatcheries": {
+          "company": "Sandhya Aqua Hatcheries (Sandhya Marines)",
+          "location": "Andhra Pradesh",
+          "species": ["vannamei", "monodon"],
+          "ap_reputation": "STRONG in monodon segment",
+          "notes": "One of few AP hatcheries producing quality P. monodon PLs"
+        },
+
+        "sapthagiri_hatcheries": {
+          "company": "Sapthagiri Hatcheries",
+          "location": "AP coastal",
+          "species": ["vannamei"],
+          "ap_reputation": "MODERATE — serving small to medium farmers in AP",
+          "notes": "Regional reach; cost-effective option"
+        },
+
+        "sreeram_hatcheries": {
+          "company": "Sreeram Hatcheries",
+          "location": "Andhra Pradesh",
+          "species": ["vannamei"],
+          "ap_reputation": "LOCAL — East Godavari zone",
+          "notes": "Good last-mile reach; village-level distribution"
+        },
+
+        "vallabha_hatcheries": {
+          "company": "Vallabha Hatcheries",
+          "location": "Andhra Pradesh",
+          "species": ["vannamei"],
+          "ap_reputation": "LOCAL — established regional brand"
+        }
+      }
+    }
+  },
+
+  "recommendation_mappings": {
+    "description": "Problem → Category → Best Brand(s) → Product → Dosage → Result",
+    "note": "This is the CORE of the recommendation engine",
+
+    "mappings": [
+      {
+        "problem": "white_gut_syndrome",
+        "keywords": ["white gut", "transparent gut", "empty gut", "no feeding"],
+        "species": ["vannamei", "monodon"],
+        "category": "probiotics",
+        "primary_recommendations": [
+          {
+            "brand": "Growel Formulations",
+            "product": "Growel Gut Pro",
+            "dosage": "10 g/kg feed for 7 days",
+            "expected_result": "Gut color normalizes within 5–7 days",
+            "confidence": "HIGH"
+          },
+          {
+            "brand": "Kemin",
+            "product": "Kemin Clostat Aqua",
+            "dosage": "500g per MT feed",
+            "expected_result": "Vibrio reduction in gut; FCR improvement"
+          }
+        ],
+        "secondary": "Reduce feeding 30%; check water quality (DO, ammonia)"
+      },
+      {
+        "problem": "EMS_AHPND",
+        "keywords": ["early mortality", "mass death first 30 days", "pale hepatopancreas", "shrunken HP"],
+        "species": ["vannamei", "monodon"],
+        "stage": "first_30_days",
+        "emergency_level": "CRITICAL",
+        "category": "emergency",
+        "immediate_actions": [
+          "STOP FEEDING immediately",
+          "Run maximum aeration",
+          "30% water exchange with clean water",
+          "Apply Growel Pond Pro: 2 kg/acre to control Vibrio",
+          "Apply Vitamin C: 500g/acre in water"
+        ],
+        "primary_recommendations": [
+          {
+            "brand": "Growel Formulations",
+            "product": "Growel Gut Pro",
+            "dosage": "10 g/kg feed when feeding resumes",
+            "note": "Stop feed first, resume at 50% after stabilization"
+          },
+          {
+            "brand": "Intas",
+            "product": "Intas Hepatocare Aqua",
+            "dosage": "10 g/kg feed — HP recovery support"
+          }
+        ],
+        "antibiotic_if_severe": {
+          "product": "Florfenicol (Virbac Florvet Aqua)",
+          "dosage": "10–15 mg/kg BW × 10 days",
+          "note": "Requires vet prescription; only if bacterial confirmed"
+        }
+      },
+      {
+        "problem": "soft_loose_shell",
+        "keywords": ["soft shell", "loose shell", "shell not hardening", "post-molt soft", "cannibalism after molt"],
+        "species": ["vannamei", "monodon"],
+        "category": "minerals",
+        "primary_recommendations": [
+          {
+            "brand": "Growel Formulations",
+            "product": "Growel Aqua Mineral (Chelated)",
+            "dosage": "5 kg/acre in water + 10 g/kg in feed",
+            "expected_result": "Shell hardening within 24–48h",
+            "confidence": "HIGH"
+          },
+          {
+            "brand": "Intas",
+            "product": "Intas AquaMins",
+            "dosage": "5 kg/acre + 5 g/kg feed"
+          }
+        ],
+        "ap_context": "Critical in low-salinity zones (Krishna, West Godavari); apply after every molting and post-rain",
+        "water_action": "Check salinity (should be >5 ppt); increase if possible; check alkalinity (target 100–150 mg/L)"
+      },
+      {
+        "problem": "WSSV_white_spot",
+        "keywords": ["white spots on shell", "reddish shrimp", "mass mortality 3-10 days", "WSSV"],
+        "species": ["vannamei", "monodon"],
+        "emergency_level": "CRITICAL — NO CURE",
+        "immediate_actions": [
+          "STOP FEEDING immediately",
+          "Collect 10 moribund shrimp for PCR",
+          "Do NOT drain pond to natural water body",
+          "Run maximum aeration"
+        ],
+        "decision": "If crop age >60 days and >40% ABW target reached → EMERGENCY HARVEST immediately",
+        "biosecurity_lockdown": [
+          "Seal pond — no water movement",
+          "Chlorinate any water release: 30 ppm × 24h contact",
+          "Lime entire pond after drain: 1000 kg/ha CaO"
+        ],
+        "supportive_care_if_early_detection": [
+          {
+            "brand": "Intas",
+            "product": "Intas Aqua Vit-C",
+            "dosage": "500g/acre water + 2 g/kg feed (3000 mg/kg)",
+            "note": "Immune support only; does not kill virus"
+          },
+          {
+            "brand": "Alltech",
+            "product": "Alltech Yea-Sacc",
+            "dosage": "2 kg per MT feed — immune modulation"
+          }
+        ]
+      },
+      {
+        "problem": "high_ammonia",
+        "keywords": ["high ammonia", "TAN high", "ammonia spike", "shrimp not eating", "post-rain ammonia"],
+        "emergency_level": "HIGH",
+        "category": "water_treatment",
+        "immediate_actions": [
+          "STOP or reduce feeding by 50%",
+          "Apply Zeolite: 100 kg/acre immediately",
+          "Run aerators at maximum",
+          "20–30% water exchange if clean source available"
+        ],
+        "primary_recommendations": [
+          {
+            "brand": "Aquatic Remedies",
+            "product": "Zeolite",
+            "dosage": "50–100 kg/acre; repeat in 5–7 days",
+            "expected_result": "Ammonia reduction within 12–24 hours",
+            "confidence": "HIGH"
+          },
+          {
+            "brand": "Growel Formulations",
+            "product": "Growel Pond Pro",
+            "dosage": "2 kg/acre — bacterial degradation of organics",
+            "frequency": "After zeolite application (48h gap)"
+          }
+        ],
+        "ap_context": "Very common post-rain and during summer; AP high-density ponds prone to this"
+      },
+      {
+        "problem": "low_dissolved_oxygen",
+        "keywords": ["DO low", "oxygen crash", "shrimp at surface dawn", "pre-dawn mortality", "aerator problem"],
+        "emergency_level": "CRITICAL",
+        "immediate_actions": [
+          "Run ALL aerators and paddlewheels at maximum IMMEDIATELY",
+          "STOP FEEDING",
+          "Open water exchange if clean source available",
+          "Apply Hydrogen Peroxide 30%: 500 mL/acre in emergency zones",
+          "Remove dead animals immediately"
+        ],
+        "root_causes_to_investigate": ["Dense algae bloom (night DO crash)", "Overfeeding", "High temperature", "Weather change"],
+        "follow_up": {
+          "product": "Growel Pond Pro or Biostadt Terragard-SP",
+          "dosage": "1–2 kg/acre after DO stabilizes",
+          "note": "Reduce organic load that caused DO crash"
+        }
+      },
+      {
+        "problem": "vibriosis_black_spots",
+        "keywords": ["black spots", "tail rot", "shell lesions", "rostrum erosion", "glowing pond at night"],
+        "species": ["vannamei", "monodon"],
+        "category": ["water_treatment", "probiotics", "medicines"],
+        "primary_recommendations": [
+          {
+            "brand": "Growel Formulations",
+            "product": "Growel Pond Pro",
+            "dosage": "2 kg/acre in water column",
+            "note": "Bacillus competition suppresses Vibrio"
+          },
+          {
+            "brand": "Biostadt",
+            "product": "Biostadt Optibact",
+            "dosage": "500g/acre"
+          },
+          {
+            "brand": "Aquatic Remedies",
+            "product": "Aqua BKC",
+            "dosage": "150 mL/acre diluted (if Vibrio count confirmed high)",
+            "caution": "Wait 48h before re-applying probiotics"
+          }
+        ],
+        "antibiotic_if_severe": {
+          "product": "Florfenicol (Virbac Florvet Aqua)",
+          "dosage": "10–15 mg/kg BW × 10 days",
+          "requires": "Vet prescription + bacterial culture sensitivity test"
+        },
+        "water_actions": ["Reduce feeding 30%", "30% water exchange", "Increase aeration", "Check DO and temperature"]
+      },
+      {
+        "problem": "slow_growth_EHP",
+        "keywords": ["slow growth", "stunted growth", "high size variation", "poor FCR no disease", "EHP"],
+        "species": ["vannamei", "monodon"],
+        "category": "management",
+        "note": "No effective treatment — management focus",
+        "recommendations": [
+          "PCR test immediately to confirm EHP",
+          "If confirmed EHP: evaluate early partial harvest of larger animals",
+          "Increase Vitamin C in feed: 2–3 g/kg",
+          "Use Kemin Clostat + Growel Gut Pro for gut health",
+          "Plan thorough pond drying and CaO liming for next crop",
+          "Source PCR-negative PLs for next cycle from Avanti or CP hatcheries"
+        ]
+      },
+      {
+        "problem": "streptococcosis_tilapia",
+        "keywords": ["popeye", "bulging eye", "spinning tilapia", "erratic swimming", "eye hemorrhage tilapia"],
+        "species": ["tilapia"],
+        "emergency_level": "HIGH",
+        "category": "medicines",
+        "immediate_actions": ["Reduce stocking density if possible", "Reduce feeding", "Increase aeration"],
+        "primary_recommendations": [
+          {
+            "brand": "Virbac",
+            "product": "Virbac Florvet Aqua (Florfenicol)",
+            "dosage": "10–15 mg/kg BW × 10 days in medicated feed",
+            "requires": "Vet prescription",
+            "expected_result": "Mortality stops within 3–5 days; recovery in 7–10 days"
+          },
+          {
+            "brand": "Intas",
+            "product": "Intas Aquamox (Amoxicillin)",
+            "dosage": "80 mg/kg BW × 10 days",
+            "alternative": true
+          }
+        ],
+        "supportive": {
+          "product": "Intas Aqua Vit-C",
+          "dosage": "2 g/kg feed — immune support during treatment"
+        }
+      },
+      {
+        "problem": "aeromonas_ulcers_fish",
+        "keywords": ["ulcers on fish", "bloody skin", "scale loss", "popeye fish", "red lesions fish", "swollen belly fish"],
+        "species": ["tilapia", "catfish", "rohu", "catla"],
+        "emergency_level": "HIGH",
+        "primary_recommendations": [
+          {
+            "brand": "Virbac",
+            "product": "Virbac Florvet Aqua (Florfenicol)",
+            "dosage": "10–15 mg/kg BW × 10–14 days"
+          },
+          {
+            "brand": "Aquatic Remedies",
+            "product": "Potassium Permanganate",
+            "dosage": "10–20 ppm bath × 30 min — external lesion treatment",
+            "type": "supportive external treatment"
+          },
+          {
+            "brand": "Vinkem",
+            "product": "Aqua Iodin (Povidone Iodine)",
+            "dosage": "25–50 ppm bath × 20 min for severe skin lesions"
+          }
+        ],
+        "water_actions": ["Partial water exchange 30%", "Increase aeration", "Remove dead fish immediately"]
+      },
+      {
+        "problem": "ich_white_spot_fish",
+        "keywords": ["white spots fish", "fish rubbing sides", "flashing fish", "salt grain spots", "milky skin fish"],
+        "species": ["tilapia", "catfish", "carp", "rohu"],
+        "category": "water_treatment",
+        "primary_recommendations": [
+          {
+            "brand": "Aquatic Remedies",
+            "product": "Potassium Permanganate (KMnO₄)",
+            "dosage": "10–20 ppm bath × 30 min; repeat every 48h × 3 cycles",
+            "expected_result": "Reduction within 3–7 days (free-swimming stage killed)"
+          },
+          {
+            "action": "Salt (NaCl) application",
+            "dosage": "3–5 g/L × 5–7 days continuous",
+            "note": "Safe; effective for freshwater species"
+          }
+        ],
+        "temperature_management": "Raise temperature to >28°C if possible to accelerate life cycle → faster kill of theronts"
+      },
+      {
+        "problem": "poor_FCR",
+        "keywords": ["high FCR", "poor feed conversion", "low growth despite good feeding", "feed wastage"],
+        "category": "diagnostics_then_products",
+        "diagnosis_checklist": [
+          "Check feed tray residue — overfeeding?",
+          "Check water quality DO, ammonia, pH",
+          "Check ABW trend — disease suppressing growth?",
+          "Check feed storage quality — mold/mycotoxins?",
+          "Check pellet size match to shrimp size"
+        ],
+        "product_solutions": [
+          {
+            "brand": "Kemin",
+            "product": "KEMZYME Aqua",
+            "dosage": "500g/MT feed — enzyme boost for digestibility",
+            "expected_result": "FCR improvement 0.1–0.2 units"
+          },
+          {
+            "brand": "Growel Agrovet",
+            "product": "Growel Growlive Forte",
+            "dosage": "5–10 g/kg feed — liver + digestive optimization",
+            "expected_result": "Better nutrient absorption; FCR improvement"
+          },
+          {
+            "brand": "Growel Agrovet",
+            "product": "Growel Toxin Binder",
+            "dosage": "2–3 kg/MT feed — if feed quality/storage suspect",
+            "note": "AP monsoon season priority"
+          },
+          {
+            "brand": "Alltech",
+            "product": "Alltech Yea-Sacc",
+            "dosage": "2 kg/MT feed — gut microbiome + FCR"
+          }
+        ]
+      }
+    ]
+  },
+
+  "ap_seasonal_calendar": {
+    "description": "Andhra Pradesh aquaculture seasonal product use guide",
+    "seasons": [
+      {
+        "season": "Summer (March–June)",
+        "temp_range": "30–38°C",
+        "key_risks": ["Low DO (night crash)", "High Vibrio load", "Ammonia spike", "Algae crash"],
+        "priority_products": [
+          "Zeolite (ammonia control) — apply weekly",
+          "Growel Pond Pro (Vibrio competition)",
+          "Vitamin C in feed (2 g/kg) — heat stress management",
+          "Run aerators 24/7 — DO priority",
+          "Reduce feeding 20–30% during peak heat"
+        ]
+      },
+      {
+        "season": "Pre-Monsoon / Monsoon (June–September)",
+        "temp_range": "26–32°C",
+        "key_risks": ["pH crash after rain", "Salinity dilution", "Mineral crash", "WSSV trigger", "Loose shell"],
+        "priority_products": [
+          "Agricultural lime: 50 kg/acre after every rain",
+          "Growel Aqua Mineral / Intas AquaMins: after rain",
+          "Vitamin C: 2–3 g/kg feed",
+          "Growel Toxin Binder in feed (feed storage quality risk)",
+          "Monitor water color daily — algae bloom instability"
+        ]
+      },
+      {
+        "season": "Post-Monsoon (October–November)",
+        "temp_range": "24–30°C",
+        "key_risks": ["Water recovery", "WSSV (temp drops)", "Low salinity lingering", "Nutrient depletion"],
+        "priority_products": [
+          "Pond stabilization probiotics",
+          "Mineral supplementation — salinity recovery",
+          "Increase feed to FCR target (good growth season)",
+          "WSSV vigilance — cold nights"
+        ]
+      },
+      {
+        "season": "Winter (December–February)",
+        "temp_range": "18–26°C",
+        "key_risks": ["Low temperature stress (vannamei <23°C)", "WSSV risk (low temp)", "Reduced growth / feeding"],
+        "priority_products": [
+          "Reduce feeding rate 30–50% at <23°C",
+          "Vitamin C + Vitamin E — cold stress",
+          "Consider harvest if reaching target weight before deep winter",
+          "WSSV monitoring — cold snap = risk"
+        ]
+      }
+    ]
+  }
+}

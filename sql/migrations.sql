@@ -1,5 +1,5 @@
 -- ============================================================
--- Aquorix MVP — Database Schema
+-- Aquorix v2 — Database Schema (Progressive Collection)
 -- Run this in your Supabase SQL Editor to set up all tables
 -- ============================================================
 
@@ -9,64 +9,70 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- ========================
 -- FARMERS TABLE
 -- ========================
+-- Simplified: no name on Day 1, collected progressively
 CREATE TABLE IF NOT EXISTS farmers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT,
   phone TEXT UNIQUE NOT NULL,
-  location TEXT,
+  name TEXT,                                    -- collected later (progressive)
+  village TEXT,                                 -- collected during onboarding
+  farm_type TEXT,                               -- 'shrimp' | 'fish' | 'both'
   preferred_language TEXT DEFAULT 'English',
-  registration_complete BOOLEAN DEFAULT false,
+  pond_count INTEGER DEFAULT 1,
+  current_problem TEXT,                         -- what they want help with today
+  onboarding_complete BOOLEAN DEFAULT false,
+  onboarding_day INTEGER DEFAULT 0,            -- tracks progressive day (1-7+)
+  last_checkin_date DATE,                       -- last daily check-in date
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- ========================
--- FARMS TABLE
+-- PONDS TABLE
 -- ========================
-CREATE TABLE IF NOT EXISTS farms (
+-- One row per pond. Replaces old 'farms' table.
+CREATE TABLE IF NOT EXISTS ponds (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   farmer_id UUID REFERENCES farmers(id) ON DELETE CASCADE,
-  pond_size TEXT,
-  number_of_ponds INTEGER DEFAULT 1,
-  species TEXT,
-  stocking_date DATE,
-  pl_count INTEGER,
-  aerators INTEGER DEFAULT 0,
+  pond_number INTEGER DEFAULT 1,
+  species TEXT,                                 -- 'vannamei' | 'tiger_shrimp' | 'tilapia' | 'rohu' | 'catla' | 'other'
+  stocking_date TEXT,                           -- approximate: 'this_week' | 'this_month' | '1_2_months' | '3_plus_months'
+  pond_size TEXT,                               -- 'less_than_1_acre' | '1_3_acres' | 'more_than_3_acres'
+  -- Progressive data (collected over weeks/months):
+  feed_brand TEXT,
+  feed_frequency INTEGER,                       -- times per day
+  water_source TEXT,
+  aerator_count INTEGER,
+  aerator_hours DECIMAL,
+  seed_supplier TEXT,
+  seed_count INTEGER,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- ========================
--- DAILY POND DATA TABLE
+-- POND LOGS TABLE
 -- ========================
-CREATE TABLE IF NOT EXISTS daily_pond_data (
+-- Flexible log storage. Replaces daily_pond_data + growth_data.
+-- Each log belongs to a group: 'feed', 'water', 'health', 'weekly', 'event'
+CREATE TABLE IF NOT EXISTS pond_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  farm_id UUID REFERENCES farms(id) ON DELETE CASCADE,
-  date DATE DEFAULT CURRENT_DATE,
-  dissolved_oxygen DECIMAL,
-  ph DECIMAL,
-  feed_amount DECIMAL,
-  temperature DECIMAL,
+  pond_id UUID REFERENCES ponds(id) ON DELETE CASCADE,
+  log_group TEXT NOT NULL,                      -- 'feed' | 'water' | 'health' | 'weekly' | 'event'
+  log_data JSONB NOT NULL DEFAULT '{}',         -- flexible: {feed_kg: '10-30', feed_times: 3, ...}
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- ========================
--- GROWTH DATA TABLE (weekly sampling)
+-- POND HEALTH SCORES TABLE
 -- ========================
-CREATE TABLE IF NOT EXISTS growth_data (
+CREATE TABLE IF NOT EXISTS pond_health_scores (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  farm_id UUID REFERENCES farms(id) ON DELETE CASCADE,
-  date DATE DEFAULT CURRENT_DATE,
-  avg_weight DECIMAL,
-  survival_rate FLOAT,      -- Estimated %
-  water_color TEXT,         -- Description
-  ammonia FLOAT,            -- mg/L
-  nitrite FLOAT,            -- mg/L
-  alkalinity FLOAT,         -- ppm
-  hardness FLOAT,           -- ppm
+  pond_id UUID REFERENCES ponds(id) ON DELETE CASCADE,
+  score TEXT NOT NULL DEFAULT 'green',           -- 'green' | 'yellow' | 'red'
+  factors JSONB NOT NULL DEFAULT '{}',           -- {feed: 'green', water: 'yellow', ...}
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- ========================
--- CHAT HISTORY TABLE
+-- CHAT HISTORY TABLE (unchanged)
 -- ========================
 CREATE TABLE IF NOT EXISTS chat_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -78,7 +84,7 @@ CREATE TABLE IF NOT EXISTS chat_history (
 );
 
 -- ========================
--- KNOWLEDGE EMBEDDINGS TABLE (for RAG)
+-- KNOWLEDGE EMBEDDINGS TABLE (unchanged)
 -- ========================
 CREATE TABLE IF NOT EXISTS knowledge_embeddings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -88,12 +94,8 @@ CREATE TABLE IF NOT EXISTS knowledge_embeddings (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Note: We are not creating an ivfflat index here because pgvector's ivfflat
--- is limited to 2000 dimensions, and our Gemini embeddings are 3072.
--- For a typical MVP knowledge base, exact search (sequential scan) is very fast.
-
 -- ========================
--- SIMILARITY SEARCH FUNCTION
+-- SIMILARITY SEARCH FUNCTION (unchanged)
 -- ========================
 CREATE OR REPLACE FUNCTION match_knowledge(
   query_embedding vector(3072),
@@ -126,16 +128,32 @@ $$;
 -- ROW LEVEL SECURITY
 -- ========================
 ALTER TABLE farmers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE farms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE daily_pond_data ENABLE ROW LEVEL SECURITY;
-ALTER TABLE growth_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ponds ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pond_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pond_health_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE knowledge_embeddings ENABLE ROW LEVEL SECURITY;
 
 -- Allow service role full access (the backend uses service role key)
 CREATE POLICY "Service role full access" ON farmers FOR ALL USING (true);
-CREATE POLICY "Service role full access" ON farms FOR ALL USING (true);
-CREATE POLICY "Service role full access" ON daily_pond_data FOR ALL USING (true);
-CREATE POLICY "Service role full access" ON growth_data FOR ALL USING (true);
+CREATE POLICY "Service role full access" ON ponds FOR ALL USING (true);
+CREATE POLICY "Service role full access" ON pond_logs FOR ALL USING (true);
+CREATE POLICY "Service role full access" ON pond_health_scores FOR ALL USING (true);
 CREATE POLICY "Service role full access" ON chat_history FOR ALL USING (true);
 CREATE POLICY "Service role full access" ON knowledge_embeddings FOR ALL USING (true);
+
+-- ========================
+-- SCHEDULED FOLLOW-UPS TABLE
+-- ========================
+CREATE TABLE IF NOT EXISTS scheduled_followups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  farmer_id UUID REFERENCES farmers(id) ON DELETE CASCADE,
+  pond_id UUID REFERENCES ponds(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,
+  followup_date DATE NOT NULL,
+  status TEXT DEFAULT 'pending', -- 'pending' or 'completed'
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE scheduled_followups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON scheduled_followups FOR ALL USING (true);

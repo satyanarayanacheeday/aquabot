@@ -1,47 +1,46 @@
 const ai = require('../config/gemini');
 const SYSTEM_PROMPT = require('../prompts/systemPrompt');
-const { getFirstFarmByFarmer, getRecentDailyData, getRecentGrowthData } = require('../models/database');
+const { getFirstPondByFarmer, getRecentPondLogs, getLatestHealthScore } = require('../models/database');
 const { getWeather } = require('./weather');
 
 /**
- * Generate a personalized daily advisory for a farmer
+ * Generate a personalized daily advisory for a farmer.
+ * Uses auto-collected weather + recent pond data + health score.
  */
-async function generateAdvisory(farmerId, farmerLocation, preferredLanguage = 'English') {
+async function generateAdvisory(farmerId, farmerVillage, preferredLanguage = 'English') {
   try {
-    // 1. Get farm info
-    const farm = await getFirstFarmByFarmer(farmerId);
-    if (!farm) return null;
+    // 1. Get pond info
+    const pond = await getFirstPondByFarmer(farmerId);
+    if (!pond) return null;
 
-    // 2. Get recent pond data
-    const recentDaily = await getRecentDailyData(farm.id, 7);
-    const recentGrowth = await getRecentGrowthData(farm.id, 2);
+    // 2. Get recent pond logs
+    const recentLogs = await getRecentPondLogs(pond.id, null, 10);
 
-    // 3. Get weather
-    const weather = await getWeather(farmerLocation);
+    // 3. Get health score
+    const healthScore = await getLatestHealthScore(pond.id);
 
-    // 4. Build context
+    // 4. Get weather (auto-collected, never ask farmer)
+    const weather = await getWeather(farmerVillage);
+
+    // 5. Build context
     let context = `Generate a brief daily advisory for this farmer's pond.\n\n`;
-    context += `## Farm Profile:\n`;
-    context += `- Species: ${farm.species}\n`;
-    context += `- Pond Size: ${farm.pond_size}\n`;
-    context += `- Number of Ponds: ${farm.number_of_ponds}\n`;
-    context += `- Stocking Date: ${farm.stocking_date}\n`;
-    context += `- PL Count: ${farm.pl_count}\n`;
+    context += `## Pond Profile:\n`;
+    context += `- Species: ${pond.species}\n`;
+    context += `- Pond Size: ${pond.pond_size}\n`;
+    context += `- Stocking: ${pond.stocking_date}\n`;
 
-    if (recentDaily.length > 0) {
-      context += `\n## Recent Daily Data (last ${recentDaily.length} entries):\n`;
-      recentDaily.forEach(d => {
-        context += `- ${d.date}: DO=${d.dissolved_oxygen} mg/L, pH=${d.ph}, Feed=${d.feed_amount}kg\n`;
+    if (recentLogs.length > 0) {
+      context += `\n## Recent Pond Data (last ${recentLogs.length} entries):\n`;
+      recentLogs.forEach(log => {
+        context += `- [${log.log_group}] ${new Date(log.created_at).toLocaleDateString()}: ${JSON.stringify(log.log_data)}\n`;
       });
     } else {
-      context += `\n(No recent daily data available)\n`;
+      context += `\n(No recent data. Encourage the farmer to do a check-in.)\n`;
     }
 
-    if (recentGrowth.length > 0) {
-      context += `\n## Recent Growth Data:\n`;
-      recentGrowth.forEach(g => {
-        context += `- ${g.date}: Weight=${g.avg_weight}g, Survival=${g.survival_rate}%, Water=${g.water_color}\n`;
-      });
+    if (healthScore) {
+      context += `\n## Pond Health Score: ${healthScore.score.toUpperCase()}\n`;
+      context += `Factors: ${JSON.stringify(healthScore.factors)}\n`;
     }
 
     if (weather) {
@@ -53,21 +52,22 @@ async function generateAdvisory(farmerId, farmerLocation, preferredLanguage = 'E
       context += `- Wind: ${weather.windSpeed} m/s\n`;
     }
 
-    context += `\nProvide a concise daily advisory (max 150 words) formatted for WhatsApp with emojis. Include:
-1. Key observation from data
-2. Weather impact on pond
-3. 2-3 specific action items for today
-4. One encouraging note`;
+    context += `\nProvide a concise daily advisory (max 100 words) formatted for WhatsApp with emojis. Include:
+1. One key observation from data or weather
+2. 2 specific action items for today
+3. One encouraging note
+Do NOT ask the farmer about weather — you already have it.`;
 
-    const langInstruction = `\n\n## Language Constraints\nYou MUST reply in **${preferredLanguage}**. Use casual, communicative language. Do NOT use overly deep, formal, or complex literary vocabulary.`;
+    const langInstruction = `\n\n## Language\nReply in **${preferredLanguage}**. Casual, communicative language.`;
 
-    // 5. Call Gemini
+    // 6. Call Gemini
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [{ role: 'user', parts: [{ text: context + langInstruction }] }],
       config: {
         systemInstruction: SYSTEM_PROMPT,
         temperature: 0.7,
+        maxOutputTokens: 300,
       }
     });
 

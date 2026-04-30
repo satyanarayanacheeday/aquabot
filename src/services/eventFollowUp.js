@@ -1,0 +1,412 @@
+const { sendTextMessage, sendButtonMessage } = require('./whatsapp');
+const { getFirstPondByFarmer, insertPondLog } = require('../models/database');
+const { setState, getState, clearState, updateStateData } = require('../state/conversationState');
+const { answerQuestion } = require('./ai');
+
+/**
+ * Event-Based Follow-Up
+ *
+ * Triggered ONLY when the farmer reports a problem (we never ask first).
+ * Dynamic question trees based on the problem type.
+ *
+ * Supported events:
+ *  - mortality: "How many died?", "Since when?", "Red body/white spots?", etc.
+ *  - slow_growth: "Feed?", "Pond color?", "White gut?", "Water test?"
+ *  - disease: "What symptoms?", "How many affected?", "When started?"
+ */
+
+// ========================
+// EVENT TREES
+// ========================
+
+const EVENT_TREES = {
+  mortality: {
+    label: 'Mortality Report',
+    steps: [
+      {
+        key: 'how_many',
+        prompt: '💀 How many died?',
+        buttons: [
+          { id: 'mort_few', title: '1–10' },
+          { id: 'mort_some', title: '10–50' },
+          { id: 'mort_many', title: 'More than 50' },
+        ],
+        parseButton: (input) => {
+          if (input.includes('1') && input.includes('10') || input === 'mort_few' || input.includes('few')) return '1-10';
+          if (input.includes('10') && input.includes('50') || input === 'mort_some') return '10-50';
+          if (input.includes('more') || input.includes('50') || input === 'mort_many') return '50+';
+          return null;
+        },
+      },
+      {
+        key: 'since_when',
+        prompt: '📅 Since when?',
+        buttons: [
+          { id: 'mort_today', title: 'Today' },
+          { id: 'mort_yesterday', title: 'Yesterday' },
+          { id: 'mort_days', title: '2-3 days' },
+        ],
+        parseButton: (input) => {
+          if (input.includes('today') || input === 'mort_today') return 'today';
+          if (input.includes('yesterday') || input === 'mort_yesterday') return 'yesterday';
+          if (input.includes('2') || input.includes('3') || input.includes('day') || input === 'mort_days') return '2-3_days';
+          if (input.includes('week') || input === 'mort_week') return 'this_week';
+          return null;
+        },
+      },
+      {
+        key: 'water_smell',
+        prompt: '👃 Any unusual water smell?',
+        buttons: [
+          { id: 'mort_smell_no', title: 'No' },
+          { id: 'mort_smell_yes', title: 'Yes' },
+        ],
+        parseButton: (input) => {
+          if (input === 'no' || input === 'mort_smell_no') return 'no';
+          if (input === 'yes' || input === 'mort_smell_yes') return 'yes';
+          return null;
+        },
+      },
+      {
+        key: 'body_signs',
+        prompt: '🔍 Any visible signs on the body?',
+        buttons: [
+          { id: 'mort_sign_none', title: 'No signs' },
+          { id: 'mort_sign_red', title: 'Red body' },
+          { id: 'mort_sign_white', title: 'White spots' },
+        ],
+        parseButton: (input) => {
+          if (input === 'no' || input.includes('no sign') || input === 'mort_sign_none') return 'none';
+          if (input.includes('red') || input === 'mort_sign_red') return 'red_body';
+          if (input.includes('white') || input.includes('spot') || input === 'mort_sign_white') return 'white_spots';
+          if (input.includes('both') || input === 'mort_sign_both') return 'both';
+          return null;
+        },
+      },
+    ],
+  },
+
+  slow_growth: {
+    label: 'Slow Growth Investigation',
+    steps: [
+      {
+        key: 'feed_type',
+        prompt: '🍽️ What feed are you using?',
+        type: 'text',
+        validate: (v) => v && v.trim().length >= 2,
+        errorMsg: 'Please type the feed brand/type name.',
+      },
+      {
+        key: 'pond_color',
+        prompt: '🎨 What is the pond water color?',
+        buttons: [
+          { id: 'sg_green', title: 'Green' },
+          { id: 'sg_dark', title: 'Dark green' },
+          { id: 'sg_brown', title: 'Brown/Black' },
+        ],
+        parseButton: (input) => {
+          if (input.includes('green') && !input.includes('dark') || input === 'sg_green') return 'green';
+          if (input.includes('dark') || input === 'sg_dark') return 'dark_green';
+          if (input.includes('brown') || input.includes('black') || input === 'sg_brown') return 'brown_black';
+          return null;
+        },
+      },
+      {
+        key: 'white_gut',
+        prompt: '🔬 Any white gut/feces signs?',
+        buttons: [
+          { id: 'sg_gut_no', title: 'No' },
+          { id: 'sg_gut_yes', title: 'Yes' },
+          { id: 'sg_gut_unsure', title: 'Not sure' },
+        ],
+        parseButton: (input) => {
+          if (input === 'no' || input === 'sg_gut_no') return 'no';
+          if (input === 'yes' || input === 'sg_gut_yes') return 'yes';
+          if (input.includes('not sure') || input === 'sg_gut_unsure') return 'not_sure';
+          return null;
+        },
+      },
+    ],
+  },
+
+  disease: {
+    label: 'Disease Investigation',
+    steps: [
+      {
+        key: 'symptoms',
+        prompt: '🔬 What symptoms do you see?',
+        buttons: [
+          { id: 'dis_spots', title: 'White spots' },
+          { id: 'dis_red', title: 'Red body/gills' },
+          { id: 'dis_other', title: 'Other' },
+        ],
+        parseButton: (input) => {
+          if (input.includes('white') || input.includes('spot') || input === 'dis_spots') return 'white_spots';
+          if (input.includes('red') || input === 'dis_red') return 'red_body';
+          if (input.includes('other') || input === 'dis_other') return 'other';
+          if (input.includes('gut') || input.includes('feces')) return 'white_gut';
+          return null;
+        },
+      },
+      {
+        key: 'how_many_affected',
+        prompt: '📊 How many are affected?',
+        buttons: [
+          { id: 'dis_few', title: 'A few' },
+          { id: 'dis_many', title: 'Many' },
+          { id: 'dis_most', title: 'Most/All' },
+        ],
+        parseButton: (input) => {
+          if (input.includes('few') || input === 'dis_few') return 'a_few';
+          if (input.includes('many') || input === 'dis_many') return 'many';
+          if (input.includes('most') || input.includes('all') || input === 'dis_most') return 'most';
+          return null;
+        },
+      },
+      {
+        key: 'when_started',
+        prompt: '📅 When did you first notice?',
+        buttons: [
+          { id: 'dis_today', title: 'Today' },
+          { id: 'dis_days', title: '2-3 days ago' },
+          { id: 'dis_week', title: 'This week' },
+        ],
+        parseButton: (input) => {
+          if (input.includes('today') || input === 'dis_today') return 'today';
+          if (input.includes('2') || input.includes('3') || input === 'dis_days') return '2-3_days';
+          if (input.includes('week') || input === 'dis_week') return 'this_week';
+          return null;
+        },
+      },
+    ],
+  },
+};
+
+// ========================
+// START EVENT FOLLOW-UP
+// ========================
+
+async function startEventFollowUp(phone, farmerId, eventType) {
+  const tree = EVENT_TREES[eventType];
+  if (!tree) return false;
+
+  const pond = await getFirstPondByFarmer(farmerId);
+
+  setState(phone, {
+    flow: 'event_followup',
+    step: 0,
+    data: {},
+    farmerId,
+    pondId: pond ? pond.id : null,
+    eventType,
+  });
+
+  await sendTextMessage(phone,
+    `📋 *${tree.label}*\n\nLet me ask a few quick questions so I can help you better.`
+  );
+
+  await askEventQuestion(phone);
+  return true;
+}
+
+// ========================
+// HANDLE STEP
+// ========================
+
+async function handleEventStep(phone, message) {
+  const state = getState(phone);
+  if (!state || state.flow !== 'event_followup') return false;
+
+  const tree = EVENT_TREES[state.eventType];
+  if (!tree) return false;
+
+  const stepIndex = state.step;
+  if (stepIndex >= tree.steps.length) return false;
+
+  const stepDef = tree.steps[stepIndex];
+  const input = message.toLowerCase().trim();
+
+  // Handle free text step
+  if (stepDef.type === 'text') {
+    if (!stepDef.validate(message)) {
+      await sendTextMessage(phone, stepDef.errorMsg);
+      return true;
+    }
+    updateStateData(phone, { [stepDef.key]: message.trim() });
+  } else {
+    const value = stepDef.parseButton(input);
+    if (!value) {
+      await askEventQuestion(phone);
+      return true;
+    }
+    updateStateData(phone, { [stepDef.key]: value });
+  }
+
+  const updatedState = getState(phone);
+  if (updatedState.step >= tree.steps.length) {
+    await finalizeEvent(phone);
+    return true;
+  }
+
+  await askEventQuestion(phone);
+  return true;
+}
+
+// ========================
+// ASK QUESTION
+// ========================
+
+async function askEventQuestion(phone) {
+  const state = getState(phone);
+  const tree = EVENT_TREES[state.eventType];
+  const stepIndex = state.step;
+
+  if (stepIndex >= tree.steps.length) return;
+
+  const stepDef = tree.steps[stepIndex];
+  if (stepDef.type === 'text') {
+    await sendTextMessage(phone, stepDef.prompt);
+  } else {
+    await sendButtonMessage(phone, stepDef.prompt, stepDef.buttons);
+  }
+}
+
+// ========================
+// FINALIZE — Send collected data to AI for diagnosis
+// ========================
+
+async function finalizeEvent(phone) {
+  const state = getState(phone);
+  const data = state.data;
+  const tree = EVENT_TREES[state.eventType];
+  const { scheduleFollowUp } = require('../models/database');
+
+  // Save to pond_logs
+
+  if (state.pondId) {
+    try {
+      await insertPondLog({
+        pond_id: state.pondId,
+        log_group: 'event',
+        log_data: { event_type: state.eventType, ...data },
+      });
+    } catch (err) {
+      console.warn('⚠️ Could not save event log:', err.message);
+    }
+  }
+
+  // Schedule follow-up
+  if (state.pondId) {
+    try {
+      let daysToAdd = 1; // Default to 1 day for mortality and disease
+      if (state.eventType === 'slow_growth') {
+        daysToAdd = 2;
+      }
+      
+      const followUpDate = new Date();
+      followUpDate.setDate(followUpDate.getDate() + daysToAdd);
+      const dateStr = followUpDate.toISOString().split('T')[0];
+      
+      await scheduleFollowUp(state.farmerId, state.pondId, state.eventType, dateStr);
+      console.log(`📅 Scheduled proactive follow-up for ${state.eventType} on ${dateStr}`);
+    } catch (err) {
+      console.warn('⚠️ Could not schedule follow-up:', err.message);
+    }
+  }
+
+  // Build context for AI
+  let context = `The farmer is reporting a problem: ${tree.label}\n\n`;
+  context += `Collected information:\n`;
+  for (const [key, value] of Object.entries(data)) {
+    context += `- ${key.replace(/_/g, ' ')}: ${value}\n`;
+  }
+  context += `\nBased on this information, provide:\n`;
+  context += `1. What this most likely indicates\n`;
+  context += `2. Immediate actions to take (2-3 steps)\n`;
+  context += `3. Whether they should consult an expert\n\n`;
+  context += `Keep it concise (max 150 words), practical, and formatted for WhatsApp.`;
+
+  clearState(phone);
+
+  // Send thinking message
+  await sendTextMessage(phone, '🔍 Analyzing your situation...');
+
+  // Get AI diagnosis
+  try {
+    const diagnosis = await answerQuestion(context, state.farmerId);
+    await sendTextMessage(phone, `📋 *${tree.label} — Assessment*\n\n${diagnosis}`);
+  } catch (err) {
+    console.error('❌ Event AI analysis failed:', err.message);
+    await sendTextMessage(phone,
+      `Based on what you've described, here are immediate steps:\n\n` +
+      getDefaultEventAdvice(state.eventType, data) +
+      `\n\n⚠️ *Please consult a local aquaculture expert for proper diagnosis.*`
+    );
+  }
+}
+
+// ========================
+// DEFAULT ADVICE (fallback if AI fails)
+// ========================
+
+function getDefaultEventAdvice(eventType, data) {
+  if (eventType === 'mortality') {
+    let advice = '1. Check water quality immediately (DO, pH, ammonia)\n';
+    advice += '2. Increase aeration to maximum\n';
+    advice += '3. Reduce or stop feeding for 24 hours\n';
+    if (data.body_signs === 'white_spots') advice += '4. 🚨 White spots suggest WSSV — consider emergency harvest\n';
+    if (data.body_signs === 'red_body') advice += '4. Red body suggests Vibriosis — apply probiotics\n';
+    return advice;
+  }
+  if (eventType === 'slow_growth') {
+    let advice = '1. Check feed quality and ensure proper feeding rate\n';
+    advice += '2. Monitor water quality (DO > 5, pH 7.5-8.5)\n';
+    advice += '3. Check for parasites or disease signs\n';
+    if (data.white_gut === 'yes') advice += '4. White gut may indicate EHP — reduce feed by 30-50%\n';
+    return advice;
+  }
+  if (eventType === 'disease') {
+    let advice = '1. Isolate affected animals if possible\n';
+    advice += '2. Maintain water quality and increase aeration\n';
+    advice += '3. Send a photo for better analysis\n';
+    return advice;
+  }
+  return '1. Monitor closely\n2. Maintain water quality\n3. Consult an expert';
+}
+
+/**
+ * Detect if a message indicates a problem event
+ * Returns the event type or null
+ */
+function detectEventType(text) {
+  const lower = text.toLowerCase();
+
+  // Mortality triggers
+  if (lower.includes('died') || lower.includes('dead') || lower.includes('mortality') ||
+      lower.includes('dying') || lower.includes('death') || lower.includes('lost')) {
+    return 'mortality';
+  }
+
+  // Slow growth triggers
+  if (lower.includes('slow growth') || lower.includes('not growing') ||
+      lower.includes('growing slow') || lower.includes('no growth') ||
+      lower.includes('small size') || lower.includes('low weight')) {
+    return 'slow_growth';
+  }
+
+  // Disease triggers
+  if (lower.includes('disease') || lower.includes('white spot') || lower.includes('red body') ||
+      lower.includes('white gut') || lower.includes('infection') ||
+      lower.includes('sick') || lower.includes('unhealthy')) {
+    return 'disease';
+  }
+
+  return null;
+}
+
+module.exports = {
+  startEventFollowUp,
+  handleEventStep,
+  detectEventType,
+  EVENT_TREES,
+};

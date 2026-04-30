@@ -1,23 +1,21 @@
 const ai = require('../config/gemini');
 const SYSTEM_PROMPT = require('../prompts/systemPrompt');
-const { searchKnowledge, getRecentChats, getRecentDailyData, getFirstFarmByFarmer, getFarmerById } = require('../models/database');
+const { searchKnowledge, getRecentChats, getFirstPondByFarmer, getFarmerById, getRecentPondLogs, getLatestHealthScore } = require('../models/database');
 const { getWeather } = require('./weather');
+const { getRecommendations } = require('./recommendation');
 
 /**
  * Generate an embedding for a given text
  */
 async function generateEmbedding(text) {
   try {
-    console.log('generateEmbedding: Calling ai.models.embedContent (text-embedding-004)');
     const response = await ai.models.embedContent({
       model: 'text-embedding-004',
       contents: text
     });
-    console.log('generateEmbedding: Success');
     return response.embedding.values;
   } catch (error) {
     console.error('⚠️ Embedding generation failed:', error.message);
-    // Don't throw, return null to allow partial RAG fallback
     return null;
   }
 }
@@ -27,73 +25,90 @@ async function generateEmbedding(text) {
  */
 async function answerQuestion(question, farmerId, preferredLanguage = 'English') {
   try {
-    // 1. Generate embedding for the question
-    console.log('Step 3: Generating embedding');
+    // 1. Generate embedding & search knowledge base
     const embedding = await generateEmbedding(question);
-
-    // 2. Search knowledge base for relevant context
     let knowledgeContext = '';
     if (embedding) {
-      console.log('Step 2: Searching knowledge base');
       try {
-        const matches = await searchKnowledge(embedding, 3, 0.4); // slightly lower threshold
+        const matches = await searchKnowledge(embedding, 3, 0.4);
         if (matches.length > 0) {
           knowledgeContext = '\n\n## Relevant Knowledge Base:\n' +
             matches.map(m => `- ${m.content}`).join('\n');
-          console.log(`   [AI LOG] Step 2: Found ${matches.length} matches`);
-        } else {
-          console.log('Step 2: No knowledge matches found');
         }
       } catch (err) {
         console.warn('⚠️ Knowledge search failed:', err.message);
       }
-    } else {
-      console.log('Step 2: Skipping knowledge search (no embedding)');
     }
 
-    // 3. Get farmer and farm context
+    // 2. Get farmer and pond context
     let farmContext = '';
     let weatherContext = '';
+    let healthContext = '';
+    let recommendationContext = '';
+
     try {
       const farmerData = await getFarmerById(farmerId);
-      if (farmerData && farmerData.location) {
-        console.log(`Step 3: Fetching weather for ${farmerData.location}`);
-        const weather = await getWeather(farmerData.location);
-        if (weather) {
-          weatherContext = `\n\n## 🌍 CURRENT WEATHER (REAL-TIME):\n- Location: ${weather.location}\n- Temp: ${weather.temperature}°C (Feels like ${weather.feelsLike}°C)\n- Humidity: ${weather.humidity}%\n- Condition: ${weather.description}\n- Rainfall: ${weather.rainfall}mm/h\n- Wind: ${weather.windSpeed}m/s`;
-          console.log('Step 3: Weather data integrated');
-        } else {
-          // Add a minimal note so AI knows we tried but found nothing
-          weatherContext = `\n\n## 🌍 CURRENT WEATHER:\n(No real-time weather available for this specific town right now)`;
+
+      if (farmerData) {
+        farmContext += `\n\n## 🧑‍🌾 FARMER PROFILE:\n`;
+        farmContext += `- Village: ${farmerData.village || 'Unknown'}\n`;
+        farmContext += `- Farm type: ${farmerData.farm_type || 'Unknown'}\n`;
+
+        // Get weather automatically (never ask the farmer)
+        if (farmerData.village) {
+          const weather = await getWeather(farmerData.village);
+          if (weather) {
+            weatherContext = `\n\n## 🌍 CURRENT WEATHER (AUTO-COLLECTED):\n` +
+              `- Location: ${weather.location}\n` +
+              `- Temp: ${weather.temperature}°C (Feels like ${weather.feelsLike}°C)\n` +
+              `- Humidity: ${weather.humidity}%\n` +
+              `- Condition: ${weather.description}\n` +
+              `- Rainfall: ${weather.rainfall}mm/h\n` +
+              `- Wind: ${weather.windSpeed}m/s\n` +
+              `NOTE: You already know the weather. Do NOT ask the farmer about it.`;
+          }
         }
       }
 
-      const farm = await getFirstFarmByFarmer(farmerId);
-      if (farm) {
-        farmContext = `\n\n## 🏘️ FARM RECORD (OWNED BY USER):\n- Species: ${farm.species}\n- Pond Size: ${farm.pond_size} acres\n- Stocking Date: ${farm.stocking_date}\n- Total Seeds Stocked: ${farm.pl_count} animals`;
+      // Get pond data
+      const pond = await getFirstPondByFarmer(farmerId);
+      if (pond) {
+        recommendationContext = getRecommendations(question, pond);
+        
+        farmContext += `\n\n## 🏊 POND DETAILS:\n`;
+        farmContext += `- Species: ${pond.species}\n`;
+        farmContext += `- Pond Size: ${pond.pond_size}\n`;
+        farmContext += `- Stocking: ${pond.stocking_date}\n`;
+        if (pond.feed_brand) farmContext += `- Feed Brand: ${pond.feed_brand}\n`;
 
-        const recentData = await getRecentDailyData(farm.id, 3);
-        if (recentData.length > 0) {
-          farmContext += `\n\n## 📊 RECENT POND MEASUREMENTS (LAST 3 RECORDS):\n`;
-          recentData.forEach(d => {
-            farmContext += `- Date ${d.date}: DO=${d.dissolved_oxygen} mg/L, pH=${d.ph}, Feed=${d.feed_amount} kg\n`;
+        // Get recent logs
+        const recentLogs = await getRecentPondLogs(pond.id, null, 10);
+        if (recentLogs.length > 0) {
+          farmContext += `\n\n## 📊 RECENT POND DATA:\n`;
+          recentLogs.forEach(log => {
+            const data = log.log_data;
+            farmContext += `- [${log.log_group}] ${new Date(log.created_at).toLocaleDateString()}: ${JSON.stringify(data)}\n`;
           });
-        } else {
-          farmContext += `\n\n## 📊 RECENT POND MEASUREMENTS:\n(No daily records found for this pond yet. Ask the user to type "update" to start recording data.)`;
         }
-      } else {
-        farmContext = `\n\n## 🏘️ FARM RECORD:\n(User has not registered a farm yet.)`;
+
+        // Get health score
+        const healthScore = await getLatestHealthScore(pond.id);
+        if (healthScore) {
+          healthContext = `\n\n## 📊 POND HEALTH SCORE:\n`;
+          healthContext += `- Overall: ${healthScore.score.toUpperCase()}\n`;
+          healthContext += `- Factors: ${JSON.stringify(healthScore.factors)}\n`;
+          healthContext += `Use this score in your advice. If yellow/red, mention specific actions.`;
+        }
       }
     } catch (err) {
       console.warn('⚠️ Could not fetch farm context:', err.message);
     }
 
-    // 4. Get recent chat history for continuity
+    // 3. Get recent chat history
     let contents = [];
     try {
       const recentChats = await getRecentChats(farmerId, 12);
       if (recentChats.length > 0) {
-        // Build role-based history for Gemini
         recentChats.forEach(c => {
           contents.push({ role: 'user', parts: [{ text: c.message }] });
           contents.push({ role: 'model', parts: [{ text: c.response }] });
@@ -103,13 +118,12 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
       // Non-critical
     }
 
-    // Add the current question as the final user message
+    // Add current question
     contents.push({ role: 'user', parts: [{ text: question }] });
 
-    // 5. Call Gemini
-    console.log('Step 5: Calling Gemini (gemini-2.5-flash)');
+    // 4. Call Gemini
     const langInstruction = `\n\n## Language Constraints\nYou MUST reply in **${preferredLanguage}**. Use casual, communicative language. Do NOT use overly deep, formal, or complex literary vocabulary.`;
-    const systemInstruction = SYSTEM_PROMPT + knowledgeContext + farmContext + weatherContext + langInstruction;
+    const systemInstruction = SYSTEM_PROMPT + knowledgeContext + farmContext + weatherContext + healthContext + recommendationContext + langInstruction;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -117,22 +131,19 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.7,
-        maxOutputTokens: 1000,
+        maxOutputTokens: 500, // shorter responses — cost conscious
       }
     });
 
-    const textRes = response.text;
-    return textRes;
+    return response.text;
   } catch (error) {
     console.error('❌ AI answer failed:', error);
 
-    // Check for 404 specifically to give better advice in logs
     if (error.message?.includes('404') || error.status === 404) {
-      console.error('💡 TIP: This 404 error usually means the Gemini API is disabled for your project or the model name is incorrect.');
-      console.error('Check: https://aistudio.google.com/app/apikey');
+      console.error('💡 TIP: Gemini API may be disabled or model name is incorrect.');
     }
 
-    return `I'm having trouble processing your question right now. Please try again in a moment.\n\nIf this is urgent, please consult your local aquaculture expert. 🙏`;
+    throw error;
   }
 }
 
