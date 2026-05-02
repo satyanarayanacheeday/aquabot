@@ -1,0 +1,16 @@
+node_modules
+.env
+.env.*
+!.env.example
+*.log
+logs/
+.DS_Store
+.git
+tests/
+test_*.js
+public/
+tmp/
+dist/
+*.md
+!README.md
+.gemini/

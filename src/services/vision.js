@@ -21,10 +21,29 @@ IMPORTANT: Never diagnose with 100% certainty. Always say "possible" or "may ind
 
 /**
  * Analyze a shrimp/fish image for disease detection using Gemini
+ * @param {Buffer} imageBuffer - The image data
+ * @param {string} preferredLanguage - Language for the response
+ * @param {object} pondContext - Optional pond context for personalized analysis
+ * @param {string} pondContext.species - Species being farmed
+ * @param {string} pondContext.pondSize - Pond size
+ * @param {string} pondContext.healthScore - Current health score
+ * @param {Array} pondContext.recentIssues - Recent health/water issues
  */
-async function analyzeImage(imageBuffer, preferredLanguage = 'English') {
+async function analyzeImage(imageBuffer, preferredLanguage = 'English', pondContext = null) {
   try {
     const base64Image = imageBuffer.toString('base64');
+
+    let contextStr = '';
+    if (pondContext) {
+      contextStr = `\n\n## Farmer's Pond Context (use this to give more relevant advice):\n`;
+      if (pondContext.species) contextStr += `- Species: ${pondContext.species}\n`;
+      if (pondContext.pondSize) contextStr += `- Pond size: ${pondContext.pondSize}\n`;
+      if (pondContext.healthScore) contextStr += `- Current health score: ${pondContext.healthScore}\n`;
+      if (pondContext.recentIssues && pondContext.recentIssues.length > 0) {
+        contextStr += `- Recent issues: ${pondContext.recentIssues.join(', ')}\n`;
+      }
+      contextStr += `Use this context to tailor your disease analysis and recommendations specifically for this species and pond condition.\n`;
+    }
 
     const langInstruction = `\n\n## Language Constraints\nYou MUST reply in **${preferredLanguage}**. Use casual, communicative language. Do NOT use overly deep, formal, or complex literary vocabulary.`;
 
@@ -36,7 +55,7 @@ async function analyzeImage(imageBuffer, preferredLanguage = 'English') {
         {
           role: 'user',
           parts: [
-            { text: VISION_PROMPT + langInstruction },
+            { text: VISION_PROMPT + contextStr + langInstruction },
             {
               inlineData: {
                 data: base64Image,
@@ -58,3 +77,4 @@ async function analyzeImage(imageBuffer, preferredLanguage = 'English') {
 module.exports = {
   analyzeImage,
 };
+

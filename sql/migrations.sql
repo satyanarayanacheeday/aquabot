@@ -157,3 +157,9 @@ CREATE TABLE IF NOT EXISTS scheduled_followups (
 
 ALTER TABLE scheduled_followups ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Service role full access" ON scheduled_followups FOR ALL USING (true);
+
+-- ========================
+-- CONVERSATION SUMMARY (for LLM-based chat summarization)
+-- ========================
+ALTER TABLE farmers ADD COLUMN IF NOT EXISTS conversation_summary TEXT;
+ALTER TABLE farmers ADD COLUMN IF NOT EXISTS summary_message_count INTEGER DEFAULT 0;

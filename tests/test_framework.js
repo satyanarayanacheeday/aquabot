@@ -57,6 +57,8 @@ database.createPond = async (pond) => {
   return newPond;
 };
 database.getFirstPondByFarmer = async (farmerId) => inMemoryDB.ponds.find(p => p.farmer_id === farmerId);
+database.getPondsByFarmer = async (farmerId) => inMemoryDB.ponds.filter(p => p.farmer_id === farmerId).sort((a, b) => (a.pond_number || 1) - (b.pond_number || 1));
+database.getAllFarmers = async () => inMemoryDB.farmers.filter(f => f.onboarding_complete);
 database.updatePond = async (id, updates) => {
   const p = inMemoryDB.ponds.find(p => p.id === id);
   if (p) Object.assign(p, updates);
@@ -81,8 +83,13 @@ database.getLatestHealthScore = async (pondId) => {
   return scores.length > 0 ? scores[scores.length - 1].log_data : { score: 'green', factors: ['Healthy'] };
 };
 
-database.saveChatHistory = async (chat) => inMemoryDB.chats.push(chat);
-database.getRecentChats = async () => [];
+database.saveChatHistory = async (chat) => { inMemoryDB.chats.push(chat); return chat; };
+database.getRecentChats = async (farmerId, limit = 10) => {
+  return inMemoryDB.chats
+    .filter(c => c.farmer_id === farmerId)
+    .slice(-(limit || 10))
+    .map(c => ({ ...c, created_at: c.created_at || new Date().toISOString() }));
+};
 database.searchKnowledge = async () => [];
 
 database.scheduleFollowUp = async (farmerId, pondId, eventType, followUpDate) => {

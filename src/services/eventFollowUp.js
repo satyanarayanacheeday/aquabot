@@ -1,5 +1,5 @@
 const { sendTextMessage, sendButtonMessage } = require('./whatsapp');
-const { getFirstPondByFarmer, insertPondLog } = require('../models/database');
+const { getFirstPondByFarmer, insertPondLog, saveChatHistory } = require('../models/database');
 const { setState, getState, clearState, updateStateData } = require('../state/conversationState');
 const { answerQuestion } = require('./ai');
 
@@ -186,7 +186,7 @@ const EVENT_TREES = {
 // START EVENT FOLLOW-UP
 // ========================
 
-async function startEventFollowUp(phone, farmerId, eventType) {
+async function startEventFollowUp(phone, farmerId, eventType, originalMessage = '') {
   const tree = EVENT_TREES[eventType];
   if (!tree) return false;
 
@@ -199,6 +199,7 @@ async function startEventFollowUp(phone, farmerId, eventType) {
     farmerId,
     pondId: pond ? pond.id : null,
     eventType,
+    originalMessage,
   });
 
   await sendTextMessage(phone,
@@ -316,6 +317,12 @@ async function finalizeEvent(phone) {
 
   // Build context for AI
   let context = `The farmer is reporting a problem: ${tree.label}\n\n`;
+  
+  // Include original message if available
+  if (state.originalMessage) {
+    context += `Original farmer message: "${state.originalMessage}"\n\n`;
+  }
+  
   context += `Collected information:\n`;
   for (const [key, value] of Object.entries(data)) {
     context += `- ${key.replace(/_/g, ' ')}: ${value}\n`;
@@ -334,6 +341,19 @@ async function finalizeEvent(phone) {
   // Get AI diagnosis
   try {
     const diagnosis = await answerQuestion(context, state.farmerId);
+    
+    // Save event + diagnosis to chat history
+    try {
+      await saveChatHistory({
+        farmer_id: state.farmerId,
+        message: `[Event: ${tree.label}] ${state.originalMessage || ''} | Data: ${JSON.stringify(data)}`,
+        response: diagnosis,
+        message_type: 'event',
+      });
+    } catch (chatErr) {
+      console.warn('⚠️ Could not save event to chat history:', chatErr.message);
+    }
+    
     await sendTextMessage(phone, `📋 *${tree.label} — Assessment*\n\n${diagnosis}`);
   } catch (err) {
     console.error('❌ Event AI analysis failed:', err.message);

@@ -1,5 +1,5 @@
 const { sendTextMessage, sendButtonMessage } = require('./whatsapp');
-const { insertPondLog } = require('../models/database');
+const { insertPondLog, saveChatHistory } = require('../models/database');
 const { setState, getState, clearState, updateStateData } = require('../state/conversationState');
 
 /**
@@ -98,6 +98,24 @@ async function finalizeFollowup(phone) {
       console.warn('⚠️ Could not save followup log:', err.message);
     }
   }
+
+  // Save to chat history so AI remembers follow-up outcomes
+  try {
+    const eventName = state.eventType?.replace('_', ' ') || 'unknown';
+    const summaryMsg = `[Follow-up on ${eventName}] Status: ${state.data.status || 'unknown'}${state.data.treatment_used ? `, Treatment: ${state.data.treatment_used}` : ''}`;
+    const responseMsg = state.data.status === 'improved'
+      ? 'Situation improved. Farmer shared treatment details.'
+      : `Situation ${state.data.status || 'unchanged'}. Advised to consult local expert.`;
+    await saveChatHistory({
+      farmer_id: state.farmerId,
+      message: summaryMsg,
+      response: responseMsg,
+      message_type: 'followup',
+    });
+  } catch (err) {
+    console.warn('⚠️ Could not save followup to chat history:', err.message);
+  }
+
   clearState(phone);
 }
 

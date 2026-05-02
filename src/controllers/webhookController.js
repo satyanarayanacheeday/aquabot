@@ -1,5 +1,5 @@
 const { sendTextMessage, markAsRead, downloadMedia } = require('../services/whatsapp');
-const { getFarmerByPhone, saveChatHistory, getLatestHealthScore, getFirstPondByFarmer } = require('../models/database');
+const { getFarmerByPhone, saveChatHistory, getLatestHealthScore, getFirstPondByFarmer, getRecentPondLogs } = require('../models/database');
 const { startOnboarding, handleOnboardingStep } = require('../services/onboarding');
 const { startDailyCheckIn, handleDailyStep, getTodayCheckInType, GROUP_MAP } = require('../services/dailyCheckIn');
 const { startWeeklyCheckIn, handleWeeklyStep } = require('../services/weeklyCheckIn');
@@ -10,6 +10,10 @@ const { getState, isInFlow } = require('../state/conversationState');
 const { answerQuestion } = require('../services/ai');
 const { analyzeImage } = require('../services/vision');
 const { getWeather } = require('../services/weather');
+const logger = require('../utils/logger');
+
+// Input limits
+const MAX_MESSAGE_LENGTH = 2000;
 
 /**
  * GET /webhook — Verify webhook with Meta
@@ -20,11 +24,11 @@ function verifyWebhook(req, res) {
   const challenge = req.query['hub.challenge'];
 
   if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
-    console.log('Webhook verified successfully');
+    logger.info('Webhook verified successfully');
     return res.status(200).send(challenge);
   }
 
-  console.warn('Webhook verification failed');
+  logger.warn('Webhook verification failed');
   return res.sendStatus(403);
 }
 
@@ -52,7 +56,7 @@ async function handleIncoming(req, res) {
     const messageId = message.id;
     const messageType = message.type;
 
-    console.log(`\n📨 Incoming ${messageType} from ${phone}`);
+    logger.info(`📨 Incoming ${messageType} from ${phone}`);
 
     // Mark as read
     await markAsRead(messageId);
@@ -77,7 +81,7 @@ async function handleIncoming(req, res) {
       );
     }
   } catch (error) {
-    console.error('❌ Error handling incoming message:', error);
+    logger.error('Error handling incoming message', { error: error.message, stack: error.stack });
   }
 }
 
@@ -85,8 +89,15 @@ async function handleIncoming(req, res) {
  * Handle text messages — main routing logic
  */
 async function handleTextMessage(phone, text) {
+  // Input sanitization
+  text = sanitizeInput(text);
+  if (!text) return;
+  if (text.length > MAX_MESSAGE_LENGTH) {
+    text = text.substring(0, MAX_MESSAGE_LENGTH);
+  }
+
   const normalizedText = text.toLowerCase().trim();
-  console.log(`💬 Text from ${phone}: "${text}"`);
+  logger.info(`💬 Text from ${phone}: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
 
   // 1. Check if farmer exists and is onboarded
   const farmer = await getFarmerByPhone(phone);
@@ -167,12 +178,12 @@ async function handleTextMessage(phone, text) {
   // 5. Detect event-based problems from message content
   const eventType = detectEventType(text);
   if (eventType) {
-    await startEventFollowUp(phone, farmer.id, eventType);
+    await startEventFollowUp(phone, farmer.id, eventType, text);
     return;
   }
 
   // 6. Default: AI Q&A (RAG)
-  console.log(`🤖 Routing to AI Q&A for: "${text}"`);
+  logger.info(`🤖 Routing to AI Q&A for: "${text.substring(0, 80)}"`);
   let answer;
   try {
     answer = await answerQuestion(text, farmer.id, farmer.preferred_language);
@@ -189,7 +200,7 @@ async function handleTextMessage(phone, text) {
       message_type: 'text',
     });
   } catch (err) {
-    console.warn('⚠️ Could not save chat history:', err.message);
+    logger.warn('Could not save chat history', { error: err.message });
   }
 
   await sendTextMessage(phone, answer);
@@ -199,7 +210,7 @@ async function handleTextMessage(phone, text) {
  * Handle image messages — disease detection
  */
 async function handleImageMessage(phone, imageData) {
-  console.log(`📸 Image from ${phone}`);
+  logger.info(`📸 Image from ${phone}`);
 
   const farmer = await getFarmerByPhone(phone);
   if (!farmer || !farmer.onboarding_complete) {
@@ -211,7 +222,40 @@ async function handleImageMessage(phone, imageData) {
 
   try {
     const imageBuffer = await downloadMedia(imageData.id);
-    const analysis = await analyzeImage(imageBuffer, farmer.preferred_language);
+
+    // Build pond context for personalized analysis
+    let pondContext = null;
+    try {
+      const pond = await getFirstPondByFarmer(farmer.id);
+      if (pond) {
+        pondContext = {
+          species: pond.species,
+          pondSize: pond.pond_size,
+        };
+
+        // Add health score
+        const healthScore = await getLatestHealthScore(pond.id);
+        if (healthScore) {
+          pondContext.healthScore = healthScore.score;
+        }
+
+        // Add recent issues from logs
+        const recentLogs = await getRecentPondLogs(pond.id, null, 5);
+        const issues = [];
+        for (const log of recentLogs) {
+          const d = log.log_data;
+          if (d.disease_signs && d.disease_signs !== 'none') issues.push(`disease: ${d.disease_signs}`);
+          if (d.water_color === 'brown_black') issues.push('brown/black water');
+          if (d.bad_smell === 'strong') issues.push('strong pond smell');
+          if (d.event_type) issues.push(`event: ${d.event_type}`);
+        }
+        if (issues.length > 0) pondContext.recentIssues = issues;
+      }
+    } catch (ctxErr) {
+      logger.warn('Could not build pond context for image', { error: ctxErr.message });
+    }
+
+    const analysis = await analyzeImage(imageBuffer, farmer.preferred_language, pondContext);
 
     try {
       await saveChatHistory({
@@ -221,12 +265,12 @@ async function handleImageMessage(phone, imageData) {
         message_type: 'image',
       });
     } catch (err) {
-      console.warn('⚠️ Could not save chat history:', err.message);
+      logger.warn('Could not save image chat history', { error: err.message });
     }
 
     await sendTextMessage(phone, `🔬 *Image Analysis*\n\n${analysis}`);
   } catch (error) {
-    console.error('❌ Image analysis failed:', error);
+    logger.error('Image analysis failed', { error: error.message, phone });
     await sendTextMessage(phone,
       `Sorry, I couldn't analyze this image. Please try again with a clearer photo.\n\n` +
       `💡 Tip: Take the photo in good lighting with the shrimp/fish clearly visible.`
@@ -249,7 +293,7 @@ async function showHealthScore(phone, farmerId) {
     const msg = formatHealthScoreMessage(scoreData);
     await sendTextMessage(phone, msg);
   } catch (err) {
-    console.error('❌ Health score fetch failed:', err.message);
+    logger.error('Health score fetch failed', { error: err.message });
     await sendTextMessage(phone, '⚠️ Could not fetch health score. Try again later.');
   }
 }
@@ -286,7 +330,7 @@ async function showWeather(phone, village) {
 
     await sendTextMessage(phone, msg);
   } catch (err) {
-    console.error('❌ Weather fetch failed:', err.message);
+    logger.error('Weather fetch failed', { error: err.message });
     await sendTextMessage(phone, '⚠️ Could not fetch weather. Try again later.');
   }
 }
@@ -312,6 +356,15 @@ async function sendHelpMessage(phone) {
     `📋 Sunday — Weekly summary\n\n` +
     `Just start typing! 💬`
   );
+}
+
+/**
+ * Sanitize user input — strip control characters, trim whitespace
+ */
+function sanitizeInput(text) {
+  if (!text || typeof text !== 'string') return '';
+  // Remove control characters (except newline)
+  return text.replace(/[\x00-\x09\x0B-\x1F\x7F]/g, '').trim();
 }
 
 module.exports = {

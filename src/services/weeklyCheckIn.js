@@ -1,5 +1,5 @@
 const { sendTextMessage, sendButtonMessage } = require('./whatsapp');
-const { getFirstPondByFarmer, insertPondLog } = require('../models/database');
+const { getFirstPondByFarmer, insertPondLog, saveChatHistory } = require('../models/database');
 const { setState, getState, clearState, updateStateData } = require('../state/conversationState');
 const { calculateHealthScore } = require('./healthScore');
 
@@ -189,6 +189,19 @@ async function finalizeWeeklyCheckIn(phone) {
   }
 
   confirmMsg += '\n\nGreat weekly update! Keep it up! 📊';
+
+  // Save to chat history so AI remembers weekly data
+  try {
+    const summaryMsg = `[Weekly Check-In] disease=${data.disease_signs}, feed=${data.feed_used}kg, water=${data.water_changes}, growth=${data.growth_status}`;
+    await saveChatHistory({
+      farmer_id: state.farmerId,
+      message: summaryMsg,
+      response: confirmMsg,
+      message_type: 'checkin',
+    });
+  } catch (err) {
+    console.warn('⚠️ Could not save weekly check-in to chat history:', err.message);
+  }
 
   await sendTextMessage(phone, confirmMsg);
 }

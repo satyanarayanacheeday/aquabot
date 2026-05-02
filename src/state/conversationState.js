@@ -19,6 +19,7 @@
 const states = new Map();
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Clean up every 5 minutes
 
 function getState(phone) {
   const state = states.get(phone);
@@ -70,6 +71,50 @@ function isInFlow(phone) {
   return state && state.flow !== null;
 }
 
+/**
+ * Get the number of active (non-expired) sessions
+ */
+function getActiveSessionCount() {
+  // Trigger cleanup on read
+  let count = 0;
+  const now = Date.now();
+  for (const [phone, state] of states) {
+    if (now - state.updatedAt <= SESSION_TIMEOUT_MS) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * Periodic cleanup of expired sessions to prevent memory leaks.
+ * Runs every 5 minutes.
+ */
+function startSessionCleanup() {
+  setInterval(() => {
+    const now = Date.now();
+    let cleaned = 0;
+    for (const [phone, state] of states) {
+      if (now - state.updatedAt > SESSION_TIMEOUT_MS) {
+        states.delete(phone);
+        cleaned++;
+      }
+    }
+    if (cleaned > 0) {
+      // Use try/catch in case logger isn't available in tests
+      try {
+        const logger = require('../utils/logger');
+        logger.debug(`🧹 Cleaned ${cleaned} expired sessions. Active: ${states.size}`);
+      } catch {
+        // silent in test
+      }
+    }
+  }, CLEANUP_INTERVAL_MS);
+}
+
+// Start cleanup on module load
+startSessionCleanup();
+
 module.exports = {
   getState,
   setState,
@@ -77,4 +122,5 @@ module.exports = {
   updateStateData,
   advanceGroup,
   isInFlow,
+  getActiveSessionCount,
 };

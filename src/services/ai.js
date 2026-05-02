@@ -1,8 +1,9 @@
 const ai = require('../config/gemini');
 const SYSTEM_PROMPT = require('../prompts/systemPrompt');
-const { searchKnowledge, getRecentChats, getFirstPondByFarmer, getFarmerById, getRecentPondLogs, getLatestHealthScore } = require('../models/database');
+const { searchKnowledge, getRecentChats, getFirstPondByFarmer, getPondsByFarmer, getFarmerById, getRecentPondLogs, getLatestHealthScore } = require('../models/database');
 const { getWeather } = require('./weather');
 const { getRecommendations } = require('./recommendation');
+const { getOrRefreshSummary } = require('./conversationSummary');
 
 /**
  * Generate an embedding for a given text
@@ -10,7 +11,7 @@ const { getRecommendations } = require('./recommendation');
 async function generateEmbedding(text) {
   try {
     const response = await ai.models.embedContent({
-      model: 'text-embedding-004',
+      model: 'gemini-embedding-2',
       contents: text
     });
     return response.embedding.values;
@@ -70,8 +71,16 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
         }
       }
 
-      // Get pond data
-      const pond = await getFirstPondByFarmer(farmerId);
+      // Get pond data (detect pond number from question)
+      let pond = null;
+      const pondNumMatch = question.match(/pond\s*(\d+)/i);
+      if (pondNumMatch) {
+        const requestedNum = parseInt(pondNumMatch[1]);
+        const allPonds = await getPondsByFarmer(farmerId);
+        pond = allPonds.find(p => p.pond_number === requestedNum) || allPonds[0] || null;
+      } else {
+        pond = await getFirstPondByFarmer(farmerId);
+      }
       if (pond) {
         recommendationContext = getRecommendations(question, pond);
         
@@ -104,10 +113,21 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
       console.warn('⚠️ Could not fetch farm context:', err.message);
     }
 
-    // 3. Get recent chat history
+    // 3. Get conversation summary (LLM-based, cached per farmer)
+    let conversationSummary = '';
+    try {
+      conversationSummary = await getOrRefreshSummary(farmerId);
+      if (conversationSummary) {
+        conversationSummary = `\n\n## Previous Conversation Summary\n${conversationSummary}`;
+      }
+    } catch (err) {
+      console.warn('⚠️ Conversation summary fetch failed:', err.message);
+    }
+
+    // 4. Get recent chat history (only last 4 for multi-turn, older ones are summarized above)
     let contents = [];
     try {
-      const recentChats = await getRecentChats(farmerId, 12);
+      const recentChats = await getRecentChats(farmerId, 4);
       if (recentChats.length > 0) {
         recentChats.forEach(c => {
           contents.push({ role: 'user', parts: [{ text: c.message }] });
@@ -121,9 +141,9 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
     // Add current question
     contents.push({ role: 'user', parts: [{ text: question }] });
 
-    // 4. Call Gemini
+    // 5. Call Gemini
     const langInstruction = `\n\n## Language Constraints\nYou MUST reply in **${preferredLanguage}**. Use casual, communicative language. Do NOT use overly deep, formal, or complex literary vocabulary.`;
-    const systemInstruction = SYSTEM_PROMPT + knowledgeContext + farmContext + weatherContext + healthContext + recommendationContext + langInstruction;
+    const systemInstruction = SYSTEM_PROMPT + conversationSummary + knowledgeContext + farmContext + weatherContext + healthContext + recommendationContext + langInstruction;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
