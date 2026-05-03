@@ -89,79 +89,75 @@ app.use('/webhook', webhookRoutes);
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ========================
-// LOCAL TEST UI — SSE + test send (dev only)
+// TEST UI — SSE stream + send (all environments)
 // ========================
-if (!isProduction) {
 
-  // SSE Connections for test UI
-  const clients = new Set();
+// SSE Connections for test UI
+const clients = new Set();
 
-  app.get('/api/test/stream', (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    
-    clients.add(res);
-    logger.debug(`🔌 [SSE] Connected. Total: ${clients.size}`);
-    
-    res.write(': keep-alive\n\n');
+app.get('/api/test/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
 
-    req.on('close', () => {
-      clients.delete(res);
-      logger.debug(`🔌 [SSE] Disconnected. Remaining: ${clients.size}`);
-    });
+  clients.add(res);
+  logger.debug(`🔌 [SSE] Connected. Total: ${clients.size}`);
+
+  res.write(': keep-alive\n\n');
+
+  req.on('close', () => {
+    clients.delete(res);
+    logger.debug(`🔌 [SSE] Disconnected. Remaining: ${clients.size}`);
   });
+});
 
-  // Heartbeat to keep SSE alive every 20s
-  setInterval(() => {
-    for (const client of clients) {
-      client.write(': keep-alive\n\n');
-    }
-  }, 20000);
+// Heartbeat to keep SSE alive every 20s
+setInterval(() => {
+  for (const client of clients) {
+    client.write(': keep-alive\n\n');
+  }
+}, 20000);
 
-  app.post('/api/test/send', (req, res) => {
-    const { phone, text } = req.body;
-    if (!phone || !text) return res.status(400).send('Missing phone or text');
-    
-    logger.debug(`💬 [Local Test] Input from ${phone}: "${text}"`);
+app.post('/api/test/send', (req, res) => {
+  const { phone, text } = req.body;
+  if (!phone || !text) return res.status(400).send('Missing phone or text');
 
-    const mockPayload = {
-      object: 'whatsapp_business_account',
-      entry: [{
-        changes: [{
-          value: {
-            messages: [{
-              from: phone,
-              id: 'mock_' + Date.now(),
-              type: 'text',
-              text: { body: text }
-            }]
-          }
-        }]
+  logger.info(`💬 [Test UI] Input from ${phone}: "${text}"`);
+
+  const mockPayload = {
+    object: 'whatsapp_business_account',
+    entry: [{
+      changes: [{
+        value: {
+          messages: [{
+            from: phone,
+            id: 'mock_' + Date.now(),
+            type: 'text',
+            text: { body: text }
+          }]
+        }
       }]
-    };
+    }]
+  };
 
-    handleIncoming({ body: mockPayload }, { sendStatus: () => {} });
-    res.sendStatus(200);
-  });
+  handleIncoming({ body: mockPayload }, { sendStatus: () => {} });
+  res.sendStatus(200);
+});
 
-  eventBus.on('message', (data) => {
-    const { to, text } = data;
-    const payload = JSON.stringify({ to, text });
-    for (const client of clients) {
-      try {
-        client.write(`data: ${payload}\n\n`);
-      } catch (err) {
-        logger.error('Failed to write to SSE client', { error: err.message });
-      }
+eventBus.on('message', (data) => {
+  const { to, text } = data;
+  const payload = JSON.stringify({ to, text });
+  for (const client of clients) {
+    try {
+      client.write(`data: ${payload}\n\n`);
+    } catch (err) {
+      logger.error('Failed to write to SSE client', { error: err.message });
     }
-  });
+  }
+});
 
-  logger.info('🧪 Test UI enabled at / (disable by setting NODE_ENV=production)');
-} else {
-  // In production, return 404 for test endpoints
-  app.use('/api/test', (req, res) => res.status(404).json({ error: 'Not available in production' }));
-}
+logger.info('🧪 Test UI enabled at /');
+
 
 // ========================
 // 404 HANDLER
