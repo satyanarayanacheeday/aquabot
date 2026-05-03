@@ -198,7 +198,7 @@ async function downloadMedia(mediaId) {
  * Mark a message as read
  */
 async function markAsRead(messageId) {
-  if (isTestMode()) {
+  if (isTestMode() || (messageId && messageId.startsWith('mock_'))) {
     return { ok: true, mocked: true };
   }
 
