@@ -84,11 +84,14 @@ app.get('/health', (req, res) => {
 app.use('/webhook', webhookRoutes);
 
 // ========================
-// LOCAL TEST UI (disabled in production)
+// STATIC FRONTEND (served in all environments)
+// ========================
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ========================
+// LOCAL TEST UI — SSE + test send (dev only)
 // ========================
 if (!isProduction) {
-  // Serve static frontend
-  app.use(express.static(path.join(__dirname, 'public')));
 
   // SSE Connections for test UI
   const clients = new Set();
