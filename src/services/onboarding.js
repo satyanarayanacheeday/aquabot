@@ -20,6 +20,145 @@ const { deliverImmediateValue } = require('./immediateValue');
  */
 
 // ========================
+// TRANSLATIONS
+// ========================
+const translations = {
+  English: {
+    intro_g1: '👋 Let\'s get started! Just 2 quick questions about your farm.',
+    intro_g2: '📋 Great! Now tell me about your pond.',
+    q_species: '🌊 What species are you growing?',
+    q_village: '📍 Which village or town are you from?',
+    q_stocking: '📅 When did you stock this pond?',
+    q_size: '📐 What is the pond size?',
+    btn_shrimp: '🦐 Shrimp',
+    btn_fish: '🐟 Fish',
+    btn_both: '🦐🐟 Both',
+    btn_week: 'This week',
+    btn_month: 'This month',
+    btn_months_1_2: '1-2 months ago',
+    btn_months_3_plus: '3+ months ago',
+    btn_size_s: 'Less than 1 acre',
+    btn_size_m: '1–3 acres',
+    btn_size_l: 'More than 3 acres',
+    reg_success: '🎉 *Registration Successful!*',
+    farm_details: '📋 *Your Farm Details:*',
+    label_type: '🌊 Type',
+    label_village: '📍 Village',
+    label_stocking: '📅 Stocking',
+    label_size: '📐 Pond Size',
+    pro_tip: '💡 *Pro Tip:* To build maximum value, analyze your pond data regularly. Tracking water quality and feed helps you avoid losses and grow faster!',
+    ready_to_help: 'I am ready to help you manage your {type} farm. 🚀',
+    help_today_q: '💡 *How can I help you today?*',
+    help_today_desc: 'Select a topic below to get started immediately.',
+    btn_select_topic: 'Select Topic',
+    topic_disease: '🔬 Disease',
+    topic_water: '💧 Water Quality',
+    topic_feed: '🍽️ Feed',
+    topic_growth: '📈 Slow Growth',
+    topic_mortality: '⚠️ Mortality',
+    topic_price: '💰 Price Updates',
+    topic_weather: '🌤️ Weather Alerts',
+    desc_disease: 'Disease detection & prevention',
+    desc_water: 'Water management advice',
+    desc_feed: 'Feed management tips',
+    desc_growth: 'Growth & weight concerns',
+    desc_mortality: 'Dealing with losses',
+    desc_price: 'Market price info',
+    desc_weather: 'Weather & rain alerts'
+  },
+  Telugu: {
+    intro_g1: '👋 ప్రారంభిద్దాం! మీ ఫారం గురించి కేవలం 2 ప్రశ్నలు.',
+    intro_g2: '📋 బాగుంది! ఇప్పుడు మీ చెరువు గురించి చెప్పండి.',
+    q_species: '🌊 మీరు ఏ జాతిని పెంచుతున్నారు?',
+    q_village: '📍 మీ గ్రామం లేదా పట్టణం పేరు ఏమిటి?',
+    q_stocking: '📅 మీరు ఈ చెరువులో ఎప్పుడు స్టాక్ చేశారు?',
+    q_size: '📐 చెరువు పరిమాణం ఎంత?',
+    btn_shrimp: '🦐 రొయ్యలు',
+    btn_fish: '🐟 చేపలు',
+    btn_both: '🦐🐟 రెండూ',
+    btn_week: 'ఈ వారం',
+    btn_month: 'ఈ నెల',
+    btn_months_1_2: '1-2 నెలల క్రితం',
+    btn_months_3_plus: '3+ నెలల క్రితం',
+    btn_size_s: '1 ఎకరం కంటే తక్కువ',
+    btn_size_m: '1–3 ఎకరాలు',
+    btn_size_l: '3 ఎకరాల కంటే ఎక్కువ',
+    reg_success: '🎉 *రిజిస్ట్రేషన్ పూర్తయింది!*',
+    farm_details: '📋 *మీ ఫారం వివరాలు:*',
+    label_type: '🌊 రకం',
+    label_village: '📍 గ్రామం',
+    label_stocking: '📅 స్టాకింగ్',
+    label_size: '📐 చెరువు పరిమాణం',
+    pro_tip: '💡 *చిట్కా:* మీ ఫారం నుండి గరిష్ట లాభం పొందడానికి, మీ చెరువు డేటాను క్రమం తప్పకుండా విశ్లేషించండి. నీటి నాణ్యత మరియు మేతను పర్యవేక్షించడం నష్టాలను నివారించడానికి మరియు వేగంగా పెరగడానికి సహాయపడుతుంది!',
+    ready_to_help: 'మీ {type} ఫారాన్ని నిర్వహించడానికి నేను సిద్ధంగా ఉన్నాను. 🚀',
+    help_today_q: '💡 *ఈరోజు నేను మీకు ఎలా సహాయపడగలను?*',
+    help_today_desc: 'వెంటనే ప్రారంభించడానికి క్రింద ఒక అంశాన్ని ఎంచుకోండి.',
+    btn_select_topic: 'అంశాన్ని ఎంచుకోండి',
+    topic_disease: '🔬 వ్యాధి',
+    topic_water: '💧 నీటి నాణ్యత',
+    topic_feed: '🍽️ మేత',
+    topic_growth: '📈 నెమ్మదిగా పెరుగుదల',
+    topic_mortality: '⚠️ మరణాలు',
+    topic_price: '💰 ధర అప్‌డేట్స్',
+    topic_weather: '🌤️ వాతావరణ అలర్ట్స్',
+    desc_disease: 'వ్యాధి గుర్తింపు మరియు నివారణ',
+    desc_water: 'నీటి నిర్వహణ సలహా',
+    desc_feed: 'మేత నిర్వహణ చిట్కాలు',
+    desc_growth: 'పెరుగుదల మరియు బరువు సమస్యలు',
+    desc_mortality: 'నష్టాలను ఎదుర్కోవడం',
+    desc_price: 'మార్కెట్ ధర సమాచారం',
+    desc_weather: 'వాతావరణ మరియు వర్షం అలర్ట్స్'
+  },
+  Hindi: {
+    intro_g1: '👋 चलिए शुरू करते हैं! आपके फार्म के बारे में बस 2 सवाल।',
+    intro_g2: '📋 बहुत अच्छा! अब अपने तालाब के बारे में बताएं।',
+    q_species: '🌊 आप कौन सी प्रजाति पाल रहे हैं?',
+    q_village: '📍 आप किस गाँव या शहर से हैं?',
+    q_stocking: '📅 आपने इस तालाब में स्टॉक कब किया?',
+    q_size: '📐 तालाब का आकार क्या है?',
+    btn_shrimp: '🦐 झींगा',
+    btn_fish: '🐟 मछली',
+    btn_both: '🦐🐟 दोनों',
+    btn_week: 'इस सप्ताह',
+    btn_month: 'इस महीने',
+    btn_months_1_2: '1-2 महीने पहले',
+    btn_months_3_plus: '3+ महीने पहले',
+    btn_size_s: '1 एकड़ से कम',
+    btn_size_m: '1-3 एकड़',
+    btn_size_l: '3 एकड़ से अधिक',
+    reg_success: '🎉 *पंजीकरण सफल!*',
+    farm_details: '📋 *आपके फार्म का विवरण:*',
+    label_type: '🌊 प्रकार',
+    label_village: '📍 गाँव',
+    label_stocking: '📅 स्टॉकिंग',
+    label_size: '📐 तालाब का आकार',
+    pro_tip: '💡 *सुझाव:* अधिकतम लाभ पाने के लिए, अपने तालाब के डेटा का नियमित रूप से विश्लेषण करें। पानी की गुणवत्ता और चारे की निगरानी करने से नुकसान से बचने और तेजी से बढ़ने में मदद मिलती है!',
+    ready_to_help: 'मैं आपके {type} फार्म को प्रबंधित करने में मदद के लिए तैयार हूँ। 🚀',
+    help_today_q: '💡 *आज मैं आपकी कैसे मदद कर सकता हूँ?*',
+    help_today_desc: 'तुरंत शुरू करने के लिए नीचे एक विषय चुनें।',
+    btn_select_topic: 'विषय चुनें',
+    topic_disease: '🔬 बीमारी',
+    topic_water: '💧 पानी की गुणवत्ता',
+    topic_feed: '🍽️ चारा',
+    topic_growth: '📈 धीमी वृद्धि',
+    topic_mortality: '⚠️ मृत्यु दर',
+    topic_price: '💰 कीमत अपडेट',
+    topic_weather: '🌤️ मौसम अलर्ट',
+    desc_disease: 'बीमारी का पता लगाना और रोकथाम',
+    desc_water: 'जल प्रबंधन सलाह',
+    desc_feed: 'चारा प्रबंधन सुझाव',
+    desc_growth: 'विकास और वजन की चिंता',
+    desc_mortality: 'नुकसान से निपटना',
+    desc_price: 'बाजार मूल्य की जानकारी',
+    desc_weather: 'मौसम और बारिश अलर्ट'
+  }
+};
+
+function t(key, lang = 'English') {
+  return translations[lang]?.[key] || translations['English']?.[key] || key;
+}
+
+// ========================
 // START ONBOARDING
 // ========================
 
@@ -181,22 +320,23 @@ async function askGroupQuestion(phone) {
   const state = getState(phone);
   const group = state.group;
   const step = state.step;
+  const lang = state.data.preferred_language || 'English';
 
   // GROUP 1
   if (group === 1) {
     if (step === 0) {
       await sendButtonMessage(phone,
-        '🌊 What species are you growing?',
+        t('q_species', lang),
         [
-          { id: 'farm_shrimp', title: '🦐 Shrimp' },
-          { id: 'farm_fish', title: '🐟 Fish' },
-          { id: 'farm_both', title: '🦐🐟 Both' },
+          { id: 'farm_shrimp', title: t('btn_shrimp', lang) },
+          { id: 'farm_fish', title: t('btn_fish', lang) },
+          { id: 'farm_both', title: t('btn_both', lang) },
         ]
       );
       return;
     }
     if (step === 1) {
-      await sendTextMessage(phone, '📍 Which village or town are you from?');
+      await sendTextMessage(phone, t('q_village', lang));
       return;
     }
   }
@@ -205,22 +345,22 @@ async function askGroupQuestion(phone) {
   if (group === 2) {
     if (step === 0) {
       await sendButtonMessage(phone,
-        '📅 When did you stock this pond?',
+        t('q_stocking', lang),
         [
-          { id: 'stock_week', title: 'This week' },
-          { id: 'stock_month', title: 'This month' },
-          { id: 'stock_3plus', title: '1+ months ago' },
+          { id: 'stock_week', title: t('btn_week', lang) },
+          { id: 'stock_month', title: t('btn_month', lang) },
+          { id: 'stock_1_2', title: t('btn_months_1_2', lang) },
         ]
       );
       return;
     }
     if (step === 1) {
       await sendButtonMessage(phone,
-        '📐 What is the pond size?',
+        t('q_size', lang),
         [
-          { id: 'size_small', title: 'Less than 1 acre' },
-          { id: 'size_medium', title: '1–3 acres' },
-          { id: 'size_large', title: 'More than 3 acres' },
+          { id: 'size_small', title: t('btn_size_s', lang) },
+          { id: 'size_medium', title: t('btn_size_m', lang) },
+          { id: 'size_large', title: t('btn_size_l', lang) },
         ]
       );
       return;
@@ -261,32 +401,34 @@ async function finalizeOnboarding(phone) {
   clearState(phone);
 
   // Registration Success + Summary + Value Tip
+  const lang = data.preferred_language || 'English';
+  const farmTypeLabel = data.farm_type === 'shrimp' ? t('btn_shrimp', lang) : (data.farm_type === 'fish' ? t('btn_fish', lang) : t('btn_both', lang));
+
   await sendTextMessage(phone,
-    `🎉 *Registration Successful!*\n\n` +
-    `📋 *Your Farm Details:*\n` +
-    `🌊 Type: ${capitalize(data.farm_type)}\n` +
-    `📍 Village: ${data.village}\n` +
-    `📅 Stocking: ${getStockingLabel(data.stocking_date)}\n` +
-    `📐 Pond Size: ${getSizeLabel(data.pond_size)}\n\n` +
-    `💡 *Pro Tip:* To build maximum value, analyze your pond data regularly. ` +
-    `Tracking water quality and feed helps you avoid losses and grow faster!\n\n` +
-    `I am ready to help you manage your ${capitalize(data.farm_type)} farm. 🚀`
+    `${t('reg_success', lang)}\n\n` +
+    `${t('farm_details', lang)}\n` +
+    `${t('label_type', lang)}: ${farmTypeLabel}\n` +
+    `${t('label_village', lang)}: ${data.village}\n` +
+    `${t('label_stocking', lang)}: ${getStockingLabel(data.stocking_date, lang)}\n` +
+    `${t('label_size', lang)}: ${getSizeLabel(data.pond_size, lang)}\n\n` +
+    `${t('pro_tip', lang)}\n\n` +
+    `${t('ready_to_help', lang).replace('{type}', farmTypeLabel.toLowerCase())}`
   );
 
   // Ask how they want help today
   await sendListMessage(phone,
-    '💡 *How can I help you today?*\n\nSelect a topic below to get started immediately.',
-    'Select Topic',
+    t('help_today_q', lang) + '\n\n' + t('help_today_desc', lang),
+    t('btn_select_topic', lang),
     [{
-      title: 'Help Topics',
+      title: t('btn_select_topic', lang),
       rows: [
-        { id: 'prob_disease', title: '🔬 Disease', description: 'Disease detection & prevention' },
-        { id: 'prob_water', title: '💧 Water Quality', description: 'Water management advice' },
-        { id: 'prob_feed', title: '🍽️ Feed', description: 'Feed management tips' },
-        { id: 'prob_growth', title: '📈 Slow Growth', description: 'Growth & weight concerns' },
-        { id: 'prob_mortality', title: '⚠️ Mortality', description: 'Dealing with losses' },
-        { id: 'prob_price', title: '💰 Price Updates', description: 'Market price info' },
-        { id: 'prob_weather', title: '🌤️ Weather Alerts', description: 'Weather & rain alerts' },
+        { id: 'prob_disease', title: t('topic_disease', lang), description: t('desc_disease', lang) },
+        { id: 'prob_water', title: t('topic_water', lang), description: t('desc_water', lang) },
+        { id: 'prob_feed', title: t('topic_feed', lang), description: t('desc_feed', lang) },
+        { id: 'prob_growth', title: t('topic_growth', lang), description: t('desc_growth', lang) },
+        { id: 'prob_mortality', title: t('topic_mortality', lang), description: t('desc_mortality', lang) },
+        { id: 'prob_price', title: t('topic_price', lang), description: t('desc_price', lang) },
+        { id: 'prob_weather', title: t('topic_weather', lang), description: t('desc_weather', lang) },
       ],
     }]
   );
@@ -297,10 +439,8 @@ async function finalizeOnboarding(phone) {
 // ========================
 
 function getGroupIntro(group, lang) {
-  // Keeping English for MVP. In production, translate based on lang.
-  if (group === 1) return '👋 Let\'s get started! Just 2 quick questions about your farm.';
-  if (group === 2) return '📋 Great! Now tell me about your pond.';
-  if (group === 3) return '🎯 Last question!';
+  if (group === 1) return t('intro_g1', lang);
+  if (group === 2) return t('intro_g2', lang);
   return '';
 }
 
@@ -316,21 +456,21 @@ function getSpeciesLabel(species) {
   return labels[species] || species;
 }
 
-function getSizeLabel(size) {
+function getSizeLabel(size, lang = 'English') {
   const labels = {
-    less_than_1_acre: 'Less than 1 acre',
-    '1_3_acres': '1–3 acres',
-    more_than_3_acres: 'More than 3 acres',
+    less_than_1_acre: t('btn_size_s', lang),
+    '1_3_acres': t('btn_size_m', lang),
+    more_than_3_acres: t('btn_size_l', lang),
   };
   return labels[size] || size;
 }
 
-function getStockingLabel(date) {
+function getStockingLabel(date, lang = 'English') {
   const labels = {
-    this_week: 'This week',
-    this_month: 'This month',
-    '1_2_months': '1–2 months ago',
-    '3_plus_months': '3+ months ago',
+    this_week: t('btn_week', lang),
+    this_month: t('btn_month', lang),
+    '1_2_months': t('btn_months_1_2', lang),
+    '3_plus_months': t('btn_months_3_plus', lang),
   };
   return labels[date] || date;
 }
