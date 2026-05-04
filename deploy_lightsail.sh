@@ -21,30 +21,30 @@ echo ""
 # 1. System Updates
 # ========================
 echo "📦 [1/10] Updating system packages..."
-sudo apt-get update -y -q
-sudo apt-get upgrade -y -q
+sudo apt-get update -y
+sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 echo "✅ System updated"
 
 # ========================
 # 2. Install Node.js 20 (LTS)
 # ========================
 echo "📦 [2/10] Installing Node.js 20..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - -q
-sudo apt-get install -y nodejs -q
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
 echo "✅ Node.js $(node -v) | npm $(npm -v)"
 
 # ========================
 # 3. Install PM2
 # ========================
 echo "📦 [3/10] Installing PM2..."
-sudo npm install -g pm2 --quiet
+sudo npm install -g pm2
 echo "✅ PM2 $(pm2 -v)"
 
 # ========================
 # 4. Install Nginx + Certbot
 # ========================
 echo "📦 [4/10] Installing Nginx + Certbot..."
-sudo apt-get install -y nginx certbot python3-certbot-nginx -q
+sudo apt-get install -y nginx certbot python3-certbot-nginx
 sudo systemctl enable nginx
 sudo systemctl start nginx
 echo "✅ Nginx installed"
@@ -87,17 +87,17 @@ echo "📝 [7/10] Writing .env..."
 # ── EDIT YOUR SECRETS BELOW BEFORE RUNNING ──────────────────
 cat > .env << 'ENVFILE'
 # WhatsApp Cloud API
-WHATSAPP_TOKEN=EAAdVGUrIsjEBRWHoXuTaWQNV8ZBsmGMZC2B8ZAzNWb382CrhuIiQLfh8HrLYRr3ViqByzuxvdIwDzwa70RR2bptZBUahaYYL5hbeSo4bNEhC0OSh9DWZCNIyUkZATu6ZCPRjSVfFQycTWk3k1cu8WccDfIERheZCiT5AoRhMHCONLZCrV5wcXClaI6skmIwpaOwu0ogZDZD
-WHATSAPP_PHONE_NUMBER_ID=1004218429446182
-VERIFY_TOKEN=aquorix_verify_2026
-WHATSAPP_APP_SECRET=f429df6679c22bdb589b16cd0538006e
+WHATSAPP_TOKEN=your_whatsapp_token
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+VERIFY_TOKEN=your_verify_token
+WHATSAPP_APP_SECRET=your_app_secret
 
 # Supabase
-SUPABASE_URL=https://kpocufubvggidvrgpsfw.supabase.co
-SUPABASE_KEY=sb_publishable_jxs8JIUwqWV9q2MypNzTYw_gLSBtSOW
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
 
 # Gemini AI
-GEMINI_API_KEY=AIzaSyAARBIx-L_KkLONU9gXNTYSXJm1533w1s0
+GEMINI_API_KEY=your_gemini_api_key
 
 # OpenWeather (optional)
 OPENWEATHER_API_KEY=your_openweather_api_key
