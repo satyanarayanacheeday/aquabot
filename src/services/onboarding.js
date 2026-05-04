@@ -9,19 +9,14 @@ const { deliverImmediateValue } = require('./immediateValue');
  * Step 0: Language selection (before groups)
  *
  * Group 1 — Farm Basics:
- *   1. What do you farm? (buttons: Shrimp / Fish / Both)
+ *   1. What species are you growing? (buttons: Shrimp / Fish / Both)
  *   2. Which village are you from? (free text)
- *   3. How many ponds? (buttons: 1 / 2 / 3 / 4+)
  *
  * Group 2 — Pond Details:
- *   4. Species? (list: Vannamei / Tiger / Tilapia / Rohu / Catla / Other)
- *   5. When did you stock? (buttons: This week / This month / 1-2 months / 3+)
- *   6. Pond size? (buttons: <1 acre / 1-3 acres / 3+ acres)
+ *   3. When did you stock? (buttons: This week / This month / 1-2 months / 3+)
+ *   4. Pond size? (buttons: <1 acre / 1-3 acres / 3+ acres)
  *
- * Group 3 — Current Problem:
- *   7. What do you want help with today? (list)
- *
- * Then → deliverImmediateValue()
+ * Success → Value Tip → How can I help today? (list)
  */
 
 // ========================
@@ -98,7 +93,7 @@ async function handleOnboardingStep(phone, message) {
   // ---- GROUP 1: Farm Basics ----
   if (group === 1) {
     if (step === 0) {
-      // Q1: What do you farm?
+      // Q1: What species are you growing?
       let farmType = null;
       if (input.includes('shrimp') || input === 'farm_shrimp') farmType = 'shrimp';
       else if (input.includes('fish') || input === 'farm_fish') farmType = 'fish';
@@ -122,24 +117,6 @@ async function handleOnboardingStep(phone, message) {
       }
 
       updateStateData(phone, { village: message.trim() });
-      await askGroupQuestion(phone);
-      return true;
-    }
-
-    if (step === 2) {
-      // Q3: Pond count
-      let pondCount = null;
-      if (input === '1' || input === 'ponds_1') pondCount = 1;
-      else if (input === '2' || input === 'ponds_2') pondCount = 2;
-      else if (input === '3' || input === 'ponds_3') pondCount = 3;
-      else if (input.includes('4') || input === 'ponds_4plus') pondCount = 4;
-
-      if (!pondCount) {
-        await askGroupQuestion(phone);
-        return true;
-      }
-
-      updateStateData(phone, { pond_count: pondCount });
 
       // Group 1 done → move to group 2
       const current = getState(phone);
@@ -155,27 +132,7 @@ async function handleOnboardingStep(phone, message) {
   // ---- GROUP 2: Pond Details ----
   if (group === 2) {
     if (step === 0) {
-      // Q4: Species (list)
-      let species = null;
-      if (input.includes('vannamei') || input === 'sp_vannamei') species = 'vannamei';
-      else if (input.includes('tiger') || input === 'sp_tiger') species = 'tiger_shrimp';
-      else if (input.includes('tilapia') || input === 'sp_tilapia') species = 'tilapia';
-      else if (input.includes('rohu') || input === 'sp_rohu') species = 'rohu';
-      else if (input.includes('catla') || input === 'sp_catla') species = 'catla';
-      else if (input.includes('other') || input === 'sp_other') species = 'other';
-
-      if (!species) {
-        await askGroupQuestion(phone);
-        return true;
-      }
-
-      updateStateData(phone, { species });
-      await askGroupQuestion(phone);
-      return true;
-    }
-
-    if (step === 1) {
-      // Q5: Stocking date
+      // Q3: Stocking date
       let stockDate = null;
       if (input.includes('this week') || input === 'stock_week') stockDate = 'this_week';
       else if (input.includes('this month') || input === 'stock_month') stockDate = 'this_month';
@@ -192,8 +149,8 @@ async function handleOnboardingStep(phone, message) {
       return true;
     }
 
-    if (step === 2) {
-      // Q6: Pond size
+    if (step === 1) {
+      // Q4: Pond size
       let pondSize = null;
       if (input.includes('less') || input.includes('<1') || input === 'size_small') pondSize = 'less_than_1_acre';
       else if (input.includes('1') && input.includes('3') || input === 'size_medium') pondSize = '1_3_acres';
@@ -206,42 +163,12 @@ async function handleOnboardingStep(phone, message) {
 
       updateStateData(phone, { pond_size: pondSize });
 
-      // Group 2 done → move to group 3
-      const current = getState(phone);
-      setState(phone, { ...current, group: 3, step: 0 });
-
-      const lang = current.data.preferred_language || 'English';
-      await sendTextMessage(phone, getGroupIntro(3, lang));
-      await askGroupQuestion(phone);
-      return true;
-    }
-  }
-
-  // ---- GROUP 3: Current Problem ----
-  if (group === 3) {
-    if (step === 0) {
-      // Q7: What do you want help with?
-      let problem = null;
-      if (input.includes('disease') || input === 'prob_disease') problem = 'disease';
-      else if (input.includes('water') || input === 'prob_water') problem = 'water_quality';
-      else if (input.includes('feed') || input === 'prob_feed') problem = 'feed';
-      else if (input.includes('slow') || input.includes('growth') || input === 'prob_growth') problem = 'slow_growth';
-      else if (input.includes('mortality') || input === 'prob_mortality') problem = 'mortality';
-      else if (input.includes('price') || input === 'prob_price') problem = 'price_updates';
-      else if (input.includes('weather') || input === 'prob_weather') problem = 'weather_alerts';
-
-      if (!problem) {
-        await askGroupQuestion(phone);
-        return true;
-      }
-
-      updateStateData(phone, { current_problem: problem });
-
-      // All groups done → finalize
+      // All onboarding groups done → Finalize Registration
       await finalizeOnboarding(phone);
       return true;
     }
   }
+
 
   return false;
 }
@@ -259,7 +186,7 @@ async function askGroupQuestion(phone) {
   if (group === 1) {
     if (step === 0) {
       await sendButtonMessage(phone,
-        '🌊 What do you farm?',
+        '🌊 What species are you growing?',
         [
           { id: 'farm_shrimp', title: '🦐 Shrimp' },
           { id: 'farm_fish', title: '🐟 Fish' },
@@ -272,40 +199,11 @@ async function askGroupQuestion(phone) {
       await sendTextMessage(phone, '📍 Which village or town are you from?');
       return;
     }
-    if (step === 2) {
-      await sendButtonMessage(phone,
-        '🏊 How many ponds do you have?',
-        [
-          { id: 'ponds_1', title: '1' },
-          { id: 'ponds_2', title: '2' },
-          { id: 'ponds_3', title: '3 or more' },
-        ]
-      );
-      return;
-    }
   }
 
   // GROUP 2
   if (group === 2) {
     if (step === 0) {
-      await sendListMessage(phone,
-        '🐟 What species are you growing?',
-        'Select Species',
-        [{
-          title: 'Species',
-          rows: [
-            { id: 'sp_vannamei', title: 'Vannamei Shrimp' },
-            { id: 'sp_tiger', title: 'Tiger Shrimp' },
-            { id: 'sp_tilapia', title: 'Tilapia' },
-            { id: 'sp_rohu', title: 'Rohu' },
-            { id: 'sp_catla', title: 'Catla' },
-            { id: 'sp_other', title: 'Other' },
-          ],
-        }]
-      );
-      return;
-    }
-    if (step === 1) {
       await sendButtonMessage(phone,
         '📅 When did you stock this pond?',
         [
@@ -316,7 +214,7 @@ async function askGroupQuestion(phone) {
       );
       return;
     }
-    if (step === 2) {
+    if (step === 1) {
       await sendButtonMessage(phone,
         '📐 What is the pond size?',
         [
@@ -324,29 +222,6 @@ async function askGroupQuestion(phone) {
           { id: 'size_medium', title: '1–3 acres' },
           { id: 'size_large', title: 'More than 3 acres' },
         ]
-      );
-      return;
-    }
-  }
-
-  // GROUP 3
-  if (group === 3) {
-    if (step === 0) {
-      await sendListMessage(phone,
-        '💡 What do you want help with today?\n\nThis helps me give you the right advice right away.',
-        'Select Topic',
-        [{
-          title: 'Help Topics',
-          rows: [
-            { id: 'prob_disease', title: '🔬 Disease', description: 'Disease detection & prevention' },
-            { id: 'prob_water', title: '💧 Water Quality', description: 'Water management advice' },
-            { id: 'prob_feed', title: '🍽️ Feed', description: 'Feed management tips' },
-            { id: 'prob_growth', title: '📈 Slow Growth', description: 'Growth & weight concerns' },
-            { id: 'prob_mortality', title: '⚠️ Mortality', description: 'Dealing with losses' },
-            { id: 'prob_price', title: '💰 Price Updates', description: 'Market price info' },
-            { id: 'prob_weather', title: '🌤️ Weather Alerts', description: 'Weather & rain alerts' },
-          ],
-        }]
       );
       return;
     }
@@ -361,43 +236,55 @@ async function finalizeOnboarding(phone) {
   const state = getState(phone);
   const data = state.data;
 
+  // Set default species based on farm type
+  const species = data.farm_type === 'fish' ? 'tilapia' : 'vannamei';
+
   // Update farmer record
   await updateFarmer(state.farmerId, {
     village: data.village,
     farm_type: data.farm_type,
     preferred_language: data.preferred_language,
-    pond_count: data.pond_count,
-    current_problem: data.current_problem,
+    pond_count: 1, // Defaulting to 1 as requested to remove question
     onboarding_complete: true,
     onboarding_day: 1,
   });
 
   // Create first pond
-  const pond = await createPond({
+  await createPond({
     farmer_id: state.farmerId,
     pond_number: 1,
-    species: data.species,
+    species: species,
     stocking_date: data.stocking_date,
     pond_size: data.pond_size,
   });
 
   clearState(phone);
 
-  // Send confirmation
-  const speciesLabel = getSpeciesLabel(data.species);
-  const sizeLabel = getSizeLabel(data.pond_size);
-
+  // Registration Success + Value Tip
   await sendTextMessage(phone,
-    `✅ *All set!*\n\n` +
-    `🌊 Farm: ${capitalize(data.farm_type)}\n` +
-    `📍 Village: ${data.village}\n` +
-    `🐟 Species: ${speciesLabel}\n` +
-    `📐 Size: ${sizeLabel}\n\n` +
-    `Let me get some useful info for you right away! 👇`
+    `🎉 *Registration Successful!*\n\n` +
+    `💡 *Pro Tip:* To build maximum value from your farm, analyze your pond data regularly. ` +
+    `Tracking water quality and feed helps you avoid losses and grow faster!\n\n` +
+    `I am ready to help you manage your ${capitalize(data.farm_type)} farm. 🚀`
   );
 
-  // Deliver immediate value
-  await deliverImmediateValue(phone, state.farmerId, data.village, data.current_problem, data.preferred_language);
+  // Ask how they want help today
+  await sendListMessage(phone,
+    '💡 *How can I help you today?*\n\nSelect a topic below to get started immediately.',
+    'Select Topic',
+    [{
+      title: 'Help Topics',
+      rows: [
+        { id: 'prob_disease', title: '🔬 Disease', description: 'Disease detection & prevention' },
+        { id: 'prob_water', title: '💧 Water Quality', description: 'Water management advice' },
+        { id: 'prob_feed', title: '🍽️ Feed', description: 'Feed management tips' },
+        { id: 'prob_growth', title: '📈 Slow Growth', description: 'Growth & weight concerns' },
+        { id: 'prob_mortality', title: '⚠️ Mortality', description: 'Dealing with losses' },
+        { id: 'prob_price', title: '💰 Price Updates', description: 'Market price info' },
+        { id: 'prob_weather', title: '🌤️ Weather Alerts', description: 'Weather & rain alerts' },
+      ],
+    }]
+  );
 }
 
 // ========================
@@ -406,7 +293,7 @@ async function finalizeOnboarding(phone) {
 
 function getGroupIntro(group, lang) {
   // Keeping English for MVP. In production, translate based on lang.
-  if (group === 1) return '👋 Let\'s get started! Just 3 quick questions about your farm.';
+  if (group === 1) return '👋 Let\'s get started! Just 2 quick questions about your farm.';
   if (group === 2) return '📋 Great! Now tell me about your pond.';
   if (group === 3) return '🎯 Last question!';
   return '';
