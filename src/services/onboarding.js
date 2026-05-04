@@ -260,10 +260,15 @@ async function finalizeOnboarding(phone) {
 
   clearState(phone);
 
-  // Registration Success + Value Tip
+  // Registration Success + Summary + Value Tip
   await sendTextMessage(phone,
     `🎉 *Registration Successful!*\n\n` +
-    `💡 *Pro Tip:* To build maximum value from your farm, analyze your pond data regularly. ` +
+    `📋 *Your Farm Details:*\n` +
+    `🌊 Type: ${capitalize(data.farm_type)}\n` +
+    `📍 Village: ${data.village}\n` +
+    `📅 Stocking: ${getStockingLabel(data.stocking_date)}\n` +
+    `📐 Pond Size: ${getSizeLabel(data.pond_size)}\n\n` +
+    `💡 *Pro Tip:* To build maximum value, analyze your pond data regularly. ` +
     `Tracking water quality and feed helps you avoid losses and grow faster!\n\n` +
     `I am ready to help you manage your ${capitalize(data.farm_type)} farm. 🚀`
   );
@@ -318,6 +323,16 @@ function getSizeLabel(size) {
     more_than_3_acres: 'More than 3 acres',
   };
   return labels[size] || size;
+}
+
+function getStockingLabel(date) {
+  const labels = {
+    this_week: 'This week',
+    this_month: 'This month',
+    '1_2_months': '1–2 months ago',
+    '3_plus_months': '3+ months ago',
+  };
+  return labels[date] || date;
 }
 
 function capitalize(str) {
