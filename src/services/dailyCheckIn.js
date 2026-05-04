@@ -275,6 +275,11 @@ async function finalizeDailyCheckIn(phone, groupType) {
   const data = state.data;
   const config = GROUP_MAP[groupType];
 
+  // Get farmer language for translated advice
+  const { getFarmerById } = require('../models/database');
+  const farmer = await getFarmerById(state.farmerId);
+  const lang = farmer?.preferred_language || 'English';
+
   // Save to pond_logs
   await insertPondLog({
     pond_id: state.pondId,
@@ -292,16 +297,16 @@ async function finalizeDailyCheckIn(phone, groupType) {
   clearState(phone);
 
   // Build confirmation with alerts
-  let confirmMsg = `✅ *${config.label} recorded!*\n\n`;
-  confirmMsg += formatLogSummary(config.logGroup, data);
+  let confirmMsg = `✅ *${t(config.logGroup + '_checkin', lang)} ${t('recorded', lang)}!*\n\n`;
+  confirmMsg += formatLogSummary(config.logGroup, data, lang);
 
   // Add alerts
-  const alerts = generateAlerts(config.logGroup, data);
+  const alerts = generateAlerts(config.logGroup, data, lang);
   if (alerts.length > 0) {
     confirmMsg += `\n\n${alerts.join('\n')}`;
   }
 
-  confirmMsg += `\n\nGreat job keeping track! 🎯`;
+  confirmMsg += `\n\n${t('great_job', lang)} 🎯`;
 
   // Save to chat history so AI remembers check-in data
   try {
@@ -330,51 +335,148 @@ function getCheckInGreeting(groupType) {
   return '📋 Check-in time!';
 }
 
-function formatLogSummary(logGroup, data) {
-  if (logGroup === 'feed') {
-    let msg = '';
-    if (data.feed_brand) msg += `🏷️ Brand: ${data.feed_brand}\n`;
-    if (data.feed_kg) msg += `📦 Quantity: ${data.feed_kg} kg\n`;
-    if (data.feed_times) msg += `⏰ Frequency: ${data.feed_times}x/day\n`;
-    return msg;
-  }
-  if (logGroup === 'water') {
-    let msg = '';
-    if (data.water_color) msg += `🎨 Color: ${data.water_color}\n`;
-    if (data.bad_smell) msg += `👃 Smell: ${data.bad_smell}\n`;
-    if (data.foam_bubbles) msg += `🫧 Foam: ${data.foam_bubbles}\n`;
-    return msg;
-  }
-  if (logGroup === 'health') {
-    let msg = '';
-    if (data.disease_signs) msg += `🔬 Disease: ${data.disease_signs}\n`;
-    if (data.growth_status) msg += `📈 Growth: ${data.growth_status}\n`;
-    return msg;
-  }
-  return JSON.stringify(data);
-}
-
-function generateAlerts(logGroup, data) {
+function generateAlerts(logGroup, data, lang = 'English') {
   const alerts = [];
 
   if (logGroup === 'water') {
-    if (data.water_color === 'brown_black') alerts.push('⚠️ Brown/black water indicates poor conditions. Consider water exchange.');
-    if (data.bad_smell === 'strong') alerts.push('⚠️ Strong smell = low oxygen. Increase aeration immediately!');
-    if (data.foam_bubbles === 'yes') alerts.push('⚠️ Foam/bubbles may indicate excess organic matter. Monitor closely.');
+    if (data.water_color === 'brown_black') alerts.push(t('alert_water_brown', lang));
+    if (data.bad_smell === 'strong') alerts.push(t('alert_smell_strong', lang));
+    if (data.bad_smell === 'mild') alerts.push(t('alert_smell_mild', lang));
+    if (data.foam_bubbles === 'yes') alerts.push(t('alert_foam', lang));
   }
 
   if (logGroup === 'health') {
-    if (data.disease_signs === 'white_spots') alerts.push('🚨 White spots detected! This may indicate WSSV. Consult an expert immediately.');
-    if (data.disease_signs === 'red_body') alerts.push('⚠️ Red body may indicate Vibriosis. Maintain water quality and consult expert.');
-    if (data.disease_signs === 'white_gut') alerts.push('⚠️ White gut may indicate EHP. Reduce feed by 30-50% and add probiotics.');
-    if (data.growth_status === 'slow') alerts.push('📉 Slow growth? Check feed quality, water parameters, and stocking density.');
+    if (data.disease_signs === 'white_spots') alerts.push(t('alert_disease_white', lang));
+    if (data.disease_signs === 'red_body') alerts.push(t('alert_disease_red', lang));
+    if (data.disease_signs === 'white_gut') alerts.push(t('alert_disease_gut', lang));
+    if (data.growth_status === 'slow') alerts.push(t('alert_growth_slow', lang));
   }
 
   if (logGroup === 'feed') {
-    if (data.feed_kg === '<10' && data.feed_times >= 3) alerts.push('💡 Low feed amount with high frequency — verify this is correct for your stocking density.');
+    if (data.feed_times === 1) {
+      alerts.push(t('alert_feed_1x', lang));
+    } else if (data.feed_times === 2) {
+      alerts.push(t('alert_feed_2x', lang));
+    }
+    
+    if (data.feed_kg === '<10' && data.feed_times >= 3) {
+      alerts.push(t('alert_feed_low', lang));
+    }
   }
 
   return alerts;
+}
+
+// ========================
+// TRANSLATIONS
+// ========================
+const translations = {
+  English: {
+    recorded: 'recorded',
+    feed_checkin: 'Feed Check-In',
+    water_checkin: 'Water Check-In',
+    health_checkin: 'Health Check-In',
+    label_brand: 'Brand',
+    label_qty: 'Quantity',
+    label_freq: 'Frequency',
+    label_color: 'Color',
+    label_smell: 'Smell',
+    label_foam: 'Foam',
+    label_disease: 'Disease',
+    label_growth: 'Growth',
+    great_job: 'Great job keeping track!',
+    alert_feed_1x: '⚠️ *Action Needed:* Feeding only 1 time per day is very low! Your shrimp/fish will not grow well. Please feed 3-4 times a day.',
+    alert_feed_2x: '💡 *Advice:* Consider feeding 3-4 times per day. More frequent, smaller meals lead to much better growth and less waste.',
+    alert_feed_low: '💡 Low feed amount with high frequency — verify this is correct for your stocking density.',
+    alert_water_brown: '⚠️ *Warning:* Brown/black water indicates high organic load. Consider immediate water exchange and increase aeration.',
+    alert_smell_strong: '🚨 *Danger:* Strong smell means low oxygen or high ammonia. Increase all aerators immediately!',
+    alert_smell_mild: '⚠️ *Warning:* Mild smell detected. Monitor your DO levels closely and clean your check trays.',
+    alert_foam: '⚠️ *Warning:* Unusual foam/bubbles often mean high organic waste. Reduce feed slightly and check water parameters.',
+    alert_disease_white: '🚨 *Emergency:* White spots detected! This is likely WSSV. Consult your local expert immediately and stop water exchange.',
+    alert_disease_red: '⚠️ *Warning:* Red body may indicate Vibriosis. Check your soil quality and apply probiotics.',
+    alert_disease_gut: '⚠️ *Warning:* White gut detected. This could be EHP or infection. Reduce feed and apply gut probiotics.',
+    alert_growth_slow: '📉 *Slow Growth:* Check if your feed quality is good and if your water parameters (pH, DO) are stable.'
+  },
+  Telugu: {
+    recorded: 'రికార్డ్ చేయబడింది',
+    feed_checkin: 'మేత చెక్-ఇన్',
+    water_checkin: 'నీటి చెక్-ఇన్',
+    health_checkin: 'ఆరోగ్య చెక్-ఇన్',
+    label_brand: 'బ్రాండ్',
+    label_qty: 'పరిమాణం',
+    label_freq: 'ఫ్రీక్వెన్సీ',
+    label_color: 'రంగు',
+    label_smell: 'వాసన',
+    label_foam: 'నురుగు',
+    label_disease: 'వ్యాధి',
+    label_growth: 'పెరుగుదల',
+    great_job: 'ట్రాక్ చేస్తున్నందుకు అభినందనలు!',
+    alert_feed_1x: '⚠️ *చర్య అవసరం:* రోజుకు కేవలం 1 సారి మేత వేయడం చాలా తక్కువ! దీనివల్ల పెరుగుదల బాగుండదు. దయచేసి రోజుకు 3-4 సార్లు మేత వేయండి.',
+    alert_feed_2x: '💡 *సలహా:* రోజుకు 3-4 సార్లు మేత వేయడం మంచిది. తక్కువ పరిమాణంలో ఎక్కువ సార్లు వేయడం వల్ల పెరుగుదల బాగుంటుంది.',
+    alert_feed_low: '💡 మేత తక్కువగా ఉంది కానీ ఫ్రీక్వెన్సీ ఎక్కువగా ఉంది — మీ స్టాకింగ్ ప్రకారం ఇది సరిగ్గా ఉందో లేదో చూసుకోండి.',
+    alert_water_brown: '⚠️ *హెచ్చరిక:* బ్రౌన్/బ్లాక్ నీరు అంటే వ్యర్థాలు ఎక్కువ ఉన్నాయని అర్థం. నీటిని మార్చండి మరియు ఎరేటర్లను పెంచండి.',
+    alert_smell_strong: '🚨 *ప్రమాదం:* బలమైన వాసన అంటే ఆక్సిజన్ చాలా తక్కువగా ఉందని అర్థం. వెంటనే అన్ని ఎరేటర్లను ఆన్ చేయండి!',
+    alert_smell_mild: '⚠️ *హెచ్చరిక:* స్వల్ప వాసన ఉంది. ఆక్సిజన్ లెవల్స్ చెక్ చేసుకోండి.',
+    alert_foam: '⚠️ *హెచ్చరిక:* అసాధారణమైన నురుగు వ్యర్థాలను సూచిస్తుంది. మేతను కొద్దిగా తగ్గించండి.',
+    alert_disease_white: '🚨 *అత్యవసరం:* తెల్ల మచ్చలు కనిపించాయి! ఇది WSSV కావచ్చు. వెంటనే నిపుణులను సంప్రదించండి.',
+    alert_disease_red: '⚠️ *హెచ్చరిక:* ఎర్రటి శరీరం విబ్రియోసిస్‌ను సూచిస్తుంది. నీటి నాణ్యతను తనిఖీ చేయండి.',
+    alert_disease_gut: '⚠️ *హెచ్చరిక:* తెల్లటి పేగు (White gut) కనిపించింది. మేతను తగ్గించి ప్రోబయోటిక్స్ వాడండి.',
+    alert_growth_slow: '📉 *నెమ్మదిగా పెరుగుదల:* మేత నాణ్యత మరియు నీటి పారామితులను తనిఖీ చేయండి.'
+  },
+  Hindi: {
+    recorded: 'दर्ज किया गया',
+    feed_checkin: 'चारा चेक-इन',
+    water_checkin: 'पानी चेक-इन',
+    health_checkin: 'स्वास्थ्य चेक-इन',
+    label_brand: 'ब्रांड',
+    label_qty: 'मात्रा',
+    label_freq: 'आवृत्ति',
+    label_color: 'रंग',
+    label_smell: 'गंध',
+    label_foam: 'झाग',
+    label_disease: 'बीमारी',
+    label_growth: 'विकास',
+    great_job: 'ट्रैक रखने के लिए बहुत अच्छा!',
+    alert_feed_1x: '⚠️ *कार्रवाई की आवश्यकता:* दिन में केवल 1 बार चारा डालना बहुत कम है! आपकी मछली/झींगा ठीक से नहीं बढ़ेंगे। कृपया दिन में 3-4 बार चारा डालें।',
+    alert_feed_2x: '💡 *सुझाव:* दिन में 3-4 बार चारा डालने पर विचार करें। अधिक बार कम भोजन देने से बेहतर विकास होता है।',
+    alert_feed_low: '💡 चारे की मात्रा कम है लेकिन आवृत्ति अधिक है — जांचें कि क्या यह आपके स्टॉकिंग के लिए सही है।',
+    alert_water_brown: '⚠️ *चेतावनी:* भूरा/काला पानी उच्च कार्बनिक कचरे को दर्शाता है। पानी बदलने पर विचार करें और वातन (aeration) बढ़ाएं।',
+    alert_smell_strong: '🚨 *खतरा:* तेज गंध का मतलब है कि ऑक्सीजन कम है। तुरंत सभी एरेटर बढ़ा दें!',
+    alert_smell_mild: '⚠️ *चेतावनी:* हल्की गंध। अपने ऑक्सीजन स्तर की बारीकी से निगरानी करें।',
+    alert_foam: '⚠️ *चेतावनी:* असामान्य झाग का मतलब है अधिक जैविक कचरा। चारा थोड़ा कम करें।',
+    alert_disease_white: '🚨 *आपातकाल:* सफेद धब्बे मिले! यह WSSV हो सकता है। तुरंत विशेषज्ञ से सलाह लें।',
+    alert_disease_red: '⚠️ *चेतावनी:* लाल शरीर विब्रियोसिस का संकेत दे सकता है। पानी की गुणवत्ता की जांच करें।',
+    alert_disease_gut: '⚠️ *चेतावनी:* सफेद आंत मिली। चारा कम करें और प्रोबायोटिक्स का उपयोग करें।',
+    alert_growth_slow: '📉 *धीमी वृद्धि:* जांचें कि क्या चारे की गुणवत्ता अच्छी है और पानी स्थिर है।'
+  }
+};
+
+function t(key, lang = 'English') {
+  return translations[lang]?.[key] || translations['English']?.[key] || key;
+}
+
+function formatLogSummary(logGroup, data, lang = 'English') {
+  if (logGroup === 'feed') {
+    let msg = '';
+    if (data.feed_brand) msg += `🏷️ ${t('label_brand', lang)}: ${data.feed_brand}\n`;
+    if (data.feed_kg) msg += `📦 ${t('label_qty', lang)}: ${data.feed_kg} kg\n`;
+    if (data.feed_times) msg += `⏰ ${t('label_freq', lang)}: ${data.feed_times}x/day\n`;
+    return msg;
+  }
+  if (logGroup === 'water') {
+    let msg = '';
+    if (data.water_color) msg += `🎨 ${t('label_color', lang)}: ${data.water_color}\n`;
+    if (data.bad_smell) msg += `👃 ${t('label_smell', lang)}: ${data.bad_smell}\n`;
+    if (data.foam_bubbles) msg += `🫧 ${t('label_foam', lang)}: ${data.foam_bubbles}\n`;
+    return msg;
+  }
+  if (logGroup === 'health') {
+    let msg = '';
+    if (data.disease_signs) msg += `🔬 ${t('label_disease', lang)}: ${data.disease_signs}\n`;
+    if (data.growth_status) msg += `📈 ${t('label_growth', lang)}: ${data.growth_status}\n`;
+    return msg;
+  }
+  return JSON.stringify(data);
 }
 
 /**
