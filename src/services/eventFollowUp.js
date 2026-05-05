@@ -2,6 +2,7 @@ const { sendTextMessage, sendButtonMessage } = require('./whatsapp');
 const { getFirstPondByFarmer, insertPondLog, saveChatHistory } = require('../models/database');
 const { setState, getState, clearState, updateStateData } = require('../state/conversationState');
 const { answerQuestion } = require('./ai');
+const productEngine = require('./productEngine');
 
 /**
  * Event-Based Follow-Up
@@ -280,7 +281,7 @@ async function finalizeEvent(phone) {
   const state = getState(phone);
   const data = state.data;
   const tree = EVENT_TREES[state.eventType];
-  const { scheduleFollowUp } = require('../models/database');
+  const { scheduleFollowUp, getPondById } = require('../models/database');
 
   // Save to pond_logs
 
@@ -331,6 +332,34 @@ async function finalizeEvent(phone) {
   context += `1. What this most likely indicates\n`;
   context += `2. Immediate actions to take (2-3 steps)\n`;
   context += `3. Whether they should consult an expert\n\n`;
+
+  // --- NEW: Recommendation Engine Integration ---
+  let recommendedProductSection = "";
+  try {
+    const pond = await getPondById(state.pondId);
+    const pondSizeValue = productEngine.getPondSizeValue(pond?.pond_size);
+    
+    let problemKey = null;
+    if (state.eventType === 'mortality' && data.body_signs === 'white_spots') problemKey = 'wssv_emergency';
+    else if (state.eventType === 'disease') problemKey = 'disease_bacterial';
+    else if (state.eventType === 'slow_growth') problemKey = 'slow_growth';
+    else if (data.water_smell === 'yes') problemKey = 'high_organic_load';
+
+    if (problemKey) {
+      const rec = productEngine.getRecommendation(problemKey, { pondSizeValue });
+      if (rec) {
+        recommendedProductSection = productEngine.formatRecommendation(rec);
+        context += `\n## STRONGLY RECOMMENDED PRODUCT:\n`;
+        context += `- Product: ${rec.product}\n`;
+        context += `- Dosage: ${rec.dosage}\n`;
+        context += `- Steps: ${rec.steps.join(', ')}\n`;
+        context += `Incorporate this recommendation into your Action section.\n`;
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ Recommendation mapping failed in event flow:', err.message);
+  }
+
   context += `Keep it concise (max 150 words), practical, and formatted for WhatsApp.`;
 
   clearState(phone);
@@ -354,7 +383,7 @@ async function finalizeEvent(phone) {
       console.warn('⚠️ Could not save event to chat history:', chatErr.message);
     }
     
-    await sendTextMessage(phone, `📋 *${tree.label} — Assessment*\n\n${diagnosis}`);
+    await sendTextMessage(phone, `📋 *${tree.label} — Assessment*\n\n${diagnosis}${recommendedProductSection ? '\n\n' + recommendedProductSection : ''}`);
   } catch (err) {
     console.error('❌ Event AI analysis failed:', err.message);
     await sendTextMessage(phone,

@@ -2,6 +2,7 @@ const { sendTextMessage, sendButtonMessage } = require('./whatsapp');
 const { getFirstPondByFarmer, insertPondLog, updatePond, saveChatHistory } = require('../models/database');
 const { setState, getState, clearState, updateStateData } = require('../state/conversationState');
 const { calculateHealthScore } = require('./healthScore');
+const productEngine = require('./productEngine');
 
 /**
  * Daily Check-In — Rotating Groups
@@ -276,9 +277,10 @@ async function finalizeDailyCheckIn(phone, groupType) {
   const config = GROUP_MAP[groupType];
 
   // Get farmer language for translated advice
-  const { getFarmerById } = require('../models/database');
+  const { getFarmerById, getRecentPondLogs, getPondById } = require('../models/database');
   const farmer = await getFarmerById(state.farmerId);
   const lang = farmer?.preferred_language || 'English';
+  const pond = await getPondById(state.pondId);
 
   // Save to pond_logs
   await insertPondLog({
@@ -304,6 +306,35 @@ async function finalizeDailyCheckIn(phone, groupType) {
   const alerts = generateAlerts(config.logGroup, data, lang);
   if (alerts.length > 0) {
     confirmMsg += `\n\n${alerts.join('\n')}`;
+  }
+
+  // --- NEW: Recommendation Engine Derived Logic ---
+  let recommendationMsg = "";
+  const pondSizeValue = productEngine.getPondSizeValue(pond?.pond_size);
+
+  if (config.logGroup === 'water') {
+    // IF color = dark/brown/black AND smell = strong -> Ammonia/Organic load issue
+    if (data.water_color === 'brown_black' && data.bad_smell === 'strong') {
+      const rec = productEngine.getRecommendation('ammonia', { pondSizeValue });
+      recommendationMsg = "\n\n" + productEngine.formatRecommendation(rec);
+    }
+  } else if (config.logGroup === 'feed') {
+    // IF feed qty high AND growth = slow (from Friday) -> Poor feed conversion
+    try {
+      const recentHealthLogs = await getRecentPondLogs(state.pondId, 'health', 1);
+      const lastGrowthStatus = recentHealthLogs[0]?.log_data?.growth_status;
+      
+      if (lastGrowthStatus === 'slow' && (data.feed_kg === '30-50' || data.feed_kg === '50+')) {
+        const rec = productEngine.getRecommendation('slow_growth', { pondSizeValue });
+        recommendationMsg = "\n\n💡 *Cross-Check Insight:* Growth was slow recently despite high feeding. You may have poor feed conversion.\n" + productEngine.formatRecommendation(rec);
+      }
+    } catch (err) {
+      console.warn('⚠️ Could not fetch cross-day health data:', err.message);
+    }
+  }
+
+  if (recommendationMsg) {
+    confirmMsg += recommendationMsg;
   }
 
   confirmMsg += `\n\n${t('great_job', lang)} 🎯`;
