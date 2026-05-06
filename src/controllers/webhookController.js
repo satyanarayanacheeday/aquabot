@@ -1,4 +1,4 @@
-const { sendTextMessage, markAsRead, downloadMedia } = require('../services/whatsapp');
+const { sendTextMessage, sendListMessage, markAsRead, downloadMedia } = require('../services/whatsapp');
 const { getFarmerByPhone, saveChatHistory, getLatestHealthScore, getFirstPondByFarmer, getRecentPondLogs } = require('../models/database');
 const { startOnboarding, handleOnboardingStep } = require('../services/onboarding');
 const { startDailyCheckIn, handleDailyStep, getTodayCheckInType, GROUP_MAP } = require('../services/dailyCheckIn');
@@ -179,16 +179,64 @@ async function handleTextMessage(phone, text) {
     return;
   }
 
-  // 6. GREETING INTERCEPTOR: Simple "Hi" gets a simple "Hi"
+  // 6. GREETING INTERCEPTOR: Friendly welcome with topic selection
   const greetings = ['hi', 'hii', 'hello', 'hey', 'namaste', 'namaskaram', 'good morning', 'gm', 'good evening'];
   if (greetings.includes(normalizedText)) {
-    const greetingMap = {
-      English: `Hi! 👋 I'm your Aquorix assistant. How can I help you with your pond today?`,
-      Telugu: `నమస్కారం! 👋 నేను మీ ఆక్వోరిక్స్ అసిస్టెంట్‌ని. ఈరోజు మీ చెరువు విషయంలో నేను మీకు ఎలా సహాయపడగలను?`,
-      Hindi: `नमस्ते! 👋 मैं आपका एक्वोरिक्स सहायक हूँ। आज मैं आपके तालाब के काम में आपकी क्या मदद कर सकता हूँ?`
+    const lang = farmer.preferred_language || 'English';
+    const greetingsConfig = {
+      English: {
+        text: `Hi! 👋 I'm your Aquorix assistant.\n\n💡 *How can I help you today?*\nSelect a topic below to get started immediately:`,
+        button: 'Select Topic',
+        topics: [
+          { id: 'prob_disease', title: '🔬 Disease', desc: 'Identification & Prevention' },
+          { id: 'prob_water_quality', title: '💧 Water Quality', desc: 'Management Advice' },
+          { id: 'prob_feed', title: '🍽️ Feed', desc: 'Management Tips' },
+          { id: 'prob_slow_growth', title: '📈 Slow Growth', desc: 'Growth & Weight Issues' },
+          { id: 'prob_mortality', title: '⚠️ Mortality', desc: 'Handling Losses' },
+          { id: 'prob_price_updates', title: '💰 Price Updates', desc: 'Market Price Information' },
+          { id: 'prob_weather_alerts', title: '☀️ Weather Alerts', desc: 'Weather & Rain Alerts' }
+        ]
+      },
+      Telugu: {
+        text: `నమస్కారం! 👋 నేను మీ ఆక్వోరిక్స్ అసిస్టెంట్‌ని.\n\n💡 *ఈరోజు నేను మీకు ఎలా సహాయపడగలను?*\nవెంటనే ప్రారంభించడానికి దిగువన ఒక అంశాన్ని ఎంచుకోండి:`,
+        button: 'అంశాన్ని ఎంచుకోండి',
+        topics: [
+          { id: 'prob_disease', title: '🔬 వ్యాధి', desc: 'గుర్తింపు మరియు నివారణ' },
+          { id: 'prob_water_quality', title: '💧 నీటి నాణ్యత', desc: 'నిర్వహణ సలహా' },
+          { id: 'prob_feed', title: '🍽️ మేత', desc: 'నిర్వహణ చిట్కాలు' },
+          { id: 'prob_slow_growth', title: '📈 నెమ్మదిగా పెరుగుదల', desc: 'పెరుగుదల మరియు బరువు సమస్యలు' },
+          { id: 'prob_mortality', title: '⚠️ మరణాలు', desc: 'నష్టాలను ఎదుర్కోవడం' },
+          { id: 'prob_price_updates', title: '💰 ధర అప్‌డేట్స్', desc: 'మార్కెట్ ధర సమాచారం' },
+          { id: 'prob_weather_alerts', title: '☀️ వాతావరణ అలర్ట్స్', desc: 'వాతావరణ మరియు వర్షం అలర్ట్స్' }
+        ]
+      },
+      Hindi: {
+        text: `नमस्ते! 👋 मैं आपका एक्वोरिक्स सहायक हूँ।\n\n💡 *आज मैं आपकी क्या मदद कर सकता हूँ?*\nतुरंत शुरू करने के लिए नीचे एक विषय चुनें:`,
+        button: 'विषय चुनें',
+        topics: [
+          { id: 'prob_disease', title: '🔬 रोग', desc: 'पहचान और रोकथाम' },
+          { id: 'prob_water_quality', title: '💧 पानी की गुणवत्ता', desc: 'प्रबंधन सलाह' },
+          { id: 'prob_feed', title: '🍽️ चारा', desc: 'प्रबंधन युक्तियाँ' },
+          { id: 'prob_slow_growth', title: '📈 धीमी वृद्धि', desc: 'विकास और वजन के मुद्दे' },
+          { id: 'prob_mortality', title: '⚠️ मृत्यु दर', desc: 'नुकसान को संभालना' },
+          { id: 'prob_price_updates', title: '💰 मूल्य अपडेट', desc: 'बाजार मूल्य की जानकारी' },
+          { id: 'prob_weather_alerts', title: '☀️ मौसम अलर्ट', desc: 'मौसम और बारिश अलर्ट' }
+        ]
+      }
     };
-    const response = greetingMap[farmer.preferred_language] || greetingMap['English'];
-    await sendTextMessage(phone, response);
+
+    const config = greetingsConfig[lang] || greetingsConfig['English'];
+    
+    await sendListMessage(phone, config.text, config.button, [
+      {
+        title: lang === 'Telugu' ? 'సహాయం కోసం అంశాలు' : (lang === 'Hindi' ? 'सहायता विषय' : 'Help Topics'),
+        rows: config.topics.map(t => ({
+          id: t.id,
+          title: t.title,
+          description: t.desc
+        }))
+      }
+    ]);
     return;
   }
 
