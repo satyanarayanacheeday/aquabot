@@ -7,6 +7,7 @@ const productEngine = require('./productEngine');
 /**
  * Event-Based Follow-Up
  *
+ * 
  * Triggered ONLY when the farmer reports a problem (we never ask first).
  * Dynamic question trees based on the problem type.
  *
@@ -50,7 +51,7 @@ const EVENT_TREES = {
         parseButton: (input) => {
           if (input.includes('today') || input === 'mort_today') return 'today';
           if (input.includes('yesterday') || input === 'mort_yesterday') return 'yesterday';
-          if (input.includes('2') || input.includes('3') || input.includes('day') || input === 'mort_days') return '2-3_days';
+          if (input.includes('2') || input.includes('3') || input.$includes('day') || input === 'mort_days') return '2-3_days';
           if (input.includes('week') || input === 'mort_week') return 'this_week';
           return null;
         },
@@ -107,7 +108,7 @@ const EVENT_TREES = {
         ],
         parseButton: (input) => {
           if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
-          if (input.includes('green') || input === 'sg_green' || input === 'sg_dark') return 'green';
+          if (input.includes('green') || input === 'sg_green') return 'green';
           if (input.includes('brown') || input.includes('black') || input === 'sg_brown') return 'brown_black';
           return null;
         },
@@ -144,7 +145,7 @@ const EVENT_TREES = {
         parseButton: (input) => {
           if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
           if (input.includes('white') || input.includes('spot') || input === 'dis_spots') return 'white_spots';
-          if (input.includes('red') || input.includes('other') || input === 'dis_red_other') return 'red_body';
+          if (input.includes('red') || input === 'other') return 'red_body';
           if (input.includes('gut') || input.includes('feces')) return 'white_gut';
           return null;
         },
@@ -160,7 +161,7 @@ const EVENT_TREES = {
         parseButton: (input) => {
           if (input.includes('few') || input === 'dis_few') return 'a_few';
           if (input.includes('many') || input === 'dis_many') return 'many';
-          if (input.includes('most') || input.includes('all') || input === 'dis_most') return 'most';
+          if (input.includes('most') || input === 'all' || input === 'dis_most') return 'most';
           return null;
         },
       },
@@ -459,12 +460,16 @@ function detectEventType(text) {
 
   // 2. CHECK FOR REPORTING INTENT
   // Keywords must be present, but we also look for "reporting" markers
+  // TIGHTENED: We now require words like "have", "seeing", "problem" or "help" to indicate an active issue.
+  const reportingMarkers = ['have', 'seeing', 'found', 'problem', 'help', 'is', 'my', 'issue', 'unaru', 'vundi', 'undi', 'hai', 'mil raha hai'];
+  const hasReportingMarker = reportingMarkers.some(m => lower.includes(m));
+
   const hasProblemKeywords = lower.includes('died') || lower.includes('dead') || 
                              lower.includes('mortality') || lower.includes('not growing') || 
                              lower.includes('white spot') || lower.includes('red body') ||
                              lower.includes('sick') || lower.includes('problem');
 
-  if (!hasProblemKeywords) return null;
+  if (!hasProblemKeywords || !hasReportingMarker) return null;
 
   // Specific detection
   if (lower.includes('died') || lower.includes('dead') || lower.includes('mortality') ||
