@@ -31,8 +31,10 @@ const EVENT_TREES = {
           { id: 'mort_few', title: '1–10' },
           { id: 'mort_some', title: '10–50' },
           { id: 'mort_many', title: 'More than 50' },
+          { id: 'cancel_flow', title: 'Cancel ❌' },
         ],
         parseButton: (input) => {
+          if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
           if (input.includes('1') && input.includes('10') || input === 'mort_few' || input.includes('few')) return '1-10';
           if (input.includes('10') && input.includes('50') || input === 'mort_some') return '10-50';
           if (input.includes('more') || input.includes('50') || input === 'mort_many') return '50+';
@@ -104,8 +106,10 @@ const EVENT_TREES = {
           { id: 'sg_green', title: 'Green' },
           { id: 'sg_dark', title: 'Dark green' },
           { id: 'sg_brown', title: 'Brown/Black' },
+          { id: 'cancel_flow', title: 'Cancel ❌' },
         ],
         parseButton: (input) => {
+          if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
           if (input.includes('green') && !input.includes('dark') || input === 'sg_green') return 'green';
           if (input.includes('dark') || input === 'sg_dark') return 'dark_green';
           if (input.includes('brown') || input.includes('black') || input === 'sg_brown') return 'brown_black';
@@ -140,8 +144,10 @@ const EVENT_TREES = {
           { id: 'dis_spots', title: 'White spots' },
           { id: 'dis_red', title: 'Red body/gills' },
           { id: 'dis_other', title: 'Other' },
+          { id: 'cancel_flow', title: 'Cancel ❌' },
         ],
         parseButton: (input) => {
+          if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
           if (input.includes('white') || input.includes('spot') || input === 'dis_spots') return 'white_spots';
           if (input.includes('red') || input === 'dis_red') return 'red_body';
           if (input.includes('other') || input === 'dis_other') return 'other';
@@ -237,11 +243,27 @@ async function handleEventStep(phone, message) {
     updateStateData(phone, { [stepDef.key]: message.trim() });
   } else {
     const value = stepDef.parseButton(input);
+    
+    // Check for explicit cancel or exit keyword
+    if (value === 'cancel' || ['stop', 'exit', 'cancel', 'menu', 'hi', 'hii', 'hello'].includes(input)) {
+      clearState(phone);
+      await sendTextMessage(phone, '❌ Investigation cancelled. How can I help you otherwise?');
+      return true;
+    }
+
     if (!value) {
+      // Logic to prevent infinite loops: allow 2 attempts
+      const attempts = (state.attempts || 0) + 1;
+      if (attempts >= 2) {
+        clearState(phone);
+        await sendTextMessage(phone, 'I didn\'t quite get that. I\'ve closed the investigation for now so you can chat normally. Type "help" if you need me!');
+        return true;
+      }
+      updateStateData(phone, { attempts });
       await askEventQuestion(phone);
       return true;
     }
-    updateStateData(phone, { [stepDef.key]: value });
+    updateStateData(phone, { [stepDef.key]: value, attempts: 0 }); // reset attempts on success
   }
 
   const updatedState = getState(phone);
@@ -428,22 +450,37 @@ function getDefaultEventAdvice(eventType, data) {
  * Returns the event type or null
  */
 function detectEventType(text) {
-  const lower = text.toLowerCase();
+  const lower = text.toLowerCase().trim();
 
-  // Mortality triggers
+  // 1. AVOID TRIGGERING ON KNOWLEDGE QUESTIONS
+  // If message starts with "what is", "how to", "why", "define" or ends with "?"
+  if (lower.startsWith('what is') || lower.startsWith('how to') || 
+      lower.startsWith('why') || lower.startsWith('explain') || 
+      lower.startsWith('tell me about') || lower.endsWith('?')) {
+    return null;
+  }
+
+  // 2. CHECK FOR REPORTING INTENT
+  // Keywords must be present, but we also look for "reporting" markers
+  const hasProblemKeywords = lower.includes('died') || lower.includes('dead') || 
+                             lower.includes('mortality') || lower.includes('not growing') || 
+                             lower.includes('white spot') || lower.includes('red body') ||
+                             lower.includes('sick') || lower.includes('problem');
+
+  if (!hasProblemKeywords) return null;
+
+  // Specific detection
   if (lower.includes('died') || lower.includes('dead') || lower.includes('mortality') ||
       lower.includes('dying') || lower.includes('death') || lower.includes('lost')) {
     return 'mortality';
   }
 
-  // Slow growth triggers
   if (lower.includes('slow growth') || lower.includes('not growing') ||
       lower.includes('growing slow') || lower.includes('no growth') ||
       lower.includes('small size') || lower.includes('low weight')) {
     return 'slow_growth';
   }
 
-  // Disease triggers
   if (lower.includes('disease') || lower.includes('white spot') || lower.includes('red body') ||
       lower.includes('white gut') || lower.includes('infection') ||
       lower.includes('sick') || lower.includes('unhealthy')) {

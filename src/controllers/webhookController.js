@@ -99,8 +99,20 @@ async function handleTextMessage(phone, text) {
   const normalizedText = text.toLowerCase().trim();
   logger.info(`💬 Text from ${phone}: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
 
-  // 1. Check if farmer exists and is onboarded
+  // 1. Check if farmer exists
   const farmer = await getFarmerByPhone(phone);
+  const { clearState } = require('../state/conversationState');
+
+  // GLOBAL EXIT HANDLER: Allow escaping any flow
+  if (['stop', 'exit', 'cancel', 'menu'].includes(normalizedText)) {
+    clearState(phone);
+    if (normalizedText === 'menu') {
+      await sendHelpMessage(phone);
+    } else {
+      await sendTextMessage(phone, '❌ Flow cancelled. You are now back in normal chat mode.');
+    }
+    return;
+  }
 
   // 2. Not onboarded → handle onboarding
   if (!farmer || !farmer.onboarding_complete) {
@@ -143,7 +155,15 @@ async function handleTextMessage(phone, text) {
     }
   }
 
-  // 4. Keyword triggers
+  // 4. Handle initial help selection from onboarding (prob_ prefix)
+  if (normalizedText.startsWith('prob_')) {
+    const problem = normalizedText.replace('prob_', '');
+    const { deliverImmediateValue } = require('../services/immediateValue');
+    await deliverImmediateValue(phone, farmer.id, farmer.village, problem, farmer.preferred_language);
+    return;
+  }
+
+  // 5. Keyword triggers
   if (normalizedText === 'help' || normalizedText === 'menu') {
     await sendHelpMessage(phone);
     return;
@@ -175,14 +195,14 @@ async function handleTextMessage(phone, text) {
     return;
   }
 
-  // 5. Detect event-based problems from message content
+  // 6. Detect event-based problems from message content
   const eventType = detectEventType(text);
   if (eventType) {
     await startEventFollowUp(phone, farmer.id, eventType, text);
     return;
   }
 
-  // 6. Default: AI Q&A (RAG)
+  // 7. Default: AI Q&A (RAG)
   logger.info(`🤖 Routing to AI Q&A for: "${text.substring(0, 80)}"`);
   let answer;
   try {
