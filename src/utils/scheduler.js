@@ -1,8 +1,7 @@
 const cron = require('node-cron');
 const { getAllFarmers } = require('../models/database');
-const { sendTextMessage } = require('../services/whatsapp');
-const { generateAdvisory } = require('../services/advisory');
-const { startDailyCheckIn } = require('../services/dailyCheckIn');
+const { startDailyCheckIn, GROUP_MAP } = require('../services/dailyCheckIn');
+const { sendButtonMessage } = require('../services/whatsapp');
 
 /**
  * Start all scheduled cron jobs
@@ -23,7 +22,8 @@ function startScheduler() {
   cron.schedule('0 6 * * 1', async () => {
     console.log('📤 [Mon] Sending feed check-in reminders...');
     await sendCheckInReminders('daily_feed',
-      '🍽️ *Feed Check-In*\n\nGood morning! Quick 3-question feed check. Takes 30 seconds!\n\nType "update" to start 📝'
+      '🍽️ *Feed Check-In*\n\nGood morning! Quick 3-question feed check. Takes 30 seconds!',
+      'btn_update'
     );
   }, { timezone: 'Asia/Kolkata' });
 
@@ -33,7 +33,8 @@ function startScheduler() {
   cron.schedule('0 6 * * 3', async () => {
     console.log('📤 [Wed] Sending water check-in reminders...');
     await sendCheckInReminders('daily_water',
-      '💧 *Water Check-In*\n\nGood morning! Let\'s check your pond water. Just 3 taps!\n\nType "update" to start 📝'
+      '💧 *Water Check-In*\n\nGood morning! Let\'s check your pond water. Just 3 taps!',
+      'btn_update'
     );
   }, { timezone: 'Asia/Kolkata' });
 
@@ -43,7 +44,8 @@ function startScheduler() {
   cron.schedule('0 6 * * 5', async () => {
     console.log('📤 [Fri] Sending health check-in reminders...');
     await sendCheckInReminders('daily_health',
-      '🔬 *Health Check-In*\n\nGood morning! Quick health check for your pond.\n\nType "update" to start 📝'
+      '🔬 *Health Check-In*\n\nGood morning! Quick health check for your pond.',
+      'btn_update'
     );
   }, { timezone: 'Asia/Kolkata' });
 
@@ -53,7 +55,8 @@ function startScheduler() {
   cron.schedule('0 6 * * 0', async () => {
     console.log('📤 [Sun] Sending weekly check-in reminders...');
     await sendCheckInReminders('weekly',
-      '📋 *Weekly Check-In*\n\nGood morning! Time for your quick weekly summary.\n\nType "weekly" to start 📝'
+      '📋 *Weekly Check-In*\n\nGood morning! Time for your quick weekly summary.',
+      'btn_weekly'
     );
   }, { timezone: 'Asia/Kolkata' });
 
@@ -128,14 +131,22 @@ function startScheduler() {
 }
 
 /**
- * Send check-in reminders to all registered farmers
+ * Send check-in reminders with interactive buttons to all registered farmers
  */
-async function sendCheckInReminders(type, message) {
+async function sendCheckInReminders(type, bodyText, buttonKey) {
   try {
     const farmers = await getAllFarmers();
+    const { translations } = require('../services/dailyCheckIn');
+
     for (const farmer of farmers) {
       try {
-        await sendTextMessage(farmer.phone, message);
+        const lang = farmer.preferred_language || 'English';
+        const buttonLabel = translations[lang]?.[buttonKey] || translations['English']?.[buttonKey] || 'Update';
+        
+        await sendButtonMessage(farmer.phone, bodyText, [
+          { id: type === 'weekly' ? 'weekly' : 'checkin', title: buttonLabel }
+        ]);
+        
         await sleep(1000); // rate limiting
       } catch (err) {
         console.error(`Failed to send reminder to ${farmer.phone}:`, err.message);

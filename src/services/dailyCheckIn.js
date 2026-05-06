@@ -426,7 +426,9 @@ const translations = {
     alert_disease_white: '🚨 *Emergency:* White spots detected! This is likely WSSV. Consult your local expert immediately and stop water exchange.',
     alert_disease_red: '⚠️ *Warning:* Red body may indicate Vibriosis. Check your soil quality and apply probiotics.',
     alert_disease_gut: '⚠️ *Warning:* White gut detected. This could be EHP or infection. Reduce feed and apply gut probiotics.',
-    alert_growth_slow: '📉 *Slow Growth:* Check if your feed quality is good and if your water parameters (pH, DO) are stable.'
+    alert_growth_slow: '📉 *Slow Growth:* Check if your feed quality is good and if your water parameters (pH, DO) are stable.',
+    btn_update: 'Update Now 📝',
+    btn_weekly: 'Weekly Report 📋'
   },
   Telugu: {
     recorded: 'రికార్డ్ చేయబడింది',
@@ -452,7 +454,9 @@ const translations = {
     alert_disease_white: '🚨 *అత్యవసరం:* తెల్ల మచ్చలు కనిపించాయి! ఇది WSSV కావచ్చు. వెంటనే నిపుణులను సంప్రదించండి.',
     alert_disease_red: '⚠️ *హెచ్చరిక:* ఎర్రటి శరీరం విబ్రియోసిస్‌ను సూచిస్తుంది. నీటి నాణ్యతను తనిఖీ చేయండి.',
     alert_disease_gut: '⚠️ *హెచ్చరిక:* తెల్లటి పేగు (White gut) కనిపించింది. మేతను తగ్గించి ప్రోబయోటిక్స్ వాడండి.',
-    alert_growth_slow: '📉 *నెమ్మదిగా పెరుగుదల:* మేత నాణ్యత మరియు నీటి పారామితులను తనిఖీ చేయండి.'
+    alert_growth_slow: '📉 *నెమ్మదిగా పెరుగుదల:* మేత నాణ్యత మరియు నీటి పారామితులను తనిఖీ చేయండి.',
+    btn_update: 'అప్‌డేట్ చేయండి 📝',
+    btn_weekly: 'వారపు నివేదిక 📋'
   },
   Hindi: {
     recorded: 'दर्ज किया गया',
@@ -478,7 +482,9 @@ const translations = {
     alert_disease_white: '🚨 *आपातकाल:* सफेद धब्बे मिले! यह WSSV हो सकता है। तुरंत विशेषज्ञ से सलाह लें।',
     alert_disease_red: '⚠️ *चेतावनी:* लाल शरीर विब्रियोसिस का संकेत दे सकता है। पानी की गुणवत्ता की जांच करें।',
     alert_disease_gut: '⚠️ *चेतावनी:* सफेद आंत मिली। चारा कम करें और प्रोबायोटिक्स का उपयोग करें।',
-    alert_growth_slow: '📉 *धीमी वृद्धि:* जांचें कि क्या चारे की गुणवत्ता अच्छी है और पानी स्थिर है।'
+    alert_growth_slow: '📉 *धीमी वृद्धि:* जांचें कि क्या चारे की गुणवत्ता अच्छी है और पानी स्थिर है।',
+    btn_update: 'अभी अपडेट करें 📝',
+    btn_weekly: 'साप्ताहिक रिपोर्ट 📋'
   }
 };
 
@@ -526,4 +532,5 @@ module.exports = {
   handleDailyStep,
   getTodayCheckInType,
   GROUP_MAP,
+  translations
 };

@@ -21,13 +21,19 @@ async function generateAdvisory(farmerId, farmerVillage, preferredLanguage = 'En
 
     // 4. Get weather (auto-collected, never ask farmer)
     const weather = await getWeather(farmerVillage);
+    const { getFarmerById } = require('../models/database');
+    const farmer = await getFarmerById(farmerId);
 
     // 5. Build context
     let context = `Generate a brief daily advisory for this farmer's pond.\n\n`;
-    context += `## Pond Profile:\n`;
+    context += `## Farmer Profile:\n`;
+    context += `- Village: ${farmer?.village || 'Unknown'}\n`;
+    context += `- Farm Type: ${farmer?.farm_type || 'Unknown'}\n`;
+    context += `\n## Pond Profile:\n`;
     context += `- Species: ${pond.species}\n`;
     context += `- Pond Size: ${pond.pond_size}\n`;
     context += `- Stocking: ${pond.stocking_date}\n`;
+    if (pond.feed_brand) context += `- Feed Brand: ${pond.feed_brand}\n`;
 
     if (recentLogs.length > 0) {
       context += `\n## Recent Pond Data (last ${recentLogs.length} entries):\n`;
@@ -52,10 +58,15 @@ async function generateAdvisory(farmerId, farmerVillage, preferredLanguage = 'En
       context += `- Wind: ${weather.windSpeed} m/s\n`;
     }
 
-    context += `\nProvide a concise daily advisory (max 100 words) formatted for WhatsApp with emojis. Include:
-1. One key observation from data or weather
-2. 2 specific action items for today
-3. One encouraging note
+    context += `\nProvide a comprehensive and deeply personalized daily advisory (approx 150-200 words) formatted for WhatsApp with emojis. 
+
+CRITICAL INSTRUCTIONS:
+1. ANALYZE TRENDS: Look at the logs over time. Is water color deteriorating? Is feed quantity increasing correctly for the growth stage? Mention these trends.
+2. WEATHER IMPACT: Proactively explain how today's weather (${weather?.description}) will affect their specific pond data.
+3. ACTIONABLE STEPS: Provide 3-4 very specific action items for today (e.g., "Increase aeration by 2 hours tonight due to low oxygen signs in your last log").
+4. EXPERT TONE: Speak like a senior aquaculture consultant who knows their farm history.
+5. NO PLACEHOLDERS: Use the data provided. If data is missing, suggest a check-in.
+
 Do NOT ask the farmer about weather — you already have it.`;
 
     const langInstruction = `\n\n## Language\nReply in **${preferredLanguage}**. Casual, communicative language.`;
