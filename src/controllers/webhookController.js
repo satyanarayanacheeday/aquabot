@@ -160,13 +160,10 @@ async function handleTextMessage(phone, text) {
     
     // Direct investigations for critical problems
     if (['disease', 'mortality', 'slow_growth', 'water', 'feed'].includes(topic)) {
-      const pond = await getFirstPondByFarmer(farmer.id);
-      if (pond) {
-        // Map 'water' to 'water_quality' tree
-        const eventType = topic === 'water' ? 'water_quality' : topic;
-        await startEventFollowUp(phone, farmer.id, pond.id, eventType);
-        return;
-      }
+      // Map 'water' to 'water_quality' tree
+      const eventType = topic === 'water' ? 'water_quality' : topic;
+      await startEventFollowUp(phone, farmer.id, eventType);
+      return;
     }
 
     // Default: Deliver immediate value (tips) for other topics
