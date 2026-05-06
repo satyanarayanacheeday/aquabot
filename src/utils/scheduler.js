@@ -11,7 +11,7 @@ const { sendButtonMessage } = require('../services/whatsapp');
  *   6:00 AM Wed   → Water check-in reminder
  *   6:00 AM Fri   → Health check-in reminder
  *   6:00 AM Sun   → Weekly check-in reminder
- *   7:00 AM daily → Weather + advisory (auto-collected, no farmer input)
+ *   7:00 AM daily → Daily advisory (auto-collected, no farmer input)
  */
 function startScheduler() {
   console.log('⏰ Starting scheduler...');
@@ -92,7 +92,7 @@ function startScheduler() {
 
   // ========================
   // DAILY ADVISORY — 7:00 AM every day
-  // Weather + advice auto-generated, no farmer input needed
+  // Advisory auto-generated, no farmer input needed
   // ========================
   cron.schedule('0 7 * * *', async () => {
     console.log('📤 Generating daily advisories...');

@@ -1,7 +1,6 @@
 const ai = require('../config/gemini');
 const SYSTEM_PROMPT = require('../prompts/systemPrompt');
 const { searchKnowledge, getRecentChats, getFirstPondByFarmer, getPondsByFarmer, getFarmerById, getRecentPondLogs, getLatestHealthScore } = require('../models/database');
-const { getWeather } = require('./weather');
 const { getRecommendations } = require('./recommendation');
 const { getOrRefreshSummary } = require('./conversationSummary');
 
@@ -43,7 +42,6 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
 
     // 2. Get farmer and pond context
     let farmContext = '';
-    let weatherContext = '';
     let healthContext = '';
     let recommendationContext = '';
 
@@ -54,21 +52,6 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
         farmContext += `\n\n## 🧑‍🌾 FARMER PROFILE:\n`;
         farmContext += `- Village: ${farmerData.village || 'Unknown'}\n`;
         farmContext += `- Farm type: ${farmerData.farm_type || 'Unknown'}\n`;
-
-        // Get weather automatically (never ask the farmer)
-        if (farmerData.village) {
-          const weather = await getWeather(farmerData.village);
-          if (weather) {
-            weatherContext = `\n\n## 🌍 CURRENT WEATHER (AUTO-COLLECTED):\n` +
-              `- Location: ${weather.location}\n` +
-              `- Temp: ${weather.temperature}°C (Feels like ${weather.feelsLike}°C)\n` +
-              `- Humidity: ${weather.humidity}%\n` +
-              `- Condition: ${weather.description}\n` +
-              `- Rainfall: ${weather.rainfall}mm/h\n` +
-              `- Wind: ${weather.windSpeed}m/s\n` +
-              `NOTE: You already know the weather. Do NOT ask the farmer about it.`;
-          }
-        }
       }
 
       // Get pond data (detect pond number from question)
@@ -146,7 +129,7 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
     const systemInstruction = SYSTEM_PROMPT + 
       conversationSummary + 
       knowledgeContext + 
-      (question.length > 10 ? farmContext + weatherContext + healthContext + recommendationContext : '') + 
+      (question.length > 10 ? farmContext + healthContext + recommendationContext : '') + 
       langInstruction;
 
     const response = await ai.models.generateContent({

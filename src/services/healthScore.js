@@ -1,5 +1,4 @@
 const { getRecentPondLogs, upsertHealthScore, getLatestHealthScore } = require('../models/database');
-const { getWeather } = require('./weather');
 
 /**
  * Pond Health Score Calculator
@@ -12,7 +11,6 @@ const { getWeather } = require('./weather');
  *  - Water condition (from water logs)
  *  - Disease signs (from health logs / events)
  *  - Growth status (from health/weekly logs)
- *  - Weather risk (from weather API — auto-collected)
  *
  * We do NOT use mortality as a proactive factor.
  * Mortality is only tracked when the farmer reports it via event follow-up.

@@ -1,43 +1,16 @@
 const { sendTextMessage } = require('./whatsapp');
-const { getWeather } = require('./weather');
 
 /**
  * Deliver immediate value right after onboarding.
  * Makes the farmer feel: "This assistant is helping me immediately."
  *
  * Shows:
- *  - Today's weather for their village
  *  - Problem-specific advice based on what they selected
  *  - 2-3 action items
  */
 async function deliverImmediateValue(phone, farmerId, village, currentProblem, language = 'English') {
   try {
-    // 1. Get weather
-    let weatherMsg = '';
-    try {
-      const weather = await getWeather(village);
-      if (weather) {
-        weatherMsg = `☀️ *Weather in ${weather.location}*\n` +
-          `🌡️ ${weather.temperature}°C | 💧 ${weather.humidity}% humidity`;
-
-        if (weather.rainfall > 0) {
-          weatherMsg += ` | 🌧️ Rain: ${weather.rainfall}mm/h`;
-        }
-
-        weatherMsg += `\n${weather.description}\n`;
-
-        if (weather.rainfall > 5) {
-          weatherMsg += `\n⚠️ *Heavy rain alert!* Watch your DO levels and reduce feeding by 20-30%.\n`;
-        }
-        if (weather.temperature > 33) {
-          weatherMsg += `\n⚠️ *High temperature!* Watch for pH spikes and algae blooms.\n`;
-        }
-      }
-    } catch (err) {
-      console.warn('⚠️ Weather fetch failed:', err.message);
-    }
-
-    // 2. Get problem-specific advice
+    // 1. Get problem-specific advice
     const problemLabel = getProblemLabel(currentProblem);
     let adviceMsg = '';
 
@@ -57,9 +30,8 @@ async function deliverImmediateValue(phone, farmerId, village, currentProblem, l
       adviceMsg = getDefaultAdvice(currentProblem);
     }
 
-    // 3. Combine and send
+    // 2. Combine and send
     let fullMessage = '';
-    if (weatherMsg) fullMessage += weatherMsg + '\n';
     fullMessage += `💡 *Quick tips for ${problemLabel}:*\n\n${adviceMsg}`;
     fullMessage += `\n\n---\nI'll check in with you regularly to help manage your pond! 🦐\nType *help* anytime to see what I can do.`;
 
@@ -73,7 +45,6 @@ async function deliverImmediateValue(phone, farmerId, village, currentProblem, l
         `🦐 Welcome aboard! I'll be your pond assistant.\n\n` +
         `Type *help* to see what I can do.\n` +
         `Type *update* to log pond data.\n` +
-        `Type *weather* for local weather.\n` +
         `Send a 📸 photo for disease detection.`
       );
     } catch (e) {
@@ -89,8 +60,6 @@ function getProblemLabel(problem) {
     feed: 'Feed management',
     slow_growth: 'Slow growth concerns',
     mortality: 'Mortality concerns',
-    price_updates: 'Market price updates',
-    weather_alerts: 'Weather & rain alerts',
   };
   return labels[problem] || 'General pond management';
 }
@@ -102,8 +71,6 @@ function getDefaultAdvice(problem) {
     feed: '🍽️ Don\'t overfeed — leftover feed pollutes water.\n📊 Reduce feed by 20% during cloudy/rainy days.\n⏰ Feed 3-4 times daily at fixed times.',
     slow_growth: '📈 Check if feed amount matches shrimp/fish size.\n💧 Poor water quality often causes slow growth.\n🧪 Check ammonia — high levels reduce growth.',
     mortality: '⚠️ Check water quality immediately — DO, pH, ammonia.\n🔍 Look for disease signs: white spots, red body, white gut.\n🫧 Increase aeration right away.',
-    price_updates: '💰 Track local mandi prices regularly.\n📊 Harvest at optimal size for best price.\n🤝 Connect with multiple buyers for better rates.',
-    weather_alerts: '🌧️ Reduce feeding by 20-30% during heavy rain.\n🫧 Run aerators extra during cloudy weather.\n🌡️ Watch for temperature swings after rain.',
   };
   return defaults[problem] || '💡 Keep monitoring your pond daily.\n💧 Good water quality is the foundation of healthy farming.';
 }

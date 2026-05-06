@@ -1,11 +1,10 @@
 const ai = require('../config/gemini');
 const SYSTEM_PROMPT = require('../prompts/systemPrompt');
 const { getFirstPondByFarmer, getRecentPondLogs, getLatestHealthScore } = require('../models/database');
-const { getWeather } = require('./weather');
 
 /**
  * Generate a personalized daily advisory for a farmer.
- * Uses auto-collected weather + recent pond data + health score.
+ * Uses recent pond data + health score.
  */
 async function generateAdvisory(farmerId, farmerVillage, preferredLanguage = 'English') {
   try {
@@ -19,8 +18,6 @@ async function generateAdvisory(farmerId, farmerVillage, preferredLanguage = 'En
     // 3. Get health score
     const healthScore = await getLatestHealthScore(pond.id);
 
-    // 4. Get weather (auto-collected, never ask farmer)
-    const weather = await getWeather(farmerVillage);
     const { getFarmerById } = require('../models/database');
     const farmer = await getFarmerById(farmerId);
 
@@ -49,25 +46,15 @@ async function generateAdvisory(farmerId, farmerVillage, preferredLanguage = 'En
       context += `Factors: ${JSON.stringify(healthScore.factors)}\n`;
     }
 
-    if (weather) {
-      context += `\n## Today's Weather (${weather.location}):\n`;
-      context += `- Temperature: ${weather.temperature}°C (feels like ${weather.feelsLike}°C)\n`;
-      context += `- Humidity: ${weather.humidity}%\n`;
-      context += `- Rainfall: ${weather.rainfall}mm\n`;
-      context += `- Conditions: ${weather.description}\n`;
-      context += `- Wind: ${weather.windSpeed} m/s\n`;
-    }
 
     context += `\nProvide a comprehensive and deeply personalized daily advisory (approx 150-200 words) formatted for WhatsApp with emojis. 
 
 CRITICAL INSTRUCTIONS:
 1. ANALYZE TRENDS: Look at the logs over time. Is water color deteriorating? Is feed quantity increasing correctly for the growth stage? Mention these trends.
-2. WEATHER IMPACT: Proactively explain how today's weather (${weather?.description}) will affect their specific pond data.
-3. ACTIONABLE STEPS: Provide 3-4 very specific action items for today (e.g., "Increase aeration by 2 hours tonight due to low oxygen signs in your last log").
-4. EXPERT TONE: Speak like a senior aquaculture consultant who knows their farm history.
-5. NO PLACEHOLDERS: Use the data provided. If data is missing, suggest a check-in.
-
-Do NOT ask the farmer about weather — you already have it.`;
+2. ACTIONABLE STEPS: Provide 3-4 very specific action items for today (e.g., "Increase aeration by 2 hours tonight due to low oxygen signs in your last log").
+3. EXPERT TONE: Speak like a senior aquaculture consultant who knows their farm history.
+4. NO PLACEHOLDERS: Use the data provided. If data is missing, suggest a check-in.
+`;
 
     const langInstruction = `\n\n## Language\nReply in **${preferredLanguage}**. Casual, communicative language.`;
 

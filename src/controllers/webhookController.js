@@ -9,7 +9,6 @@ const { formatHealthScoreMessage } = require('../services/healthScore');
 const { getState, isInFlow } = require('../state/conversationState');
 const { answerQuestion } = require('../services/ai');
 const { analyzeImage } = require('../services/vision');
-const { getWeather } = require('../services/weather');
 const logger = require('../utils/logger');
 
 // Input limits
@@ -174,10 +173,6 @@ async function handleTextMessage(phone, text) {
     return;
   }
 
-  if (normalizedText === 'weather') {
-    await showWeather(phone, farmer.village);
-    return;
-  }
 
   // 6. GREETING INTERCEPTOR: Friendly welcome with topic selection
   const greetings = ['hi', 'hii', 'hello', 'hey', 'namaste', 'namaskaram', 'good morning', 'gm', 'good evening'];
@@ -192,9 +187,7 @@ async function handleTextMessage(phone, text) {
           { id: 'prob_water_quality', title: '💧 Water Quality', desc: 'Management Advice' },
           { id: 'prob_feed', title: '🍽️ Feed', desc: 'Management Tips' },
           { id: 'prob_slow_growth', title: '📈 Slow Growth', desc: 'Growth & Weight Issues' },
-          { id: 'prob_mortality', title: '⚠️ Mortality', desc: 'Handling Losses' },
-          { id: 'prob_price_updates', title: '💰 Price Updates', desc: 'Market Price Information' },
-          { id: 'prob_weather_alerts', title: '☀️ Weather Alerts', desc: 'Weather & Rain Alerts' }
+          { id: 'prob_mortality', title: '⚠️ Mortality', desc: 'Handling Losses' }
         ]
       },
       Telugu: {
@@ -205,9 +198,7 @@ async function handleTextMessage(phone, text) {
           { id: 'prob_water_quality', title: '💧 నీటి నాణ్యత', desc: 'నిర్వహణ సలహా' },
           { id: 'prob_feed', title: '🍽️ మేత', desc: 'నిర్వహణ చిట్కాలు' },
           { id: 'prob_slow_growth', title: '📈 నెమ్మదిగా పెరుగుదల', desc: 'పెరుగుదల మరియు బరువు సమస్యలు' },
-          { id: 'prob_mortality', title: '⚠️ మరణాలు', desc: 'నష్టాలను ఎదుర్కోవడం' },
-          { id: 'prob_price_updates', title: '💰 ధర అప్‌డేట్స్', desc: 'మార్కెట్ ధర సమాచారం' },
-          { id: 'prob_weather_alerts', title: '☀️ వాతావరణ అలర్ట్స్', desc: 'వాతావరణ మరియు వర్షం అలర్ట్స్' }
+          { id: 'prob_mortality', title: '⚠️ మరణాలు', desc: 'నష్టాలను ఎదుర్కోవడం' }
         ]
       },
       Hindi: {
@@ -218,9 +209,7 @@ async function handleTextMessage(phone, text) {
           { id: 'prob_water_quality', title: '💧 पानी की गुणवत्ता', desc: 'प्रबंधन सलाह' },
           { id: 'prob_feed', title: '🍽️ चारा', desc: 'प्रबंधन युक्तियाँ' },
           { id: 'prob_slow_growth', title: '📈 धीमी वृद्धि', desc: 'विकास और वजन के मुद्दे' },
-          { id: 'prob_mortality', title: '⚠️ मृत्यु दर', desc: 'नुकसान को संभालना' },
-          { id: 'prob_price_updates', title: '💰 मूल्य अपडेट', desc: 'बाजार मूल्य की जानकारी' },
-          { id: 'prob_weather_alerts', title: '☀️ मौसम अलर्ट', desc: 'मौसम और बारिश अलर्ट' }
+          { id: 'prob_mortality', title: '⚠️ मृत्यु दर', desc: 'नुकसान को संभालना' }
         ]
       }
     };
@@ -379,42 +368,6 @@ async function showHealthScore(phone, farmerId) {
   }
 }
 
-/**
- * Show weather for farmer's village
- */
-async function showWeather(phone, village) {
-  try {
-    const weather = await getWeather(village);
-    if (!weather) {
-      await sendTextMessage(phone, '⚠️ Could not fetch weather. Try again later.');
-      return;
-    }
-
-    let msg = `☀️ *Weather in ${weather.location}*\n\n`;
-    msg += `🌡️ Temperature: ${weather.temperature}°C (feels like ${weather.feelsLike}°C)\n`;
-    msg += `💧 Humidity: ${weather.humidity}%\n`;
-    msg += `🌬️ Wind: ${weather.windSpeed} m/s\n`;
-    msg += `☁️ ${weather.description}\n`;
-
-    if (weather.rainfall > 0) {
-      msg += `🌧️ Rain: ${weather.rainfall} mm/h\n`;
-    }
-
-    // Pond-specific weather advice
-    if (weather.rainfall > 5) {
-      msg += `\n⚠️ *Heavy rain!* Reduce feeding by 20-30%. Watch DO levels.`;
-    } else if (weather.temperature > 33) {
-      msg += `\n⚠️ *Very hot!* Watch for pH spikes and algae blooms.`;
-    } else if (weather.temperature < 25) {
-      msg += `\n⚠️ *Cool weather.* Shrimp may eat less — reduce feed accordingly.`;
-    }
-
-    await sendTextMessage(phone, msg);
-  } catch (err) {
-    logger.error('Weather fetch failed', { error: err.message });
-    await sendTextMessage(phone, '⚠️ Could not fetch weather. Try again later.');
-  }
-}
 
 /**
  * Send help/menu message
@@ -428,7 +381,6 @@ async function sendHelpMessage(phone) {
     `📝 *Check-In* — Type "update" to log pond data\n` +
     `📋 *Weekly Report* — Type "weekly" for your weekly check\n` +
     `📊 *Health Score* — Type "score" to see pond status\n` +
-    `🌤️ *Weather* — Type "weather" for local weather\n` +
     `❓ *Help* — Type "help" to see this menu\n\n` +
     `I'll also check in with you on:\n` +
     `🍽️ Monday — Feed\n` +

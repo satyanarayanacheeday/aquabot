@@ -56,15 +56,7 @@ const translations = {
     topic_feed: '🍽️ Feed',
     topic_growth: '📈 Slow Growth',
     topic_mortality: '⚠️ Mortality',
-    topic_price: '💰 Price Updates',
-    topic_weather: '🌤️ Weather Alerts',
-    desc_disease: 'Disease detection & prevention',
-    desc_water: 'Water management advice',
-    desc_feed: 'Feed management tips',
-    desc_growth: 'Growth & weight concerns',
-    desc_mortality: 'Dealing with losses',
-    desc_price: 'Market price info',
-    desc_weather: 'Weather & rain alerts'
+    desc_mortality: 'Dealing with losses'
   },
   Telugu: {
     intro_g1: '👋 ప్రారంభిద్దాం! మీ ఫారం గురించి కేవలం 2 ప్రశ్నలు.',
@@ -99,15 +91,7 @@ const translations = {
     topic_feed: '🍽️ మేత',
     topic_growth: '📈 నెమ్మదిగా పెరుగుదల',
     topic_mortality: '⚠️ మరణాలు',
-    topic_price: '💰 ధర అప్‌డేట్స్',
-    topic_weather: '🌤️ వాతావరణ అలర్ట్స్',
-    desc_disease: 'వ్యాధి గుర్తింపు మరియు నివారణ',
-    desc_water: 'నీటి నిర్వహణ సలహా',
-    desc_feed: 'మేత నిర్వహణ చిట్కాలు',
-    desc_growth: 'పెరుగుదల మరియు బరువు సమస్యలు',
-    desc_mortality: 'నష్టాలను ఎదుర్కోవడం',
-    desc_price: 'మార్కెట్ ధర సమాచారం',
-    desc_weather: 'వాతావరణ మరియు వర్షం అలర్ట్స్'
+    desc_mortality: 'నష్టాలను ఎదుర్కోవడం'
   },
   Hindi: {
     intro_g1: '👋 चलिए शुरू करते हैं! आपके फार्म के बारे में बस 2 सवाल।',
@@ -142,15 +126,7 @@ const translations = {
     topic_feed: '🍽️ चारा',
     topic_growth: '📈 धीमी वृद्धि',
     topic_mortality: '⚠️ मृत्यु दर',
-    topic_price: '💰 कीमत अपडेट',
-    topic_weather: '🌤️ मौसम अलर्ट',
-    desc_disease: 'बीमारी का पता लगाना और रोकथाम',
-    desc_water: 'जल प्रबंधन सलाह',
-    desc_feed: 'चारा प्रबंधन सुझाव',
-    desc_growth: 'विकास और वजन की चिंता',
-    desc_mortality: 'नुकसान से निपटना',
-    desc_price: 'बाजार मूल्य की जानकारी',
-    desc_weather: 'मौसम और बारिश अलर्ट'
+    desc_mortality: 'नुकसान से निपटना'
   }
 };
 
@@ -427,8 +403,6 @@ async function finalizeOnboarding(phone) {
         { id: 'prob_feed', title: t('topic_feed', lang), description: t('desc_feed', lang) },
         { id: 'prob_growth', title: t('topic_growth', lang), description: t('desc_growth', lang) },
         { id: 'prob_mortality', title: t('topic_mortality', lang), description: t('desc_mortality', lang) },
-        { id: 'prob_price', title: t('topic_price', lang), description: t('desc_price', lang) },
-        { id: 'prob_weather', title: t('topic_weather', lang), description: t('desc_weather', lang) },
       ],
     }]
   );
