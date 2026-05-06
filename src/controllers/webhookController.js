@@ -179,6 +179,19 @@ async function handleTextMessage(phone, text) {
     return;
   }
 
+  // 6. GREETING INTERCEPTOR: Simple "Hi" gets a simple "Hi"
+  const greetings = ['hi', 'hii', 'hello', 'hey', 'namaste', 'namaskaram', 'good morning', 'gm', 'good evening'];
+  if (greetings.includes(normalizedText)) {
+    const greetingMap = {
+      English: `Hi! 👋 I'm your Aquorix assistant. How can I help you with your pond today?`,
+      Telugu: `నమస్కారం! 👋 నేను మీ ఆక్వోరిక్స్ అసిస్టెంట్‌ని. ఈరోజు మీ చెరువు విషయంలో నేను మీకు ఎలా సహాయపడగలను?`,
+      Hindi: `नमस्ते! 👋 मैं आपका एक्वोरिक्स सहायक हूँ। आज मैं आपके तालाब के काम में आपकी क्या मदद कर सकता हूँ?`
+    };
+    const response = greetingMap[farmer.preferred_language] || greetingMap['English'];
+    await sendTextMessage(phone, response);
+    return;
+  }
+
   if (normalizedText === 'checkin' || normalizedText === 'check-in' || normalizedText === 'update') {
     const checkInType = getTodayCheckInType();
     if (checkInType) {

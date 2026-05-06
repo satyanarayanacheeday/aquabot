@@ -124,10 +124,10 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
       console.warn('⚠️ Conversation summary fetch failed:', err.message);
     }
 
-    // 4. Get recent chat history (only last 4 for multi-turn, older ones are summarized above)
+    // 4. Get recent chat history (last 6 messages for immediate continuity)
     let contents = [];
     try {
-      const recentChats = await getRecentChats(farmerId, 4);
+      const recentChats = await getRecentChats(farmerId, 6);
       if (recentChats.length > 0) {
         recentChats.forEach(c => {
           contents.push({ role: 'user', parts: [{ text: c.message }] });
@@ -143,7 +143,11 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
 
     // 5. Call Gemini
     const langInstruction = `\n\n## Language Constraints\nYou MUST reply in **${preferredLanguage}**. Use casual, communicative language. Do NOT use overly deep, formal, or complex literary vocabulary.`;
-    const systemInstruction = SYSTEM_PROMPT + conversationSummary + knowledgeContext + farmContext + weatherContext + healthContext + recommendationContext + langInstruction;
+    const systemInstruction = SYSTEM_PROMPT + 
+      conversationSummary + 
+      knowledgeContext + 
+      (question.length > 10 ? farmContext + weatherContext + healthContext + recommendationContext : '') + 
+      langInstruction;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
