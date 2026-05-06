@@ -254,7 +254,7 @@ const EVENT_TREES = {
 function isFishSpecies(species) {
   if (!species) return false;
   const s = species.toLowerCase();
-  const fishKeywords = ['fish', 'tilapia', 'rohu', 'catla', 'mrigal', 'pangasius', 'seabass', 'murrel', 'jalidi', 'pandugappa'];
+  const fishKeywords = ['fish', 'tilapia', 'rohu', 'catla', 'mrigal', 'pangasius', 'seabass', 'murrel', 'jalidi', 'pandugappa', 'imc'];
   return fishKeywords.some(k => s.includes(k));
 }
 
@@ -455,6 +455,9 @@ async function finalizeEvent(phone) {
     
     let problemKey = null;
     if (state.eventType === 'mortality' && data.body_signs === 'white_spots') problemKey = 'wssv_emergency';
+    else if (data.body_signs === 'red_body_sores' || data.symptoms === 'red_body_sores') problemKey = 'eus_emergency';
+    else if (data.body_signs === 'parasites' || data.symptoms === 'parasites') problemKey = 'fish_parasites';
+    else if (data.symptoms === 'fin_tail_rot') problemKey = 'fish_bacterial';
     else if (state.eventType === 'disease') problemKey = 'disease_bacterial';
     else if (state.eventType === 'slow_growth') problemKey = 'slow_growth';
     else if (data.water_smell === 'yes') problemKey = 'high_organic_load';

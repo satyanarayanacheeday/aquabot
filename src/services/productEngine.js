@@ -59,6 +59,42 @@ const PRODUCTS = {
       "Stop feeding immediately.",
       "Consult your local fisheries officer for emergency harvest guidelines."
     ]
+  },
+  fish_bacterial: {
+    category: "Medication",
+    product: "Antibiotic (Florfenicol / Amoxicillin)",
+    dosagePerKgFeed: 10, // mg
+    unit: "mg",
+    steps: [
+      "Mix with feed using a good quality binder.",
+      "Feed for 10-14 consecutive days even if mortality stops.",
+      "Increase aeration and stop water exchange during treatment.",
+      "Consult a vet for exact prescription."
+    ]
+  },
+  eus_emergency: {
+    category: "Medication",
+    product: "Potassium Permanganate (KMnO4) or Formalin",
+    dosagePerAcre: 2, // kg
+    unit: "kg",
+    steps: [
+      "Dissolve KMnO4 in a bucket and broadcast across the pond.",
+      "Apply during early morning.",
+      "Maintain high aeration during treatment.",
+      "Repeat after 5 days if ulcers don't heal."
+    ]
+  },
+  fish_parasites: {
+    category: "Medication",
+    product: "Parasiticide (Deltamethrin / BKC)",
+    dosagePerAcre: 500, // ml
+    unit: "ml",
+    steps: [
+      "Dilute thoroughly and apply evenly.",
+      "Apply during the morning hours.",
+      "Do not feed for 6 hours after application.",
+      "Check fish skin after 48 hours for parasite removal."
+    ]
   }
 };
 
