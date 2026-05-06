@@ -29,6 +29,7 @@ const translations = {
     q_species: '🌊 What species are you growing?',
     q_village: '📍 Which village or town are you from?',
     q_stocking: '📅 When did you stock this pond?',
+    q_stock_count: '🔢 How many seeds did you stock?',
     q_size: '📐 What is the pond size?',
     btn_shrimp: '🦐 Shrimp',
     btn_fish: '🐟 Fish',
@@ -45,6 +46,7 @@ const translations = {
     label_type: '🌊 Type',
     label_village: '📍 Village',
     label_stocking: '📅 Stocking',
+    label_stock_count: '🔢 Stock Count',
     label_size: '📐 Pond Size',
     pro_tip: '💡 *Pro Tip:* To build maximum value, analyze your pond data regularly. Tracking water quality and feed helps you avoid losses and grow faster!',
     ready_to_help: 'I am ready to help you manage your {type} farm. 🚀',
@@ -64,6 +66,7 @@ const translations = {
     q_species: '🌊 మీరు ఏ జాతిని పెంచుతున్నారు?',
     q_village: '📍 మీ గ్రామం లేదా పట్టణం పేరు ఏమిటి?',
     q_stocking: '📅 మీరు ఈ చెరువులో ఎప్పుడు స్టాక్ చేశారు?',
+    q_stock_count: '🔢 మీరు ఎన్ని సీడ్స్ స్టాక్ చేశారు (స్టాక్ కౌంట్)?',
     q_size: '📐 చెరువు పరిమాణం ఎంత?',
     btn_shrimp: '🦐 రొయ్యలు',
     btn_fish: '🐟 చేపలు',
@@ -80,6 +83,7 @@ const translations = {
     label_type: '🌊 రకం',
     label_village: '📍 గ్రామం',
     label_stocking: '📅 స్టాకింగ్',
+    label_stock_count: '🔢 స్టాక్ కౌంట్',
     label_size: '📐 చెరువు పరిమాణం',
     pro_tip: '💡 *చిట్కా:* మీ ఫారం నుండి గరిష్ట లాభం పొందడానికి, మీ చెరువు డేటాను క్రమం తప్పకుండా విశ్లేషించండి. నీటి నాణ్యత మరియు మేతను పర్యవేక్షించడం నష్టాలను నివారించడానికి మరియు వేగంగా పెరగడానికి సహాయపడుతుంది!',
     ready_to_help: 'మీ {type} ఫారాన్ని నిర్వహించడానికి నేను సిద్ధంగా ఉన్నాను. 🚀',
@@ -99,6 +103,7 @@ const translations = {
     q_species: '🌊 आप कौन सी प्रजाति पाल रहे हैं?',
     q_village: '📍 आप किस गाँव या शहर से हैं?',
     q_stocking: '📅 आपने इस तालाब में स्टॉक कब किया?',
+    q_stock_count: '🔢 आपने कितने बीज (स्टॉक काउंट) डाले?',
     q_size: '📐 तालाब का आकार क्या है?',
     btn_shrimp: '🦐 झींगा',
     btn_fish: '🐟 मछली',
@@ -115,11 +120,12 @@ const translations = {
     label_type: '🌊 प्रकार',
     label_village: '📍 गाँव',
     label_stocking: '📅 स्टॉकिंग',
+    label_stock_count: '🔢 स्टॉक काउंट',
     label_size: '📐 तालाब का आकार',
     pro_tip: '💡 *सुझाव:* अधिकतम लाभ पाने के लिए, अपने तालाब के डेटा का नियमित रूप से विश्लेषण करें। पानी की गुणवत्ता और चारे की निगरानी करने से नुकसान से बचने और तेजी से बढ़ने में मदद मिलती है!',
     ready_to_help: 'मैं आपके {type} फार्म को प्रबंधित करने में मदद के लिए तैयार हूँ। 🚀',
     help_today_q: '💡 *आज मैं आपकी कैसे मदद कर सकता हूँ?*',
-    help_today_desc: 'तुरंत शुरू करने के लिए नीचे एक विषय चुनें।',
+    help_today_desc: 'तुरंत शुरू करने के लिए नीचे एक विषय चुनें.',
     btn_select_topic: 'विषय चुनें',
     topic_disease: '🔬 बीमारी',
     topic_water: '💧 पानी की गुणवत्ता',
@@ -260,11 +266,30 @@ async function handleOnboardingStep(phone, message) {
       }
 
       updateStateData(phone, { stocking_date: stockDate });
+      
+      const current = getState(phone);
+      setState(phone, { ...current, step: 1 });
       await askGroupQuestion(phone);
       return true;
     }
 
     if (step === 1) {
+      // Q3.5: Stock Count (Numeric)
+      const count = parseInt(input.replace(/[^0-9]/g, ''));
+      if (isNaN(count) || count <= 0) {
+        await sendTextMessage(phone, 'Please enter a valid number for the stock count.');
+        return true;
+      }
+
+      updateStateData(phone, { stock_count: count });
+      
+      const current = getState(phone);
+      setState(phone, { ...current, step: 2 });
+      await askGroupQuestion(phone);
+      return true;
+    }
+
+    if (step === 2) {
       // Q4: Pond size
       let pondSize = null;
       if (input.includes('less') || input.includes('<1') || input === 'size_small') pondSize = 'less_than_1_acre';
@@ -326,11 +351,16 @@ async function askGroupQuestion(phone) {
           { id: 'stock_week', title: t('btn_week', lang) },
           { id: 'stock_month', title: t('btn_month', lang) },
           { id: 'stock_1_2', title: t('btn_months_1_2', lang) },
+          { id: 'stock_3plus', title: t('btn_months_3_plus', lang) },
         ]
       );
       return;
     }
     if (step === 1) {
+      await sendTextMessage(phone, t('q_stock_count', lang));
+      return;
+    }
+    if (step === 2) {
       await sendButtonMessage(phone,
         t('q_size', lang),
         [
@@ -372,6 +402,7 @@ async function finalizeOnboarding(phone) {
     species: species,
     stocking_date: data.stocking_date,
     pond_size: data.pond_size,
+    stock_count: data.stock_count,
   });
 
   clearState(phone);
@@ -386,6 +417,7 @@ async function finalizeOnboarding(phone) {
     `${t('label_type', lang)}: ${farmTypeLabel}\n` +
     `${t('label_village', lang)}: ${data.village}\n` +
     `${t('label_stocking', lang)}: ${getStockingLabel(data.stocking_date, lang)}\n` +
+    `${t('label_stock_count', lang)}: ${data.stock_count.toLocaleString()}\n` +
     `${t('label_size', lang)}: ${getSizeLabel(data.pond_size, lang)}\n\n` +
     `${t('pro_tip', lang)}\n\n` +
     `${t('ready_to_help', lang).replace('{type}', farmTypeLabel.toLowerCase())}`
