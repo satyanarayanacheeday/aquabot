@@ -28,16 +28,14 @@ const EVENT_TREES = {
         key: 'how_many',
         prompt: '💀 How many died?',
         buttons: [
-          { id: 'mort_few', title: '1–10' },
-          { id: 'mort_some', title: '10–50' },
+          { id: 'mort_few', title: '1–50' },
           { id: 'mort_many', title: 'More than 50' },
           { id: 'cancel_flow', title: 'Cancel ❌' },
         ],
         parseButton: (input) => {
           if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
-          if (input.includes('1') && input.includes('10') || input === 'mort_few' || input.includes('few')) return '1-10';
-          if (input.includes('10') && input.includes('50') || input === 'mort_some') return '10-50';
-          if (input.includes('more') || input.includes('50') || input === 'mort_many') return '50+';
+          if (input.includes('1') || input.includes('50') || input === 'mort_few' || input === 'mort_some') return '1-50';
+          if (input.includes('more') || input === 'mort_many') return '50+';
           return null;
         },
       },
@@ -103,15 +101,13 @@ const EVENT_TREES = {
         key: 'pond_color',
         prompt: '🎨 What is the pond water color?',
         buttons: [
-          { id: 'sg_green', title: 'Green' },
-          { id: 'sg_dark', title: 'Dark green' },
-          { id: 'sg_brown', title: 'Brown/Black' },
+          { id: 'sg_dark', title: 'Green / Dark' },
+          { id: 'sg_brown', title: 'Brown / Black' },
           { id: 'cancel_flow', title: 'Cancel ❌' },
         ],
         parseButton: (input) => {
           if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
-          if (input.includes('green') && !input.includes('dark') || input === 'sg_green') return 'green';
-          if (input.includes('dark') || input === 'sg_dark') return 'dark_green';
+          if (input.includes('green') || input === 'sg_green' || input === 'sg_dark') return 'green';
           if (input.includes('brown') || input.includes('black') || input === 'sg_brown') return 'brown_black';
           return null;
         },
@@ -142,15 +138,13 @@ const EVENT_TREES = {
         prompt: '🔬 What symptoms do you see?',
         buttons: [
           { id: 'dis_spots', title: 'White spots' },
-          { id: 'dis_red', title: 'Red body/gills' },
-          { id: 'dis_other', title: 'Other' },
+          { id: 'dis_red_other', title: 'Red body / Other' },
           { id: 'cancel_flow', title: 'Cancel ❌' },
         ],
         parseButton: (input) => {
           if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
           if (input.includes('white') || input.includes('spot') || input === 'dis_spots') return 'white_spots';
-          if (input.includes('red') || input === 'dis_red') return 'red_body';
-          if (input.includes('other') || input === 'dis_other') return 'other';
+          if (input.includes('red') || input.includes('other') || input === 'dis_red_other') return 'red_body';
           if (input.includes('gut') || input.includes('feces')) return 'white_gut';
           return null;
         },
@@ -453,12 +447,15 @@ function detectEventType(text) {
   const lower = text.toLowerCase().trim();
 
   // 1. AVOID TRIGGERING ON KNOWLEDGE QUESTIONS
-  // If message starts with "what is", "how to", "why", "define" or ends with "?"
-  if (lower.startsWith('what is') || lower.startsWith('how to') || 
-      lower.startsWith('why') || lower.startsWith('explain') || 
-      lower.startsWith('tell me about') || lower.endsWith('?')) {
-    return null;
-  }
+  // Multilingual "what is" markers
+  const knowledgeMarkers = [
+    'what is', 'how to', 'why', 'explain', 'tell me', 'define',
+    'ante enti', 'ela', 'eppudu', // Telugu
+    'kya hai', 'kaise', 'kyun'    // Hindi
+  ];
+
+  const isQuestion = knowledgeMarkers.some(m => lower.includes(m)) || lower.endsWith('?');
+  if (isQuestion) return null;
 
   // 2. CHECK FOR REPORTING INTENT
   // Keywords must be present, but we also look for "reporting" markers
