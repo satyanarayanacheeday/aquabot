@@ -154,11 +154,22 @@ async function handleTextMessage(phone, text) {
     }
   }
 
-  // 4. Handle initial help selection from onboarding (prob_ prefix)
+  // 4. Handle topic selection from menu (prob_ prefix)
   if (normalizedText.startsWith('prob_')) {
-    const problem = normalizedText.replace('prob_', '');
+    const topic = normalizedText.replace('prob_', '');
+    
+    // Direct investigations for critical problems
+    if (['disease', 'mortality', 'slow_growth'].includes(topic)) {
+      const pond = await getFirstPondByFarmer(farmer.id);
+      if (pond) {
+        await startEventFollowUp(phone, farmer.id, pond.id, topic);
+        return;
+      }
+    }
+
+    // Default: Deliver immediate value (tips) for other topics
     const { deliverImmediateValue } = require('../services/immediateValue');
-    await deliverImmediateValue(phone, farmer.id, farmer.village, problem, farmer.preferred_language);
+    await deliverImmediateValue(phone, farmer.id, farmer.village, topic, farmer.preferred_language);
     return;
   }
 
