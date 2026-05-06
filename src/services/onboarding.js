@@ -27,6 +27,7 @@ const translations = {
     intro_g1: '👋 Let\'s get started! Just 2 quick questions about your farm.',
     intro_g2: '📋 Great! Now tell me about your pond.',
     q_species: '🌊 What species are you growing?',
+    q_fish_type: '🐟 Which fish species are you growing?',
     q_village: '📍 Which village or town are you from?',
     q_stocking: '📅 When did you stock this pond?',
     q_stock_count: '🔢 How many seeds did you stock?',
@@ -34,6 +35,10 @@ const translations = {
     btn_shrimp: '🦐 Shrimp',
     btn_fish: '🐟 Fish',
     btn_both: '🦐🐟 Both',
+    btn_tilapia: 'Tilapia',
+    btn_imc: 'Rohu / IMC',
+    btn_pangasius: 'Pangasius',
+    btn_fish_other: 'Other Fish',
     btn_week: 'This week',
     btn_month: 'This month',
     btn_months_1_2: '1-2 months ago',
@@ -64,6 +69,7 @@ const translations = {
     intro_g1: '👋 ప్రారంభిద్దాం! మీ ఫారం గురించి కేవలం 2 ప్రశ్నలు.',
     intro_g2: '📋 బాగుంది! ఇప్పుడు మీ చెరువు గురించి చెప్పండి.',
     q_species: '🌊 మీరు ఏ జాతిని పెంచుతున్నారు?',
+    q_fish_type: '🐟 మీరు ఏ రకమైన చేపలను పెంచుతున్నారు?',
     q_village: '📍 మీ గ్రామం లేదా పట్టణం పేరు ఏమిటి?',
     q_stocking: '📅 మీరు ఈ చెరువులో ఎప్పుడు స్టాక్ చేశారు?',
     q_stock_count: '🔢 మీరు ఎన్ని సీడ్స్ స్టాక్ చేశారు (స్టాక్ కౌంట్)?',
@@ -71,6 +77,10 @@ const translations = {
     btn_shrimp: '🦐 రొయ్యలు',
     btn_fish: '🐟 చేపలు',
     btn_both: '🦐🐟 రెండూ',
+    btn_tilapia: 'తిలాపియా',
+    btn_imc: 'రోహు / ఐఎంసి',
+    btn_pangasius: 'పంగేసియస్',
+    btn_fish_other: 'ఇతర చేపలు',
     btn_week: 'ఈ వారం',
     btn_month: 'ఈ నెల',
     btn_months_1_2: '1-2 నెలల క్రితం',
@@ -101,6 +111,7 @@ const translations = {
     intro_g1: '👋 चलिए शुरू करते हैं! आपके फार्म के बारे में बस 2 सवाल।',
     intro_g2: '📋 बहुत अच्छा! अब अपने तालाब के बारे में बताएं।',
     q_species: '🌊 आप कौन सी प्रजाति पाल रहे हैं?',
+    q_fish_type: '🐟 आप किस प्रकार की मछली पाल रहे हैं?',
     q_village: '📍 आप किस गाँव या शहर से हैं?',
     q_stocking: '📅 आपने इस तालाब में स्टॉक कब किया?',
     q_stock_count: '🔢 आपने कितने बीज (स्टॉक काउंट) डाले?',
@@ -108,6 +119,10 @@ const translations = {
     btn_shrimp: '🦐 झींगा',
     btn_fish: '🐟 मछली',
     btn_both: '🦐🐟 दोनों',
+    btn_tilapia: 'तिलापिया',
+    btn_imc: 'रोहू / आईएमसी',
+    btn_pangasius: 'पंगासियस',
+    btn_fish_other: 'अन्य मछली',
     btn_week: 'इस सप्ताह',
     btn_month: 'इस महीने',
     btn_months_1_2: '1-2 महीने पहले',
@@ -239,6 +254,40 @@ async function handleOnboardingStep(phone, message) {
 
       updateStateData(phone, { village: message.trim() });
 
+      const current = getState(phone);
+      const farmType = current.data.farm_type;
+
+      // Conditional Step: If Fish or Both, ask for fish species
+      if (farmType === 'fish' || farmType === 'both') {
+        setState(phone, { ...current, step: 2 });
+        await askGroupQuestion(phone);
+        return true;
+      }
+
+      // Group 1 done → move to group 2
+      setState(phone, { ...current, group: 2, step: 0 });
+
+      const lang = current.data.preferred_language || 'English';
+      await sendTextMessage(phone, getGroupIntro(2, lang));
+      await askGroupQuestion(phone);
+      return true;
+    }
+
+    if (step === 2) {
+      // Q3: Fish Type
+      let fishType = null;
+      if (input.includes('tilapia') || input === 'fish_tilapia') fishType = 'tilapia';
+      else if (input.includes('rohu') || input.includes('imc') || input === 'fish_imc') fishType = 'rohu';
+      else if (input.includes('pangasius') || input === 'fish_pangasius') fishType = 'pangasius';
+      else if (input.includes('other') || input === 'fish_other') fishType = 'other_fish';
+
+      if (!fishType) {
+        await askGroupQuestion(phone);
+        return true;
+      }
+
+      updateStateData(phone, { fish_species: fishType });
+
       // Group 1 done → move to group 2
       const current = getState(phone);
       setState(phone, { ...current, group: 2, step: 0 });
@@ -339,6 +388,17 @@ async function askGroupQuestion(phone) {
       await sendTextMessage(phone, t('q_village', lang));
       return;
     }
+    if (step === 2) {
+      await sendButtonMessage(phone,
+        t('q_fish_type', lang),
+        [
+          { id: 'fish_tilapia', title: t('btn_tilapia', lang) },
+          { id: 'fish_imc', title: t('btn_imc', lang) },
+          { id: 'fish_pangasius', title: t('btn_pangasius', lang) },
+        ]
+      );
+      return;
+    }
   }
 
   // GROUP 2
@@ -381,7 +441,8 @@ async function finalizeOnboarding(phone) {
   const data = state.data;
 
   // Set default species based on farm type
-  const species = data.farm_type === 'fish' ? 'tilapia' : 'vannamei';
+  let species = data.farm_type === 'fish' ? 'tilapia' : 'vannamei';
+  if (data.fish_species) species = data.fish_species;
 
   // Update farmer record
   await updateFarmer(state.farmerId, {
