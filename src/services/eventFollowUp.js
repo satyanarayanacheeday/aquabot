@@ -140,7 +140,6 @@ const EVENT_TREES = {
         buttons: [
           { id: 'dis_spots', title: 'White spots' },
           { id: 'dis_red_other', title: 'Red body / Other' },
-          { id: 'cancel_flow', title: 'Cancel ❌' },
         ],
         parseButton: (input) => {
           if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
@@ -222,6 +221,13 @@ const EVENT_TREES = {
           if (input.includes('off') || input.includes('stop') || input === 'fd_off') return 'off_feed';
           return null;
         },
+      },
+      {
+        key: 'feed_brand',
+        prompt: '🏷️ Which feed brand are you currently using?',
+        type: 'text',
+        validate: (v) => v && v.trim().length >= 2,
+        errorMsg: 'Please type the name of the feed brand.',
       },
       {
         key: 'leftovers',
