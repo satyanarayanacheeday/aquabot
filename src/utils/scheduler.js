@@ -61,10 +61,10 @@ function startScheduler() {
   }, { timezone: 'Asia/Kolkata' });
 
   // ========================
-  // PROACTIVE EVENT FOLLOW-UPS — 8:00 AM every day
+  // PROACTIVE EVENT FOLLOW-UPS — 8:00 PM every day (Night time check-in)
   // ========================
-  cron.schedule('0 8 * * *', async () => {
-    console.log('📤 [Daily] Sending proactive event follow-ups...');
+  cron.schedule('0 20 * * *', async () => {
+    console.log('📤 [Daily] Sending proactive event follow-ups (8 PM)...');
     try {
       const { getDueFollowUps, getFarmerById, markFollowUpCompleted } = require('../models/database');
       const { startFollowupCheckIn } = require('../services/followupCheckIn');
@@ -100,6 +100,7 @@ function startScheduler() {
       const farmers = await getAllFarmers();
       for (const farmer of farmers) {
         try {
+          const { generateAdvisory } = require('../services/advisory');
           const advisory = await generateAdvisory(
             farmer.id,
             farmer.village,
@@ -127,7 +128,7 @@ function startScheduler() {
   console.log('   🔬 Friday 6:00 AM     → Health check-in');
   console.log('   📋 Sunday 6:00 AM     → Weekly check-in');
   console.log('   ☀️ Daily 7:00 AM      → Advisory');
-  console.log('   🔍 Daily 8:00 AM      → Proactive Event Follow-ups');
+  console.log('   🔍 Daily 8:00 PM      → Proactive Event Follow-ups');
 }
 
 /**
