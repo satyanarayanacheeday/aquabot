@@ -255,10 +255,9 @@ async function handleOnboardingStep(phone, message) {
     if (step === 0) {
       // Q3: Stocking date
       let stockDate = null;
-      if (input.includes('this week') || input === 'stock_week') stockDate = 'this_week';
-      else if (input.includes('this month') || input === 'stock_month') stockDate = 'this_month';
-      else if (input.includes('1-2') || input.includes('1 to 2') || input === 'stock_1_2') stockDate = '1_2_months';
-      else if (input.includes('3') || input.includes('more') || input === 'stock_3plus') stockDate = '3_plus_months';
+      if (input.includes('month') || input === 'stock_month') stockDate = 'this_month';
+      else if (input.includes('1') || input.includes('2') || input === 'stock_1_2') stockDate = '1_2_months';
+      else if (input.includes('3') || input === 'stock_3plus') stockDate = '3_plus_months';
 
       if (!stockDate) {
         await askGroupQuestion(phone);
@@ -348,7 +347,6 @@ async function askGroupQuestion(phone) {
       await sendButtonMessage(phone,
         t('q_stocking', lang),
         [
-          { id: 'stock_week', title: t('btn_week', lang) },
           { id: 'stock_month', title: t('btn_month', lang) },
           { id: 'stock_1_2', title: t('btn_months_1_2', lang) },
           { id: 'stock_3plus', title: t('btn_months_3_plus', lang) },
