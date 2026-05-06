@@ -280,7 +280,7 @@ async function handleOnboardingStep(phone, message) {
         return true;
       }
 
-      updateStateData(phone, { stock_count: count });
+      updateStateData(phone, { seed_count: count });
       
       const current = getState(phone);
       setState(phone, { ...current, step: 2 });
@@ -400,7 +400,7 @@ async function finalizeOnboarding(phone) {
     species: species,
     stocking_date: data.stocking_date,
     pond_size: data.pond_size,
-    stock_count: data.stock_count,
+    seed_count: data.seed_count,
   });
 
   clearState(phone);
@@ -415,7 +415,7 @@ async function finalizeOnboarding(phone) {
     `${t('label_type', lang)}: ${farmTypeLabel}\n` +
     `${t('label_village', lang)}: ${data.village}\n` +
     `${t('label_stocking', lang)}: ${getStockingLabel(data.stocking_date, lang)}\n` +
-    `${t('label_stock_count', lang)}: ${data.stock_count.toLocaleString()}\n` +
+    `${t('label_stock_count', lang)}: ${data.seed_count.toLocaleString()}\n` +
     `${t('label_size', lang)}: ${getSizeLabel(data.pond_size, lang)}\n\n` +
     `${t('pro_tip', lang)}\n\n` +
     `${t('ready_to_help', lang).replace('{type}', farmTypeLabel.toLowerCase())}`
