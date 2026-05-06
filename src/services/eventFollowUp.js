@@ -79,9 +79,9 @@ const EVENT_TREES = {
         ],
         parseButton: (input) => {
           if (input === 'no' || input.includes('no sign') || input === 'mort_sign_none') return 'none';
-          if (input.includes('red') || input === 'mort_sign_red') return 'red_body';
+          if (input.includes('red') || input.includes('sores') || input === 'mort_sign_red' || input === 'mort_sign_sores') return 'red_body_sores';
           if (input.includes('white') || input.includes('spot') || input === 'mort_sign_white') return 'white_spots';
-          if (input.includes('both') || input === 'mort_sign_both') return 'both';
+          if (input.includes('parasite') || input === 'mort_sign_parasite') return 'parasites';
           return null;
         },
       },
@@ -145,8 +145,9 @@ const EVENT_TREES = {
         parseButton: (input) => {
           if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
           if (input.includes('white') || input.includes('spot') || input === 'dis_spots') return 'white_spots';
-          if (input.includes('red') || input === 'other') return 'red_body';
-          if (input.includes('gut') || input.includes('feces')) return 'white_gut';
+          if (input.includes('red') || input.includes('sores') || input === 'other' || input === 'dis_sores') return 'red_body_sores';
+          if (input.includes('rot') || input === 'dis_rot') return 'fin_tail_rot';
+          if (input.includes('parasite') || input === 'dis_parasite') return 'parasites';
           return null;
         },
       },
@@ -241,6 +242,16 @@ const EVENT_TREES = {
   },
 };
 
+/**
+ * Helper to identify if a species is a fish or shrimp.
+ */
+function isFishSpecies(species) {
+  if (!species) return false;
+  const s = species.toLowerCase();
+  const fishKeywords = ['fish', 'tilapia', 'rohu', 'catla', 'mrigal', 'pangasius', 'seabass', 'murrel', 'jalidi', 'pandugappa'];
+  return fishKeywords.some(k => s.includes(k));
+}
+
 // ========================
 // START EVENT FOLLOW-UP
 // ========================
@@ -250,6 +261,7 @@ async function startEventFollowUp(phone, farmerId, eventType, originalMessage = 
   if (!tree) return false;
 
   const pond = await getFirstPondByFarmer(farmerId);
+  const species = pond ? pond.species : 'vannamei';
 
   setState(phone, {
     flow: 'event_followup',
@@ -257,6 +269,7 @@ async function startEventFollowUp(phone, farmerId, eventType, originalMessage = 
     data: {},
     farmerId,
     pondId: pond ? pond.id : null,
+    species: species,
     eventType,
     originalMessage,
   });
@@ -339,7 +352,28 @@ async function askEventQuestion(phone) {
 
   if (stepIndex >= tree.steps.length) return;
 
-  const stepDef = tree.steps[stepIndex];
+  let stepDef = JSON.parse(JSON.stringify(tree.steps[stepIndex])); // deep copy
+
+  // Dynamic customization for FISH species
+  if (isFishSpecies(state.species)) {
+    if (state.eventType === 'disease' && stepDef.key === 'symptoms') {
+      stepDef.prompt = '🔬 What symptoms do you see on the fish?';
+      stepDef.buttons = [
+        { id: 'dis_sores', title: 'Red sores / EUS' },
+        { id: 'dis_rot', title: 'Tail or Fin rot' },
+        { id: 'dis_parasite', title: 'Body parasites' },
+      ];
+    }
+    if (state.eventType === 'mortality' && stepDef.key === 'body_signs') {
+      stepDef.prompt = '🔍 Any visible signs on the fish body?';
+      stepDef.buttons = [
+        { id: 'mort_sign_none', title: 'No signs' },
+        { id: 'mort_sign_sores', title: 'Red sores' },
+        { id: 'mort_sign_parasite', title: 'Parasites' },
+      ];
+    }
+  }
+
   if (stepDef.type === 'text') {
     await sendTextMessage(phone, stepDef.prompt);
   } else {
