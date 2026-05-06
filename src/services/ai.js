@@ -66,7 +66,7 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
       }
       if (pond) {
         recommendationContext = getRecommendations(question, pond);
-        
+
         farmContext += `\n\n## 🏊 POND DETAILS:\n`;
         farmContext += `- Species: ${pond.species}\n`;
         farmContext += `- Pond Size: ${pond.pond_size}\n`;
@@ -126,10 +126,10 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
 
     // 5. Call Gemini
     const langInstruction = `\n\n## Language Constraints\nYou MUST reply in **${preferredLanguage}**. Use casual, communicative language. Do NOT use overly deep, formal, or complex literary vocabulary.`;
-    const systemInstruction = SYSTEM_PROMPT + 
-      conversationSummary + 
-      knowledgeContext + 
-      (question.length > 10 ? farmContext + healthContext + recommendationContext : '') + 
+    const systemInstruction = SYSTEM_PROMPT +
+      conversationSummary +
+      knowledgeContext +
+      (question.length > 10 ? farmContext + healthContext + recommendationContext : '') +
       langInstruction;
 
     const response = await ai.models.generateContent({
@@ -138,7 +138,7 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.7,
-        maxOutputTokens: 500, // shorter responses — cost conscious
+        maxOutputTokens: 1000,
       }
     });
 
