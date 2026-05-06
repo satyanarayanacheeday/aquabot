@@ -165,18 +165,75 @@ const EVENT_TREES = {
           return null;
         },
       },
+    ],
+  },
+
+  water_quality: {
+    label: 'Water Quality Check',
+    steps: [
       {
-        key: 'when_started',
-        prompt: '📅 When did you first notice?',
+        key: 'water_color',
+        prompt: '🎨 What is the current water color?',
         buttons: [
-          { id: 'dis_today', title: 'Today' },
-          { id: 'dis_days', title: '2-3 days ago' },
-          { id: 'dis_week', title: 'This week' },
+          { id: 'wq_green', title: 'Green' },
+          { id: 'wq_brown', title: 'Brown / Black' },
+          { id: 'wq_clear', title: 'Clear' },
         ],
         parseButton: (input) => {
-          if (input.includes('today') || input === 'dis_today') return 'today';
-          if (input.includes('2') || input.includes('3') || input === 'dis_days') return '2-3_days';
-          if (input.includes('week') || input === 'dis_week') return 'this_week';
+          if (input.includes('green') || input === 'wq_green') return 'green';
+          if (input.includes('brown') || input.includes('black') || input === 'wq_brown') return 'brown_black';
+          if (input.includes('clear') || input === 'wq_clear') return 'clear';
+          return null;
+        },
+      },
+      {
+        key: 'smell_foam',
+        prompt: '🫧 Any bad smell or excessive foam?',
+        buttons: [
+          { id: 'wq_sf_none', title: 'None' },
+          { id: 'wq_sf_smell', title: 'Bad smell' },
+          { id: 'wq_sf_foam', title: 'Foam/Bubbles' },
+        ],
+        parseButton: (input) => {
+          if (input.includes('none') || input === 'wq_sf_none') return 'none';
+          if (input.includes('smell') || input === 'wq_sf_smell') return 'bad_smell';
+          if (input.includes('foam') || input.includes('bubble') || input === 'wq_sf_foam') return 'foam_bubbles';
+          return null;
+        },
+      },
+    ],
+  },
+
+  feed: {
+    label: 'Feed Assessment',
+    steps: [
+      {
+        key: 'feed_status',
+        prompt: '🍽️ How is the feeding status?',
+        buttons: [
+          { id: 'fd_normal', title: 'Normal' },
+          { id: 'fd_reduced', title: 'Reduced' },
+          { id: 'fd_off', title: 'Off-feed (Stopped)' },
+        ],
+        parseButton: (input) => {
+          if (input.includes('normal') || input === 'fd_normal') return 'normal';
+          if (input.includes('reduced') || input === 'fd_reduced') return 'reduced';
+          if (input.includes('off') || input.includes('stop') || input === 'fd_off') return 'off_feed';
+          return null;
+        },
+      },
+      {
+        key: 'leftovers',
+        prompt: '📊 Any leftover feed in the check tray?',
+        buttons: [
+          { id: 'fd_lo_none', title: 'No' },
+          { id: 'fd_lo_some', title: 'A little' },
+          { id: 'fd_lo_many', title: 'Lot of feed' },
+        ],
+        parseButton: (input) => {
+          if (input === 'no' || input === 'fd_lo_none') return 'none';
+          if (input.includes('little') || input === 'fd_lo_some') return 'little';
+          if (input.includes('lot') || input === 'fd_lo_many') return 'lot';
           return null;
         },
       },

@@ -159,10 +159,12 @@ async function handleTextMessage(phone, text) {
     const topic = normalizedText.replace('prob_', '');
     
     // Direct investigations for critical problems
-    if (['disease', 'mortality', 'slow_growth'].includes(topic)) {
+    if (['disease', 'mortality', 'slow_growth', 'water', 'feed'].includes(topic)) {
       const pond = await getFirstPondByFarmer(farmer.id);
       if (pond) {
-        await startEventFollowUp(phone, farmer.id, pond.id, topic);
+        // Map 'water' to 'water_quality' tree
+        const eventType = topic === 'water' ? 'water_quality' : topic;
+        await startEventFollowUp(phone, farmer.id, pond.id, eventType);
         return;
       }
     }
