@@ -10,7 +10,7 @@ const { getOrRefreshSummary } = require('./conversationSummary');
 async function generateEmbedding(text) {
   try {
     const response = await ai.models.embedContent({
-      model: 'embedding-001',
+      model: 'text-embedding-004',
       contents: [{ parts: [{ text: text }] }]
     });
     
