@@ -10,12 +10,27 @@ const { getOrRefreshSummary } = require('./conversationSummary');
 async function generateEmbedding(text) {
   try {
     const response = await ai.models.embedContent({
-      model: 'gemini-embedding-2',
-      contents: text
+      model: 'text-embedding-004',
+      contents: [{ parts: [{ text: text }] }]
     });
-    return response.embedding.values;
+    
+    // The new SDK (v2) returns embeddings in different structures depending on version
+    if (response.embedding && response.embedding.values) {
+      return response.embedding.values;
+    }
+    
+    if (response.embeddings && response.embeddings[0] && response.embeddings[0].values) {
+      return response.embeddings[0].values;
+    }
+
+    console.warn('⚠️ Unexpected embedding response structure:', JSON.stringify(response));
+    return null;
   } catch (error) {
     console.error('⚠️ Embedding generation failed:', error.message);
+    // If it's a 404, maybe the model name is wrong for this region/key
+    if (error.message?.includes('404')) {
+      console.log('💡 TIP: Try using "embedding-001" if "text-embedding-004" is not available.');
+    }
     return null;
   }
 }

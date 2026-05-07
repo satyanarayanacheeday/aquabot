@@ -8,6 +8,7 @@ if (!process.env.GEMINI_API_KEY) {
 // Initialize the Google GenAI SDK
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || 'not-configured',
+  apiVersion: 'v1'
 });
 
 module.exports = ai;
