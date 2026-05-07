@@ -95,6 +95,30 @@ const PRODUCTS = {
       "Do not feed for 6 hours after application.",
       "Check fish skin after 48 hours for parasite removal."
     ]
+  },
+  white_feces: {
+    category: "Medication",
+    product: "Gut Probiotic (Growel Gut Pro) + Water Probiotic",
+    dosagePerKgFeed: 10, // grams
+    unit: "g",
+    steps: [
+      "Reduce feeding by 30-50% immediately.",
+      "Mix Gut Probiotic with feed using a binder.",
+      "Apply Water Probiotics (2kg/acre) during morning.",
+      "Check fecal strings daily; if they turn dark, resume feed slowly."
+    ]
+  },
+  ems_emergency: {
+    category: "Emergency",
+    product: "Vibrio Control (Florfenicol) + Probiotics",
+    dosagePerKgFeed: 15, // mg
+    unit: "mg",
+    steps: [
+      "STOP FEEDING completely for 24 hours.",
+      "Run ALL aerators at maximum capacity.",
+      "Apply high-dose probiotics (Bacillus) to compete with Vibrio.",
+      "Consult a vet for antibiotic prescription if mortality is high."
+    ]
   }
 };
 

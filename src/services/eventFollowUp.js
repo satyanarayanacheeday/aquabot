@@ -455,6 +455,8 @@ async function finalizeEvent(phone) {
     
     let problemKey = null;
     if (state.eventType === 'mortality' && data.body_signs === 'white_spots') problemKey = 'wssv_emergency';
+    else if (data.body_signs === 'white_feces_strings' || data.symptoms === 'white_feces_strings') problemKey = 'white_feces';
+    else if (data.body_signs === 'pale_hp_ems' || data.symptoms === 'pale_hp_ems') problemKey = 'ems_emergency';
     else if (data.body_signs === 'red_body_sores' || data.symptoms === 'red_body_sores') problemKey = 'eus_emergency';
     else if (data.body_signs === 'parasites' || data.symptoms === 'parasites') problemKey = 'fish_parasites';
     else if (data.symptoms === 'fin_tail_rot') problemKey = 'fish_bacterial';
