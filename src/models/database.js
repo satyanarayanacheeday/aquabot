@@ -320,6 +320,36 @@ async function markFollowUpCompleted(id) {
   await supabase.from('scheduled_followups').update({ status: 'completed' }).eq('id', id);
 }
 
+async function hasPendingDailyCheckIn(farmerId) {
+  if (USE_MOCK) {
+    return mockStore.scheduled_followups.some(f => f.farmer_id === farmerId && f.event_type === 'daily_checkin' && f.status === 'pending');
+  }
+  const { data, error } = await supabase.from('scheduled_followups')
+    .select('id')
+    .eq('farmer_id', farmerId)
+    .eq('event_type', 'daily_checkin')
+    .eq('status', 'pending')
+    .limit(1);
+  if (error) return false;
+  return data && data.length > 0;
+}
+
+async function markPendingCheckInsCompleted(farmerId) {
+  if (USE_MOCK) {
+    mockStore.scheduled_followups.forEach(f => {
+      if (f.farmer_id === farmerId && f.event_type === 'daily_checkin' && f.status === 'pending') {
+        f.status = 'completed';
+      }
+    });
+    return;
+  }
+  await supabase.from('scheduled_followups')
+    .update({ status: 'completed' })
+    .eq('farmer_id', farmerId)
+    .eq('event_type', 'daily_checkin')
+    .eq('status', 'pending');
+}
+
 module.exports = {
   createFarmer, getFarmerByPhone, getFarmerById, updateFarmer, getAllFarmers,
   createPond, getPondsByFarmer, getFirstPondByFarmer, updatePond,
@@ -328,4 +358,5 @@ module.exports = {
   saveChatHistory, getRecentChats,
   searchKnowledge, insertKnowledgeEmbedding, clearKnowledgeBase,
   scheduleFollowUp, getDueFollowUps, markFollowUpCompleted,
+  hasPendingDailyCheckIn, markPendingCheckInsCompleted,
 };

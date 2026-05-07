@@ -101,6 +101,14 @@ async function handleTextMessage(phone, text) {
   // 1. Check if farmer exists
   const farmer = await getFarmerByPhone(phone);
   const { clearState } = require('../state/conversationState');
+  const { markPendingCheckInsCompleted } = require('../models/database');
+
+  if (farmer && farmer.onboarding_complete) {
+    // Farmer is interacting, clear any skipped automated check-ins in the background
+    markPendingCheckInsCompleted(farmer.id).catch(err => {
+      logger.error('Failed to clear pending check-ins', { error: err.message });
+    });
+  }
 
   // GLOBAL EXIT HANDLER: Allow escaping any flow
   if (['stop', 'exit', 'cancel', 'menu'].includes(normalizedText)) {

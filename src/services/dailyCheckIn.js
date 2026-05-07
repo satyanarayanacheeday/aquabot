@@ -1,5 +1,5 @@
 const { sendTextMessage, sendButtonMessage } = require('./whatsapp');
-const { getFirstPondByFarmer, insertPondLog, updatePond, saveChatHistory } = require('../models/database');
+const { getFirstPondByFarmer, insertPondLog, updatePond, saveChatHistory, markPendingCheckInsCompleted } = require('../models/database');
 const { setState, getState, clearState, updateStateData } = require('../state/conversationState');
 const { calculateHealthScore } = require('./healthScore');
 const productEngine = require('./productEngine');
@@ -339,8 +339,10 @@ async function finalizeDailyCheckIn(phone, groupType) {
 
   confirmMsg += `\n\n${t('great_job', lang)} 🎯`;
 
-  // Save to chat history so AI remembers check-in data
+  // Save to chat history and clear pending follow-ups
   try {
+    await markPendingCheckInsCompleted(state.farmerId);
+
     const summaryMsg = `[${config.label}] ${formatLogSummary(config.logGroup, data).replace(/\n/g, ' | ').trim()}`;
     await saveChatHistory({
       farmer_id: state.farmerId,

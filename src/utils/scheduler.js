@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const { getAllFarmers } = require('../models/database');
+const { getAllFarmers, hasPendingDailyCheckIn, scheduleFollowUp } = require('../models/database');
 const { startDailyCheckIn, GROUP_MAP } = require('../services/dailyCheckIn');
 const { sendButtonMessage } = require('../services/whatsapp');
 
@@ -141,6 +141,14 @@ async function sendCheckInReminders(type, bodyText, buttonKey) {
 
     for (const farmer of farmers) {
       try {
+        if (type !== 'weekly') {
+          const hasPending = await hasPendingDailyCheckIn(farmer.id);
+          if (hasPending) {
+            console.log(`⏭️ Skipping ${farmer.phone} — they haven't responded to a previous daily check-in.`);
+            continue;
+          }
+        }
+
         const lang = farmer.preferred_language || 'English';
         const buttonLabel = translations[lang]?.[buttonKey] || translations['English']?.[buttonKey] || 'Update';
         
@@ -148,6 +156,10 @@ async function sendCheckInReminders(type, bodyText, buttonKey) {
           { id: type === 'weekly' ? 'weekly' : 'checkin', title: buttonLabel }
         ]);
         
+        if (type !== 'weekly') {
+          await scheduleFollowUp(farmer.id, null, 'daily_checkin', new Date().toISOString());
+        }
+
         await sleep(1000); // rate limiting
       } catch (err) {
         console.error(`Failed to send reminder to ${farmer.phone}:`, err.message);
