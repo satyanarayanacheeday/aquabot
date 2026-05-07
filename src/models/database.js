@@ -247,6 +247,14 @@ async function searchKnowledge(embedding, limit = 5, threshold = 0.7) {
   return data || [];
 }
 
+async function clearKnowledgeBase() {
+  if (USE_MOCK) return;
+  // Delete all rows in knowledge_embeddings where id is not null (so, all rows)
+  const { error } = await supabase.from('knowledge_embeddings').delete().not('id', 'is', null);
+  if (error) throw error;
+  console.log('🗑️ Cleared existing knowledge base embeddings to prevent duplicates.');
+}
+
 async function insertKnowledgeEmbedding(content, embedding, metadata = {}) {
   if (USE_MOCK) {
     mockStore.knowledge_embeddings.push({ id: uuidv4(), content, embedding, metadata, created_at: new Date().toISOString() });
@@ -318,7 +326,6 @@ module.exports = {
   insertPondLog, getRecentPondLogs, getAllRecentPondLogs,
   upsertHealthScore, getLatestHealthScore,
   saveChatHistory, getRecentChats,
-  saveChatHistory, getRecentChats,
-  searchKnowledge, insertKnowledgeEmbedding,
+  searchKnowledge, insertKnowledgeEmbedding, clearKnowledgeBase,
   scheduleFollowUp, getDueFollowUps, markFollowUpCompleted,
 };

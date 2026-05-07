@@ -158,10 +158,12 @@ async function handleTextMessage(phone, text) {
   if (normalizedText.startsWith('prob_')) {
     const topic = normalizedText.replace('prob_', '');
     
-    // Direct investigations for critical problems
-    if (['disease', 'mortality', 'slow_growth', 'water', 'feed'].includes(topic)) {
-      // Map 'water' to 'water_quality' tree
-      const eventType = topic === 'water' ? 'water_quality' : topic;
+    if (['disease', 'mortality', 'slow_growth', 'growth', 'water_quality', 'water', 'feed'].includes(topic)) {
+      // Map 'water' to 'water_quality' and 'growth' to 'slow_growth'
+      let eventType = topic;
+      if (topic === 'water') eventType = 'water_quality';
+      if (topic === 'growth') eventType = 'slow_growth';
+      
       await startEventFollowUp(phone, farmer.id, eventType);
       return;
     }

@@ -128,8 +128,16 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
       const recentChats = await getRecentChats(farmerId, 6);
       if (recentChats.length > 0) {
         recentChats.forEach(c => {
-          contents.push({ role: 'user', parts: [{ text: c.message }] });
-          contents.push({ role: 'model', parts: [{ text: c.response }] });
+          if (c.message && c.message.trim() !== '') {
+            contents.push({ role: 'user', parts: [{ text: c.message.trim() }] });
+          } else {
+            contents.push({ role: 'user', parts: [{ text: '[User submitted data]' }] });
+          }
+          if (c.response && c.response.trim() !== '') {
+            contents.push({ role: 'model', parts: [{ text: c.response.trim() }] });
+          } else {
+            contents.push({ role: 'model', parts: [{ text: '[Action completed]' }] });
+          }
         });
       }
     } catch (err) {

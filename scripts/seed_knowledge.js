@@ -2,7 +2,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { generateEmbedding } = require('../src/services/ai');
-const { insertKnowledgeEmbedding } = require('../src/models/database');
+const { insertKnowledgeEmbedding, clearKnowledgeBase } = require('../src/models/database');
 
 const KNOWLEDGE_DIR = path.join(__dirname, '../knowledge');
 
@@ -39,6 +39,7 @@ async function seedKnowledge() {
   console.log('🌱 Starting knowledge seeding...');
 
   try {
+    await clearKnowledgeBase();
     const files = fs.readdirSync(KNOWLEDGE_DIR).filter(f => f.endsWith('.md'));
 
     if (files.length === 0) {
@@ -63,6 +64,11 @@ async function seedKnowledge() {
         process.stdout.write(`   Embedding chunk ${i + 1}/${chunks.length}... `);
         const embedding = await generateEmbedding(chunk);
         
+        if (!embedding) {
+          process.stdout.write(`❌ Failed (Skipped)\n`);
+          continue;
+        }
+
         // Save to DB
         await insertKnowledgeEmbedding(chunk, embedding, { source_file: file, chunk_index: i });
         process.stdout.write(`✅ Saved\n`);
