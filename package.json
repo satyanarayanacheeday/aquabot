@@ -1,7 +1,7 @@
 {
-  "name": "aquorix-v2",
+  "name": "aquaiq-v2",
   "version": "2.1.0",
-  "description": "Aquorix — Smart Pond Assistant for WhatsApp",
+  "description": "aquaIQ — Smart Pond Assistant for WhatsApp",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -188,7 +188,7 @@ async function startOnboarding(phone) {
 
   // Ask language first
   await sendButtonMessage(phone,
-    '🦐🐟 Welcome to *Aquorix*!\nYour Smart Pond Assistant\n\nSelect your language:\nమీ భాషను ఎంచుకోండి:\nअपनी भाषा चुनें:',
+    '🦐🐟 Welcome to *aquaIQ*!\nYour Smart Pond Assistant\n\nSelect your language:\nమీ భాషను ఎంచుకోండి:\nअपनी भाषा चुनें:',
     [
       { id: 'lang_en', title: 'English' },
       { id: 'lang_te', title: 'Telugu' },

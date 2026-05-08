@@ -47,7 +47,7 @@ async function runTests() {
   
   // 1. Farmer says hi -> asks for language
   await simulateMessage(phone, 'Hi');
-  assert(getMessageLog().slice(-1)[0].text.includes('Aquorix'), "Should welcome farmer");
+  assert(getMessageLog().slice(-1)[0].text.includes('aquaIQ'), "Should welcome farmer");
   assert(getMessageLog().slice(-1)[0].text.includes('English'), "Should ask for language");
 
   // 2. Select language -> asks for farm type

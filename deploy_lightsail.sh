@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-#  Aquorix Bot — Complete Lightsail Deploy Script v3
+#  aquaIQ Bot — Complete Lightsail Deploy Script v3
 #  Run ONCE after SSH-ing into a fresh Ubuntu 22.04 instance:
 #    chmod +x deploy_lightsail.sh && ./deploy_lightsail.sh
 # ============================================================
@@ -9,11 +9,11 @@ set -euo pipefail   # exit on error, unset var, or pipe failure
 
 REPO_URL="https://github.com/satyanarayanacheeday/aquabot.git"
 APP_DIR="/home/ubuntu/aquabot"
-APP_NAME="aquorix"
+APP_NAME="aquaiq"
 
 echo ""
 echo "============================================================"
-echo " 🚀  AQUORIX BOT — LIGHTSAIL DEPLOY"
+echo " 🚀  AQUAIQ BOT — LIGHTSAIL DEPLOY"
 echo "============================================================"
 echo ""
 
@@ -163,7 +163,7 @@ echo "🔧 [10/10] Configuring Nginx reverse proxy..."
 
 PUBLIC_IP=$(curl -sf http://checkip.amazonaws.com || echo "YOUR_IP")
 
-sudo tee /etc/nginx/sites-available/aquorix > /dev/null << NGINX
+sudo tee /etc/nginx/sites-available/aquaiq > /dev/null << NGINX
 server {
     listen 80;
     server_name _;          # Catch-all (works with IP; swap _ for domain later)
@@ -204,7 +204,7 @@ server {
 NGINX
 
 # Enable site, disable default
-sudo ln -sf /etc/nginx/sites-available/aquorix /etc/nginx/sites-enabled/aquorix
+sudo ln -sf /etc/nginx/sites-available/aquaiq /etc/nginx/sites-enabled/aquaiq
 sudo rm -f /etc/nginx/sites-enabled/default
 
 # Test config and reload
@@ -217,7 +217,7 @@ echo "✅ Nginx configured and reloaded"
 # ========================
 echo ""
 echo "============================================================"
-echo " ✅  AQUORIX BOT DEPLOYED SUCCESSFULLY!"
+echo " ✅  AQUAIQ BOT DEPLOYED SUCCESSFULLY!"
 echo "============================================================"
 echo ""
 echo " 🌐  Bot accessible at: http://${PUBLIC_IP}"

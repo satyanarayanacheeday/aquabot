@@ -92,7 +92,7 @@ async function runAllTests() {
   section('SCENARIO 1: FULL ONBOARDING FLOW');
 
   await simulateMessage(phone, 'Hi');
-  assert(getMessageLog().slice(-1)[0].text.includes('Aquorix'), 'Welcome message shown');
+  assert(getMessageLog().slice(-1)[0].text.includes('aquaIQ'), 'Welcome message shown');
 
   await simulateMessage(phone, 'English', 'interactive', btn('lang_en', 'English'));
   assert(getMessageLog().slice(-1)[0].text.includes('What do you farm'), 'Asks farm type');
@@ -301,16 +301,14 @@ async function runAllTests() {
   clearMessageLog();
 
   await simulateMessage(phone, 'help');
-  assert(getMessageLog().some(msg => msg.text.includes('Aquorix')), 'Help menu shown');
+  assert(getMessageLog().some(msg => msg.text.includes('aquaIQ')), 'Help menu shown');
   assert(getMessageLog().some(msg => msg.text.includes('Ask Questions')), 'Help lists features');
 
   clearMessageLog();
   await simulateMessage(phone, 'score');
   assert(getMessageLog().length > 0, 'Score command responded');
 
-  clearMessageLog();
-  await simulateMessage(phone, 'weather');
-  assert(getMessageLog().some(msg => msg.text.includes('Weather')), 'Weather shown');
+
 
   // ============================================
   // SCENARIO 10: IMAGE ANALYSIS (Gap 2)

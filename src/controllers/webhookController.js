@@ -200,7 +200,7 @@ async function handleTextMessage(phone, text) {
     const lang = farmer.preferred_language || 'English';
     const greetingsConfig = {
       English: {
-        text: `Hi! 👋 I'm your Aquorix assistant.\n\n💡 *How can I help you today?*\nSelect a topic below to get started immediately:`,
+        text: `Hi! 👋 I'm your aquaIQ assistant.\n\n💡 *How can I help you today?*\nSelect a topic below to get started immediately:`,
         button: 'Select Topic',
         topics: [
           { id: 'prob_disease', title: '🔬 Disease', desc: 'Identification & Prevention' },
@@ -394,7 +394,7 @@ async function showHealthScore(phone, farmerId) {
  */
 async function sendHelpMessage(phone) {
   await sendTextMessage(phone,
-    `🦐 *Aquorix — Your Pond Assistant*\n\n` +
+    `🦐 *aquaIQ — Your Pond Assistant*\n\n` +
     `Here's what I can do:\n\n` +
     `💬 *Ask Questions* — Just type any farming question\n` +
     `📸 *Disease Detection* — Send a shrimp/fish photo\n` +

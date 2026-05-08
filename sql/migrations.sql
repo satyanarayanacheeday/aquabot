@@ -1,5 +1,5 @@
 -- ============================================================
--- Aquorix v2 — Database Schema (Progressive Collection)
+-- aquaIQ v2 — Database Schema (Progressive Collection)
 -- Run this in your Supabase SQL Editor to set up all tables
 -- ============================================================
 

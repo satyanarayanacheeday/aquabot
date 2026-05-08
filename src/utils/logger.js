@@ -17,7 +17,7 @@ const logger = winston.createLogger({
           })
         )
   ),
-  defaultMeta: { service: 'aquorix' },
+  defaultMeta: { service: 'aquaiq' },
   transports: [
     new winston.transports.Console(),
     // In production, also write errors to a file

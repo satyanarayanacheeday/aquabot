@@ -3,7 +3,7 @@ version: '3.8'
 services:
   app:
     build: .
-    container_name: aquorix-app
+    container_name: aquaiq-app
     restart: always
     ports:
       - "3000:3000"

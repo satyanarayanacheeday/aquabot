@@ -1,5 +1,5 @@
-const { sendTextMessage, sendButtonMessage } = require('./whatsapp');
-const { getFirstPondByFarmer, insertPondLog, updatePond, saveChatHistory, markPendingCheckInsCompleted } = require('../models/database');
+const { sendTextMessage, sendButtonMessage, sendListMessage } = require('./whatsapp');
+const { getFirstPondByFarmer, insertPondLog, updatePond, saveChatHistory, markPendingCheckInsCompleted, getRecentPondLogs } = require('../models/database');
 const { setState, getState, clearState, updateStateData } = require('../state/conversationState');
 const { calculateHealthScore } = require('./healthScore');
 const productEngine = require('./productEngine');
@@ -13,6 +13,13 @@ const productEngine = require('./productEngine');
  *
  * All questions use button-tap input. Farmers never type long answers.
  */
+
+function isFishSpecies(species) {
+  if (!species) return false;
+  const s = species.toLowerCase();
+  const fishKeywords = ['fish', 'tilapia', 'rohu', 'catla', 'mrigal', 'pangasius', 'seabass', 'murrel', 'jalidi', 'pandugappa', 'imc'];
+  return fishKeywords.some(k => s.includes(k));
+}
 
 // ========================
 // FEED GROUP (Monday)
@@ -119,20 +126,64 @@ const HEALTH_STEPS = [
   {
     key: 'disease_signs',
     prompt: '🔬 Any disease signs in your pond?',
-    buttons: [
-      { id: 'disease_no', title: 'No signs' },
-      { id: 'disease_spots', title: 'White spots' },
-      { id: 'disease_other', title: 'Other signs' },
-    ],
+    type: 'list',
+    listButtonLabel: 'Select Symptoms',
+    listSections: (lang, species) => {
+      const isFish = isFishSpecies(species);
+      if (isFish) {
+        return [
+          {
+            title: t('label_fish_symptoms', lang),
+            rows: [
+              { id: 'disease_no', title: t('sym_no_signs', lang) },
+              { id: 'disease_red_ulcer', title: t('sym_red_ulcer', lang) },
+              { id: 'disease_dropsy', title: t('sym_dropsy', lang) },
+              { id: 'disease_fin_rot', title: t('sym_fin_rot', lang) },
+              { id: 'disease_argulus', title: t('sym_argulus', lang) },
+              { id: 'disease_gasping', title: t('sym_gasping', lang) },
+              { id: 'disease_other', title: t('sym_other', lang) }
+            ]
+          }
+        ];
+      } else {
+        return [
+          {
+            title: t('label_shrimp_symptoms', lang),
+            rows: [
+              { id: 'disease_no', title: t('sym_no_signs', lang) },
+              { id: 'disease_white_spots', title: t('sym_white_spots', lang) },
+              { id: 'disease_white_gut', title: t('sym_white_gut', lang) },
+              { id: 'disease_red_body', title: t('sym_red_body', lang) },
+              { id: 'disease_black_gills', title: t('sym_black_gills', lang) },
+              { id: 'disease_muscle_cramps', title: t('sym_muscle_cramps', lang) },
+              { id: 'disease_other', title: t('sym_other', lang) }
+            ]
+          }
+        ];
+      }
+    },
     parseButton: (input) => {
       if (input === 'no' || input.includes('no sign') || input === 'disease_no') return 'none';
-      if (input.includes('white') || input.includes('spot') || input === 'disease_spots') return 'white_spots';
-      if (input.includes('red') || input === 'disease_red') return 'red_body';
-      if (input.includes('gut') || input.includes('white gut') || input === 'disease_gut') return 'white_gut';
-      if (input.includes('slow') || input.includes('eating') || input === 'disease_eating') return 'slow_eating';
+      if (input.includes('white spot') || input === 'disease_white_spots') return 'white_spots';
+      if (input.includes('red') || input === 'disease_red_body' || input === 'disease_red_ulcer') return 'red_body';
+      if (input.includes('gut') || input === 'disease_white_gut') return 'white_gut';
+      if (input.includes('gills') || input === 'disease_black_gills') return 'black_gills';
+      if (input.includes('cramp') || input === 'disease_muscle_cramps') return 'muscle_cramps';
+      if (input.includes('dropsy') || input === 'disease_dropsy') return 'dropsy';
+      if (input.includes('fin') || input.includes('rot') || input === 'disease_fin_rot') return 'fin_tail_rot';
+      if (input.includes('lice') || input.includes('argulus') || input === 'disease_argulus') return 'parasites';
+      if (input.includes('gasping') || input === 'disease_gasping') return 'gasping';
       if (input.includes('other') || input === 'disease_other') return 'other';
       return null;
     },
+  },
+  {
+    key: 'disease_other_desc',
+    condition: (state) => state.data && state.data.disease_signs === 'other',
+    prompt: '📝 Please describe the other signs you are seeing:',
+    type: 'text',
+    validate: (v) => v && v.trim().length >= 2,
+    errorMsg: 'Please type the signs you are seeing.',
   },
   {
     key: 'growth_status',
@@ -183,9 +234,24 @@ async function startDailyCheckIn(phone, farmerId, groupType) {
     data: {},
     farmerId,
     pondId: pond.id,
+    species: pond.species || 'vannamei',
   });
 
-  const greeting = getCheckInGreeting(groupType);
+  let greeting = getCheckInGreeting(groupType);
+  
+  if (groupType === 'daily_health') {
+    try {
+      const recentLogs = await getRecentPondLogs(pond.id, 'health', 3);
+      const lastDiseaseLog = recentLogs.find(l => l.log_data && l.log_data.disease_signs && l.log_data.disease_signs !== 'none');
+      if (lastDiseaseLog) {
+        const lastDisease = lastDiseaseLog.log_data.disease_signs.replace(/_/g, ' ');
+        greeting += `\n\nI noticed you recently reported *${lastDisease}*. Are you still seeing this, or any other signs?`;
+      }
+    } catch (err) {
+      console.warn('⚠️ Could not fetch recent health logs for context:', err.message);
+    }
+  }
+
   await sendTextMessage(phone, greeting);
   await askDailyQuestion(phone, groupType);
 }
@@ -234,8 +300,14 @@ async function handleDailyStep(phone, message, groupType) {
     updateStateData(phone, { [stepDef.key]: value });
   }
 
+  // Skip steps that have a condition that is not met
+  let updatedState = getState(phone);
+  while (updatedState.step < steps.length && steps[updatedState.step].condition && !steps[updatedState.step].condition(updatedState)) {
+    setState(phone, { ...updatedState, step: updatedState.step + 1 });
+    updatedState = getState(phone);
+  }
+
   // Check if all steps done
-  const updatedState = getState(phone);
   if (updatedState.step >= steps.length) {
     await finalizeDailyCheckIn(phone, groupType);
     return true;
@@ -262,6 +334,12 @@ async function askDailyQuestion(phone, groupType) {
 
   if (stepDef.type === 'text') {
     await sendTextMessage(phone, stepDef.prompt);
+  } else if (stepDef.type === 'list') {
+    const { getFarmerById } = require('../models/database');
+    const farmer = await getFarmerById(state.farmerId);
+    const lang = farmer?.preferred_language || 'English';
+    const sections = stepDef.listSections(lang, state.species);
+    await sendListMessage(phone, stepDef.prompt, stepDef.listButtonLabel, sections);
   } else {
     await sendButtonMessage(phone, stepDef.prompt, stepDef.buttons);
   }
@@ -430,7 +508,21 @@ const translations = {
     alert_disease_gut: '⚠️ *Warning:* White gut detected. This could be EHP or infection. Reduce feed and apply gut probiotics.',
     alert_growth_slow: '📉 *Slow Growth:* Check if your feed quality is good and if your water parameters (pH, DO) are stable.',
     btn_update: 'Update Now 📝',
-    btn_weekly: 'Weekly Report 📋'
+    btn_weekly: 'Weekly Report 📋',
+    label_fish_symptoms: 'Fish Symptoms',
+    label_shrimp_symptoms: 'Shrimp Symptoms',
+    sym_no_signs: 'No signs',
+    sym_red_ulcer: 'Red spots / Ulcers',
+    sym_dropsy: 'Dropsy (Swollen Belly)',
+    sym_fin_rot: 'Fin / Tail Rot',
+    sym_argulus: 'Fish lice (Argulus)',
+    sym_gasping: 'Gasping at surface',
+    sym_white_spots: 'White spots',
+    sym_white_gut: 'White gut',
+    sym_red_body: 'Red body',
+    sym_black_gills: 'Black gills',
+    sym_muscle_cramps: 'Muscle cramps',
+    sym_other: 'Other signs'
   },
   Telugu: {
     recorded: 'రికార్డ్ చేయబడింది',
@@ -458,7 +550,21 @@ const translations = {
     alert_disease_gut: '⚠️ *హెచ్చరిక:* తెల్లటి పేగు (White gut) కనిపించింది. మేతను తగ్గించి ప్రోబయోటిక్స్ వాడండి.',
     alert_growth_slow: '📉 *నెమ్మదిగా పెరుగుదల:* మేత నాణ్యత మరియు నీటి పారామితులను తనిఖీ చేయండి.',
     btn_update: 'అప్‌డేట్ చేయండి 📝',
-    btn_weekly: 'వారపు నివేదిక 📋'
+    btn_weekly: 'వారపు నివేదిక 📋',
+    label_fish_symptoms: 'చేపల లక్షణాలు',
+    label_shrimp_symptoms: 'రొయ్యల లక్షణాలు',
+    sym_no_signs: 'లక్షణాలు లేవు',
+    sym_red_ulcer: 'ఎర్ర మచ్చలు / పుండ్లు',
+    sym_dropsy: 'డ్రాప్సీ (ఉబ్బిన బొడ్డు)',
+    sym_fin_rot: 'ఫిన్ / టెయిల్ రాట్',
+    sym_argulus: 'చేపల పేలు (ఆర్గులస్)',
+    sym_gasping: 'ఉపరితలం వద్ద గాలి పీల్చడం',
+    sym_white_spots: 'తెల్ల మచ్చలు',
+    sym_white_gut: 'వైట్ గట్ (తెల్లటి పేగు)',
+    sym_red_body: 'ఎర్రటి శరీరం',
+    sym_black_gills: 'నల్ల మొప్పలు',
+    sym_muscle_cramps: 'కండరాల తిమ్మిరి',
+    sym_other: 'ఇతర లక్షణాలు'
   },
   Hindi: {
     recorded: 'दर्ज किया गया',
@@ -486,7 +592,21 @@ const translations = {
     alert_disease_gut: '⚠️ *चेतावनी:* सफेद आंत मिली। चारा कम करें और प्रोबायोटिक्स का उपयोग करें।',
     alert_growth_slow: '📉 *धीमी वृद्धि:* जांचें कि क्या चारे की गुणवत्ता अच्छी है और पानी स्थिर है।',
     btn_update: 'अभी अपडेट करें 📝',
-    btn_weekly: 'साप्ताहिक रिपोर्ट 📋'
+    btn_weekly: 'साप्ताहिक रिपोर्ट 📋',
+    label_fish_symptoms: 'मछली के लक्षण',
+    label_shrimp_symptoms: 'झींगा के लक्षण',
+    sym_no_signs: 'कोई लक्षण नहीं',
+    sym_red_ulcer: 'लाल धब्बे / अल्सर',
+    sym_dropsy: 'ड्रॉप्सी (सूजा हुआ पेट)',
+    sym_fin_rot: 'पूंछ/पंख सड़ना',
+    sym_argulus: 'फिश लाइस (आर्गुलस)',
+    sym_gasping: 'सतह पर हांफना',
+    sym_white_spots: 'सफेद धब्बे',
+    sym_white_gut: 'सफेद आंत',
+    sym_red_body: 'लाल शरीर',
+    sym_black_gills: 'काले गलफड़े',
+    sym_muscle_cramps: 'मांसपेशियों में ऐंठन',
+    sym_other: 'अन्य लक्षण'
   }
 };
 

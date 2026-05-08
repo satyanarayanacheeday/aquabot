@@ -161,7 +161,7 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.7,
-        maxOutputTokens: 1000,
+        maxOutputTokens: 4000,
       }
     });
 

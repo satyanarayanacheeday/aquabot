@@ -4,7 +4,7 @@ FROM node:18-alpine
 ENV NODE_ENV=production
 
 # Create non-root user for security
-RUN addgroup -S aquorix && adduser -S aquorix -G aquorix
+RUN addgroup -S aquaiq && adduser -S aquaiq -G aquaiq
 
 WORKDIR /app
 
@@ -18,10 +18,10 @@ RUN npm ci --only=production && npm cache clean --force
 COPY . .
 
 # Create logs directory
-RUN mkdir -p logs && chown -R aquorix:aquorix /app
+RUN mkdir -p logs && chown -R aquaiq:aquaiq /app
 
 # Switch to non-root user
-USER aquorix
+USER aquaiq
 
 # Expose the port the app runs on
 EXPOSE 3000

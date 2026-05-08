@@ -1,6 +1,5 @@
 const whatsapp = require('../src/services/whatsapp');
 const database = require('../src/models/database');
-const weather = require('../src/services/weather');
 const ai = require('../src/config/gemini');
 
 // --- 1. WhatsApp Mock ---
@@ -103,16 +102,7 @@ database.markFollowUpCompleted = async (id) => {
   if (fu) fu.status = 'completed';
 };
 
-// --- 3. Weather Mock ---
-weather.getWeather = async () => ({
-  location: 'Mock Village',
-  temperature: 30,
-  feelsLike: 34,
-  humidity: 75,
-  description: 'Sunny',
-  rainfall: 0,
-  windSpeed: 3
-});
+
 
 // --- 4. AI Mock ---
 // For the recommendation test, we want to see if the recommendations are passed into Gemini.

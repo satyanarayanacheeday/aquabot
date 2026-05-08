@@ -42,11 +42,8 @@ function startScheduler() {
   // FRIDAY — Health Check-In Reminder
   // ========================
   cron.schedule('0 6 * * 5', async () => {
-    console.log('📤 [Fri] Sending health check-in reminders...');
-    await sendCheckInReminders('daily_health',
-      '🔬 *Health Check-In*\n\nGood morning! Quick health check for your pond.',
-      'btn_update'
-    );
+    console.log('📤 [Fri] Sending health check-in directly...');
+    await sendCheckInReminders('daily_health', null, null, true);
   }, { timezone: 'Asia/Kolkata' });
 
   // ========================
@@ -134,10 +131,10 @@ function startScheduler() {
 /**
  * Send check-in reminders with interactive buttons to all registered farmers
  */
-async function sendCheckInReminders(type, bodyText, buttonKey) {
+async function sendCheckInReminders(type, bodyText, buttonKey, directStart = false) {
   try {
     const farmers = await getAllFarmers();
-    const { translations } = require('../services/dailyCheckIn');
+    const { translations, startDailyCheckIn } = require('../services/dailyCheckIn');
 
     for (const farmer of farmers) {
       try {
@@ -149,12 +146,16 @@ async function sendCheckInReminders(type, bodyText, buttonKey) {
           }
         }
 
-        const lang = farmer.preferred_language || 'English';
-        const buttonLabel = translations[lang]?.[buttonKey] || translations['English']?.[buttonKey] || 'Update';
-        
-        await sendButtonMessage(farmer.phone, bodyText, [
-          { id: type === 'weekly' ? 'weekly' : 'checkin', title: buttonLabel }
-        ]);
+        if (directStart) {
+          await startDailyCheckIn(farmer.phone, farmer.id, type);
+        } else {
+          const lang = farmer.preferred_language || 'English';
+          const buttonLabel = translations[lang]?.[buttonKey] || translations['English']?.[buttonKey] || 'Update';
+          
+          await sendButtonMessage(farmer.phone, bodyText, [
+            { id: type === 'weekly' ? 'weekly' : 'checkin', title: buttonLabel }
+          ]);
+        }
         
         if (type !== 'weekly') {
           await scheduleFollowUp(farmer.id, null, 'daily_checkin', new Date().toISOString());
