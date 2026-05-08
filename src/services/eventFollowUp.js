@@ -1,4 +1,4 @@
-const { sendTextMessage, sendButtonMessage } = require('./whatsapp');
+const { sendTextMessage, sendButtonMessage, sendListMessage } = require('./whatsapp');
 const { getFirstPondByFarmer, insertPondLog, saveChatHistory } = require('../models/database');
 const { setState, getState, clearState, updateStateData } = require('../state/conversationState');
 const { answerQuestion } = require('./ai');
@@ -137,16 +137,50 @@ const EVENT_TREES = {
       {
         key: 'symptoms',
         prompt: '🔬 What symptoms do you see?',
-        buttons: [
-          { id: 'dis_spots', title: 'White spots' },
-          { id: 'dis_red_other', title: 'Red body / Other' },
-        ],
+        type: 'list',
+        listButtonLabel: 'Select Symptoms',
+        listSections: (lang, species) => {
+          const isFish = isFishSpecies(species);
+          if (isFish) {
+            return [{
+              title: 'Fish Symptoms',
+              rows: [
+                { id: 'dis_sores', title: 'Red spots / Ulcers' },
+                { id: 'disease_dropsy', title: 'Dropsy (Swollen Belly)' },
+                { id: 'dis_rot', title: 'Fin / Tail Rot' },
+                { id: 'dis_parasite', title: 'Fish lice (Argulus)' },
+                { id: 'disease_gasping', title: 'Gasping at surface' },
+                { id: 'dis_other', title: 'Other signs' },
+                { id: 'cancel_flow', title: 'Cancel ❌' }
+              ]
+            }];
+          } else {
+            return [{
+              title: 'Shrimp Symptoms',
+              rows: [
+                { id: 'dis_spots', title: 'White spots' },
+                { id: 'disease_white_gut', title: 'White gut' },
+                { id: 'dis_red_other', title: 'Red body' },
+                { id: 'disease_black_gills', title: 'Black gills' },
+                { id: 'disease_muscle_cramps', title: 'Muscle cramps' },
+                { id: 'dis_other', title: 'Other signs' },
+                { id: 'cancel_flow', title: 'Cancel ❌' }
+              ]
+            }];
+          }
+        },
         parseButton: (input) => {
           if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
-          if (input.includes('white') || input.includes('spot') || input === 'dis_spots') return 'white_spots';
-          if (input.includes('red') || input.includes('sores') || input === 'other' || input === 'dis_sores') return 'red_body_sores';
-          if (input.includes('rot') || input === 'dis_rot') return 'fin_tail_rot';
-          if (input.includes('parasite') || input === 'dis_parasite') return 'parasites';
+          if (input.includes('white spot') || input === 'dis_spots') return 'white_spots';
+          if (input.includes('red') || input.includes('sores') || input === 'dis_red_other' || input === 'dis_sores') return 'red_body_sores';
+          if (input.includes('gut') || input === 'disease_white_gut') return 'white_gut';
+          if (input.includes('gills') || input === 'disease_black_gills') return 'black_gills';
+          if (input.includes('cramp') || input === 'disease_muscle_cramps') return 'muscle_cramps';
+          if (input.includes('dropsy') || input === 'disease_dropsy') return 'dropsy';
+          if (input.includes('fin') || input.includes('rot') || input === 'dis_rot') return 'fin_tail_rot';
+          if (input.includes('lice') || input.includes('argulus') || input === 'dis_parasite') return 'parasites';
+          if (input.includes('gasping') || input === 'disease_gasping') return 'gasping';
+          if (input.includes('other') || input === 'dis_other') return 'other';
           return null;
         },
       },
@@ -363,12 +397,7 @@ async function askEventQuestion(phone) {
   // Dynamic customization for FISH species
   if (isFishSpecies(state.species)) {
     if (state.eventType === 'disease' && stepDef.key === 'symptoms') {
-      stepDef.prompt = '🔬 What symptoms do you see on the fish?';
-      stepDef.buttons = [
-        { id: 'dis_sores', title: 'Red sores / EUS' },
-        { id: 'dis_rot', title: 'Tail or Fin rot' },
-        { id: 'dis_parasite', title: 'Body parasites' },
-      ];
+      // Handled by listSections dynamically
     }
     if (state.eventType === 'mortality' && stepDef.key === 'body_signs') {
       stepDef.prompt = '🔍 Any visible signs on the fish body?';
@@ -382,6 +411,12 @@ async function askEventQuestion(phone) {
 
   if (stepDef.type === 'text') {
     await sendTextMessage(phone, stepDef.prompt);
+  } else if (stepDef.type === 'list') {
+    const { getFarmerById } = require('../models/database');
+    const farmer = await getFarmerById(state.farmerId);
+    const lang = farmer?.preferred_language || 'English';
+    const sections = stepDef.listSections(lang, state.species);
+    await sendListMessage(phone, stepDef.prompt, stepDef.listButtonLabel || 'Select Option', sections);
   } else {
     await sendButtonMessage(phone, stepDef.prompt, stepDef.buttons);
   }
