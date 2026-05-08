@@ -391,9 +391,7 @@ async function askEventQuestion(phone) {
   const stepIndex = state.step;
 
   if (stepIndex >= tree.steps.length) return;
-
-  let stepDef = JSON.parse(JSON.stringify(tree.steps[stepIndex])); // deep copy
-
+  let stepDef = { ...tree.steps[stepIndex] }; // shallow copy to preserve functions
   // Dynamic customization for FISH species
   if (isFishSpecies(state.species)) {
     if (state.eventType === 'disease' && stepDef.key === 'symptoms') {
