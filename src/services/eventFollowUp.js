@@ -23,15 +23,15 @@ const productEngine = require('./productEngine');
 
 const EVENT_TREES = {
   mortality: {
-    label: 'Mortality Report',
+    label: (lang) => t('label_mortality', lang),
     steps: [
       {
         key: 'how_many',
-        prompt: '💀 How many died?',
-        buttons: [
-          { id: 'mort_few', title: '1–50' },
-          { id: 'mort_many', title: 'More than 50' },
-          { id: 'cancel_flow', title: 'Cancel ❌' },
+        prompt: (lang) => t('q_mort_how_many', lang),
+        buttons: (lang) => [
+          { id: 'mort_few', title: t('btn_mort_few', lang) },
+          { id: 'mort_many', title: t('btn_mort_many', lang) },
+          { id: 'cancel_flow', title: t('btn_cancel', lang) },
         ],
         parseButton: (input) => {
           if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
@@ -42,26 +42,26 @@ const EVENT_TREES = {
       },
       {
         key: 'since_when',
-        prompt: '📅 Since when?',
-        buttons: [
-          { id: 'mort_today', title: 'Today' },
-          { id: 'mort_yesterday', title: 'Yesterday' },
-          { id: 'mort_days', title: '2-3 days' },
+        prompt: (lang) => t('q_since_when', lang),
+        buttons: (lang) => [
+          { id: 'mort_today', title: t('btn_today', lang) },
+          { id: 'mort_yesterday', title: t('btn_yesterday', lang) },
+          { id: 'mort_days', title: t('btn_2_3_days', lang) },
         ],
         parseButton: (input) => {
           if (input.includes('today') || input === 'mort_today') return 'today';
           if (input.includes('yesterday') || input === 'mort_yesterday') return 'yesterday';
-          if (input.includes('2') || input.includes('3') || input.$includes('day') || input === 'mort_days') return '2-3_days';
+          if (input.includes('2') || input.includes('3') || input.includes('day') || input === 'mort_days') return '2-3_days';
           if (input.includes('week') || input === 'mort_week') return 'this_week';
           return null;
         },
       },
       {
         key: 'water_smell',
-        prompt: '👃 Any unusual water smell?',
-        buttons: [
-          { id: 'mort_smell_no', title: 'No' },
-          { id: 'mort_smell_yes', title: 'Yes' },
+        prompt: (lang) => t('q_water_smell', lang),
+        buttons: (lang) => [
+          { id: 'mort_smell_no', title: t('btn_no', lang) },
+          { id: 'mort_smell_yes', title: t('btn_yes', lang) },
         ],
         parseButton: (input) => {
           if (input === 'no' || input === 'mort_smell_no') return 'no';
@@ -71,12 +71,21 @@ const EVENT_TREES = {
       },
       {
         key: 'body_signs',
-        prompt: '🔍 Any visible signs on the body?',
-        buttons: [
-          { id: 'mort_sign_none', title: 'No signs' },
-          { id: 'mort_sign_red', title: 'Red body' },
-          { id: 'mort_sign_white', title: 'White spots' },
-        ],
+        prompt: (lang, species) => isFishSpecies(species) ? t('q_fish_body_signs', lang) : t('q_body_signs', lang),
+        buttons: (lang, species) => {
+          if (isFishSpecies(species)) {
+            return [
+              { id: 'mort_sign_none', title: t('btn_no_signs', lang) },
+              { id: 'mort_sign_sores', title: t('btn_red_sores', lang) },
+              { id: 'mort_sign_parasite', title: t('btn_parasites', lang) },
+            ];
+          }
+          return [
+            { id: 'mort_sign_none', title: t('btn_no_signs', lang) },
+            { id: 'mort_sign_red', title: t('btn_red_body', lang) },
+            { id: 'mort_sign_white', title: t('btn_white_spots', lang) },
+          ];
+        },
         parseButton: (input) => {
           if (input === 'no' || input.includes('no sign') || input === 'mort_sign_none') return 'none';
           if (input.includes('red') || input.includes('sores') || input === 'mort_sign_red' || input === 'mort_sign_sores') return 'red_body_sores';
@@ -89,22 +98,22 @@ const EVENT_TREES = {
   },
 
   slow_growth: {
-    label: 'Slow Growth Investigation',
+    label: (lang) => t('label_slow_growth', lang),
     steps: [
       {
         key: 'feed_type',
-        prompt: '🍽️ What feed are you using?',
+        prompt: (lang) => t('q_feed_using', lang),
         type: 'text',
         validate: (v) => v && v.trim().length >= 2,
-        errorMsg: 'Please type the feed brand/type name.',
+        errorMsg: (lang) => t('err_feed_name', lang),
       },
       {
         key: 'pond_color',
-        prompt: '🎨 What is the pond water color?',
-        buttons: [
-          { id: 'sg_dark', title: 'Green / Dark' },
-          { id: 'sg_brown', title: 'Brown / Black' },
-          { id: 'cancel_flow', title: 'Cancel ❌' },
+        prompt: (lang) => t('q_pond_color', lang),
+        buttons: (lang) => [
+          { id: 'sg_dark', title: t('btn_green_dark', lang) },
+          { id: 'sg_brown', title: t('btn_brown_black', lang) },
+          { id: 'cancel_flow', title: t('btn_cancel', lang) },
         ],
         parseButton: (input) => {
           if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
@@ -115,11 +124,11 @@ const EVENT_TREES = {
       },
       {
         key: 'white_gut',
-        prompt: '🔬 Any white gut/feces signs?',
-        buttons: [
-          { id: 'sg_gut_no', title: 'No' },
-          { id: 'sg_gut_yes', title: 'Yes' },
-          { id: 'sg_gut_unsure', title: 'Not sure' },
+        prompt: (lang) => t('q_white_gut_signs', lang),
+        buttons: (lang) => [
+          { id: 'sg_gut_no', title: t('btn_no', lang) },
+          { id: 'sg_gut_yes', title: t('btn_yes', lang) },
+          { id: 'sg_gut_unsure', title: t('btn_not_sure', lang) },
         ],
         parseButton: (input) => {
           if (input === 'no' || input === 'sg_gut_no') return 'no';
@@ -132,39 +141,39 @@ const EVENT_TREES = {
   },
 
   disease: {
-    label: 'Disease Investigation',
+    label: (lang) => t('label_disease', lang),
     steps: [
       {
         key: 'symptoms',
-        prompt: '🔬 What symptoms do you see?',
+        prompt: (lang) => t('q_symptoms', lang),
         type: 'list',
-        listButtonLabel: 'Select Symptoms',
+        listButtonLabel: (lang) => t('btn_select_symptoms', lang),
         listSections: (lang, species) => {
           const isFish = isFishSpecies(species);
           if (isFish) {
             return [{
-              title: 'Fish Symptoms',
+              title: t('label_fish_symptoms', lang),
               rows: [
-                { id: 'dis_sores', title: 'Red spots / Ulcers' },
-                { id: 'disease_dropsy', title: 'Dropsy (Swollen Belly)' },
-                { id: 'dis_rot', title: 'Fin / Tail Rot' },
-                { id: 'dis_parasite', title: 'Fish lice (Argulus)' },
-                { id: 'disease_gasping', title: 'Gasping at surface' },
-                { id: 'dis_other', title: 'Other signs' },
-                { id: 'cancel_flow', title: 'Cancel ❌' }
+                { id: 'dis_sores', title: t('sym_red_ulcer', lang) },
+                { id: 'disease_dropsy', title: t('sym_dropsy', lang) },
+                { id: 'dis_rot', title: t('sym_fin_rot', lang) },
+                { id: 'dis_parasite', title: t('sym_argulus', lang) },
+                { id: 'disease_gasping', title: t('sym_gasping', lang) },
+                { id: 'dis_other', title: t('sym_other', lang) },
+                { id: 'cancel_flow', title: t('btn_cancel', lang) }
               ]
             }];
           } else {
             return [{
-              title: 'Shrimp Symptoms',
+              title: t('label_shrimp_symptoms', lang),
               rows: [
-                { id: 'dis_spots', title: 'White spots' },
-                { id: 'disease_white_gut', title: 'White gut' },
-                { id: 'dis_red_other', title: 'Red body' },
-                { id: 'disease_black_gills', title: 'Black gills' },
-                { id: 'disease_muscle_cramps', title: 'Muscle cramps' },
-                { id: 'dis_other', title: 'Other signs' },
-                { id: 'cancel_flow', title: 'Cancel ❌' }
+                { id: 'dis_spots', title: t('sym_white_spots', lang) },
+                { id: 'disease_white_gut', title: t('sym_white_gut', lang) },
+                { id: 'dis_red_other', title: t('sym_red_body', lang) },
+                { id: 'disease_black_gills', title: t('sym_black_gills', lang) },
+                { id: 'disease_muscle_cramps', title: t('sym_muscle_cramps', lang) },
+                { id: 'dis_other', title: t('sym_other', lang) },
+                { id: 'cancel_flow', title: t('btn_cancel', lang) }
               ]
             }];
           }
@@ -186,11 +195,11 @@ const EVENT_TREES = {
       },
       {
         key: 'how_many_affected',
-        prompt: '📊 How many are affected?',
-        buttons: [
-          { id: 'dis_few', title: 'A few' },
-          { id: 'dis_many', title: 'Many' },
-          { id: 'dis_most', title: 'Most/All' },
+        prompt: (lang) => t('q_how_many_affected', lang),
+        buttons: (lang) => [
+          { id: 'dis_few', title: t('btn_a_few', lang) },
+          { id: 'dis_many', title: t('btn_many', lang) },
+          { id: 'dis_most', title: t('btn_most_all', lang) },
         ],
         parseButton: (input) => {
           if (input.includes('few') || input === 'dis_few') return 'a_few';
@@ -203,15 +212,15 @@ const EVENT_TREES = {
   },
 
   water_quality: {
-    label: 'Water Quality Check',
+    label: (lang) => t('label_water_check', lang),
     steps: [
       {
         key: 'water_color',
-        prompt: '🎨 What is the current water color?',
-        buttons: [
-          { id: 'wq_green', title: 'Green' },
-          { id: 'wq_brown', title: 'Brown / Black' },
-          { id: 'wq_clear', title: 'Clear' },
+        prompt: (lang) => t('q_current_water_color', lang),
+        buttons: (lang) => [
+          { id: 'wq_green', title: t('btn_green', lang) },
+          { id: 'wq_brown', title: t('btn_brown_black', lang) },
+          { id: 'wq_clear', title: t('btn_clear', lang) },
         ],
         parseButton: (input) => {
           if (input.includes('green') || input === 'wq_green') return 'green';
@@ -222,11 +231,11 @@ const EVENT_TREES = {
       },
       {
         key: 'smell_foam',
-        prompt: '🫧 Any bad smell or excessive foam?',
-        buttons: [
-          { id: 'wq_sf_none', title: 'None' },
-          { id: 'wq_sf_smell', title: 'Bad smell' },
-          { id: 'wq_sf_foam', title: 'Foam/Bubbles' },
+        prompt: (lang) => t('q_smell_foam', lang),
+        buttons: (lang) => [
+          { id: 'wq_sf_none', title: t('btn_none', lang) },
+          { id: 'wq_sf_smell', title: t('btn_bad_smell', lang) },
+          { id: 'wq_sf_foam', title: t('btn_foam_bubbles', lang) },
         ],
         parseButton: (input) => {
           if (input.includes('none') || input === 'wq_sf_none') return 'none';
@@ -239,15 +248,15 @@ const EVENT_TREES = {
   },
 
   feed: {
-    label: 'Feed Assessment',
+    label: (lang) => t('label_feed_assess', lang),
     steps: [
       {
         key: 'feed_status',
-        prompt: '🍽️ How is the feeding status?',
-        buttons: [
-          { id: 'fd_normal', title: 'Normal' },
-          { id: 'fd_reduced', title: 'Reduced' },
-          { id: 'fd_off', title: 'Off-feed (Stopped)' },
+        prompt: (lang) => t('q_feed_status', lang),
+        buttons: (lang) => [
+          { id: 'fd_normal', title: t('btn_normal', lang) },
+          { id: 'fd_reduced', title: t('btn_reduced', lang) },
+          { id: 'fd_off', title: t('btn_off_feed', lang) },
         ],
         parseButton: (input) => {
           if (input.includes('normal') || input === 'fd_normal') return 'normal';
@@ -258,18 +267,18 @@ const EVENT_TREES = {
       },
       {
         key: 'feed_brand',
-        prompt: '🏷️ Which feed brand are you currently using?',
+        prompt: (lang) => t('q_feed_brand_q', lang),
         type: 'text',
         validate: (v) => v && v.trim().length >= 2,
-        errorMsg: 'Please type the name of the feed brand.',
+        errorMsg: (lang) => t('err_feed_brand_name', lang),
       },
       {
         key: 'leftovers',
-        prompt: '📊 Any leftover feed in the check tray?',
-        buttons: [
-          { id: 'fd_lo_none', title: 'No' },
-          { id: 'fd_lo_some', title: 'A little' },
-          { id: 'fd_lo_many', title: 'Lot of feed' },
+        prompt: (lang) => t('q_leftovers', lang),
+        buttons: (lang) => [
+          { id: 'fd_lo_none', title: t('btn_no', lang) },
+          { id: 'fd_lo_some', title: t('btn_a_little', lang) },
+          { id: 'fd_lo_many', title: t('btn_lot_of_feed', lang) },
         ],
         parseButton: (input) => {
           if (input === 'no' || input === 'fd_lo_none') return 'none';
@@ -297,6 +306,10 @@ function isFishSpecies(species) {
 // ========================
 
 async function startEventFollowUp(phone, farmerId, eventType, originalMessage = '') {
+  const { getFarmerById } = require('../models/database');
+  const farmer = await getFarmerById(farmerId);
+  const lang = farmer?.preferred_language || 'English';
+
   const tree = EVENT_TREES[eventType];
   if (!tree) return false;
 
@@ -314,8 +327,9 @@ async function startEventFollowUp(phone, farmerId, eventType, originalMessage = 
     originalMessage,
   });
 
+  const label = typeof tree.label === 'function' ? tree.label(lang) : tree.label;
   await sendTextMessage(phone,
-    `📋 *${tree.label}*\n\nLet me ask a few quick questions so I can help you better.`
+    `📋 *${label}*\n\n${t('greet_event', lang)}`
   );
 
   await askEventQuestion(phone);
@@ -339,10 +353,15 @@ async function handleEventStep(phone, message) {
   const stepDef = tree.steps[stepIndex];
   const input = message.toLowerCase().trim();
 
+  const { getFarmerById } = require('../models/database');
+  const farmer = await getFarmerById(state.farmerId);
+  const lang = farmer?.preferred_language || 'English';
+
   // Handle free text step
   if (stepDef.type === 'text') {
     if (!stepDef.validate(message)) {
-      await sendTextMessage(phone, stepDef.errorMsg);
+      const errorMsg = typeof stepDef.errorMsg === 'function' ? stepDef.errorMsg(lang) : stepDef.errorMsg;
+      await sendTextMessage(phone, errorMsg);
       return true;
     }
     updateStateData(phone, { [stepDef.key]: message.trim() });
@@ -352,7 +371,7 @@ async function handleEventStep(phone, message) {
     // Check for explicit cancel or exit keyword
     if (value === 'cancel' || ['stop', 'exit', 'cancel', 'menu', 'hi', 'hii', 'hello'].includes(input)) {
       clearState(phone);
-      await sendTextMessage(phone, '❌ Investigation cancelled. How can I help you otherwise?');
+      await sendTextMessage(phone, t('msg_cancelled', lang));
       return true;
     }
 
@@ -361,7 +380,7 @@ async function handleEventStep(phone, message) {
       const attempts = (state.attempts || 0) + 1;
       if (attempts >= 2) {
         clearState(phone);
-        await sendTextMessage(phone, 'I didn\'t quite get that. I\'ve closed the investigation for now so you can chat normally. Type "help" if you need me!');
+        await sendTextMessage(phone, t('msg_not_understood', lang));
         return true;
       }
       updateStateData(phone, { attempts });
@@ -392,31 +411,22 @@ async function askEventQuestion(phone) {
 
   if (stepIndex >= tree.steps.length) return;
   let stepDef = { ...tree.steps[stepIndex] }; // shallow copy to preserve functions
-  // Dynamic customization for FISH species
-  if (isFishSpecies(state.species)) {
-    if (state.eventType === 'disease' && stepDef.key === 'symptoms') {
-      // Handled by listSections dynamically
-    }
-    if (state.eventType === 'mortality' && stepDef.key === 'body_signs') {
-      stepDef.prompt = '🔍 Any visible signs on the fish body?';
-      stepDef.buttons = [
-        { id: 'mort_sign_none', title: 'No signs' },
-        { id: 'mort_sign_sores', title: 'Red sores' },
-        { id: 'mort_sign_parasite', title: 'Parasites' },
-      ];
-    }
-  }
+
+  const { getFarmerById } = require('../models/database');
+  const farmer = await getFarmerById(state.farmerId);
+  const lang = farmer?.preferred_language || 'English';
+
+  const prompt = typeof stepDef.prompt === 'function' ? stepDef.prompt(lang, state.species) : stepDef.prompt;
 
   if (stepDef.type === 'text') {
-    await sendTextMessage(phone, stepDef.prompt);
+    await sendTextMessage(phone, prompt);
   } else if (stepDef.type === 'list') {
-    const { getFarmerById } = require('../models/database');
-    const farmer = await getFarmerById(state.farmerId);
-    const lang = farmer?.preferred_language || 'English';
     const sections = stepDef.listSections(lang, state.species);
-    await sendListMessage(phone, stepDef.prompt, stepDef.listButtonLabel || 'Select Option', sections);
+    const listButtonLabel = typeof stepDef.listButtonLabel === 'function' ? stepDef.listButtonLabel(lang) : stepDef.listButtonLabel;
+    await sendListMessage(phone, prompt, listButtonLabel || 'Select Option', sections);
   } else {
-    await sendButtonMessage(phone, stepDef.prompt, stepDef.buttons);
+    const buttons = typeof stepDef.buttons === 'function' ? stepDef.buttons(lang, state.species) : stepDef.buttons;
+    await sendButtonMessage(phone, prompt, buttons);
   }
 }
 
@@ -516,8 +526,12 @@ async function finalizeEvent(phone) {
 
   clearState(phone);
 
+  const { getFarmerById } = require('../models/database');
+  const farmer = await getFarmerById(state.farmerId);
+  const lang = farmer?.preferred_language || 'English';
+
   // Send thinking message
-  await sendTextMessage(phone, '🔍 Analyzing your situation...');
+  await sendTextMessage(phone, t('msg_analyzing', lang));
 
   // Get AI diagnosis
   try {
@@ -535,13 +549,14 @@ async function finalizeEvent(phone) {
       console.warn('⚠️ Could not save event to chat history:', chatErr.message);
     }
     
-    await sendTextMessage(phone, `📋 *${tree.label} — Assessment*\n\n${diagnosis}${recommendedProductSection ? '\n\n' + recommendedProductSection : ''}`);
+    const label = typeof tree.label === 'function' ? tree.label(lang) : tree.label;
+    await sendTextMessage(phone, `📋 *${label} — Assessment*\n\n${diagnosis}${recommendedProductSection ? '\n\n' + recommendedProductSection : ''}`);
   } catch (err) {
     console.error('❌ Event AI analysis failed:', err.message);
     await sendTextMessage(phone,
-      `Based on what you've described, here are immediate steps:\n\n` +
+      t('msg_ai_fail_advice', lang) + '\n\n' +
       getDefaultEventAdvice(state.eventType, data) +
-      `\n\n⚠️ *Please consult a local aquaculture expert for proper diagnosis.*`
+      `\n\n⚠️ *${t('msg_consult_expert', lang)}*`
     );
   }
 }
@@ -627,9 +642,240 @@ function detectEventType(text) {
   return null;
 }
 
+// ========================
+// TRANSLATIONS
+// ========================
+const translations = {
+  English: {
+    label_mortality: 'Mortality Report',
+    q_mort_how_many: '💀 How many died?',
+    btn_mort_few: '1–50',
+    btn_mort_many: 'More than 50',
+    btn_cancel: 'Cancel ❌',
+    q_since_when: '📅 Since when?',
+    btn_today: 'Today',
+    btn_yesterday: 'Yesterday',
+    btn_2_3_days: '2-3 days',
+    q_water_smell: '👃 Any unusual water smell?',
+    btn_yes: 'Yes',
+    btn_no: 'No',
+    q_body_signs: '🔍 Any visible signs on the body?',
+    q_fish_body_signs: '🔍 Any visible signs on the fish body?',
+    btn_no_signs: 'No signs',
+    btn_red_body: 'Red body',
+    btn_white_spots: 'White spots',
+    btn_red_sores: 'Red sores',
+    btn_parasites: 'Parasites',
+    label_slow_growth: 'Slow Growth Investigation',
+    q_feed_using: '🍽️ What feed are you using?',
+    err_feed_name: 'Please type the feed brand/type name.',
+    q_pond_color: '🎨 What is the pond water color?',
+    btn_green_dark: 'Green / Dark',
+    btn_brown_black: 'Brown / Black',
+    q_white_gut_signs: '🔬 Any white gut/feces signs?',
+    btn_not_sure: 'Not sure',
+    label_disease: 'Disease Investigation',
+    q_symptoms: '🔬 What symptoms do you see?',
+    btn_select_symptoms: 'Select Symptoms',
+    label_fish_symptoms: 'Fish Symptoms',
+    label_shrimp_symptoms: 'Shrimp Symptoms',
+    sym_red_ulcer: 'Red spots / Ulcers',
+    sym_dropsy: 'Dropsy (Swollen Belly)',
+    sym_fin_rot: 'Fin / Tail Rot',
+    sym_argulus: 'Fish lice (Argulus)',
+    sym_gasping: 'Gasping at surface',
+    sym_other: 'Other signs',
+    sym_white_spots: 'White spots',
+    sym_white_gut: 'White gut',
+    sym_red_body: 'Red body',
+    sym_black_gills: 'Black gills',
+    sym_muscle_cramps: 'Muscle cramps',
+    q_how_many_affected: '📊 How many are affected?',
+    btn_a_few: 'A few',
+    btn_many: 'Many',
+    btn_most_all: 'Most/All',
+    label_water_check: 'Water Quality Check',
+    q_current_water_color: '🎨 What is the current water color?',
+    btn_green: 'Green',
+    btn_clear: 'Clear',
+    q_smell_foam: '🫧 Any bad smell or excessive foam?',
+    btn_none: 'None',
+    btn_bad_smell: 'Bad smell',
+    btn_foam_bubbles: 'Foam/Bubbles',
+    label_feed_assess: 'Feed Assessment',
+    q_feed_status: '🍽️ How is the feeding status?',
+    btn_normal: 'Normal',
+    btn_reduced: 'Reduced',
+    btn_off_feed: 'Off-feed (Stopped)',
+    q_feed_brand_q: '🏷️ Which feed brand are you currently using?',
+    err_feed_brand_name: 'Please type the name of the feed brand.',
+    q_leftovers: '📊 Any leftover feed in the check tray?',
+    btn_a_little: 'A little',
+    btn_lot_of_feed: 'Lot of feed',
+    greet_event: 'Let me ask a few quick questions so I can help you better.',
+    msg_cancelled: '❌ Investigation cancelled. How can I help you otherwise?',
+    msg_not_understood: 'I didn\'t quite get that. I\'ve closed the investigation for now so you can chat normally. Type "help" if you need me!',
+    msg_analyzing: '🔍 Analyzing your situation...',
+    msg_ai_fail_advice: 'Based on what you\'ve described, here are immediate steps:',
+    msg_consult_expert: 'Please consult a local aquaculture expert for proper diagnosis.'
+  },
+  Telugu: {
+    label_mortality: 'మరణాల నివేదిక',
+    q_mort_how_many: '💀 ఎన్ని చనిపోయాయి?',
+    btn_mort_few: '1–50',
+    btn_mort_many: '50 కంటే ఎక్కువ',
+    btn_cancel: 'రద్దు చేయి ❌',
+    q_since_when: '📅 ఎప్పటి నుండి?',
+    btn_today: 'ఈరోజు',
+    btn_yesterday: 'నిన్న',
+    btn_2_3_days: '2-3 రోజులు',
+    q_water_smell: '👃 నీటిలో ఏవైనా అసాధారణ వాసనలు ఉన్నాయా?',
+    btn_yes: 'అవును',
+    btn_no: 'లేదు',
+    q_body_signs: '🔍 శరీరంపై ఏవైనా స్పష్టమైన లక్షణాలు ఉన్నాయా?',
+    q_fish_body_signs: '🔍 చేప శరీరంపై ఏవైనా స్పష్టమైన లక్షణాలు ఉన్నాయా?',
+    btn_no_signs: 'లక్షణాలు లేవు',
+    btn_red_body: 'ఎర్రటి శరీరం',
+    btn_white_spots: 'తెల్ల మచ్చలు',
+    btn_red_sores: 'ఎర్రటి పుండ్లు',
+    btn_parasites: 'పరాన్నజీవులు',
+    label_slow_growth: 'నెమ్మదిగా పెరుగుదల విచారణ',
+    q_feed_using: '🍽️ మీరు ఏ మేతను ఉపయోగిస్తున్నారు?',
+    err_feed_name: 'దయచేసి మేత బ్రాండ్/రకం పేరును టైప్ చేయండి.',
+    q_pond_color: '🎨 చెరువు నీటి రంగు ఏమిటి?',
+    btn_green_dark: 'ఆకుపచ్చ / ముదురు',
+    btn_brown_black: 'గోధుమ / నలుపు',
+    q_white_gut_signs: '🔬 ఏదైనా తెల్లటి పేగు/విసర్జన లక్షణాలు ఉన్నాయా?',
+    btn_not_sure: 'ఖచ్చితంగా తెలియదు',
+    label_disease: 'వ్యాధి విచారణ',
+    q_symptoms: '🔬 మీరు ఏ లక్షణాలను చూస్తున్నారు?',
+    btn_select_symptoms: 'లక్షణాలను ఎంచుకోండి',
+    label_fish_symptoms: 'చేపల లక్షణాలు',
+    label_shrimp_symptoms: 'రొయ్యల లక్షణాలు',
+    sym_red_ulcer: 'ఎర్ర మచ్చలు / పుండ్లు',
+    sym_dropsy: 'డ్రాప్సీ (ఉబ్బిన బొడ్డు)',
+    sym_fin_rot: 'ఫిన్ / టెయిల్ రాట్',
+    sym_argulus: 'చేపల పేలు (ఆర్గులస్)',
+    sym_gasping: 'ఉపరితలం వద్ద గాలి పీల్చడం',
+    sym_other: 'ఇతర లక్షణాలు',
+    sym_white_spots: 'తెల్ల మచ్చలు',
+    sym_white_gut: 'వైట్ గట్ (తెల్లటి పేగు)',
+    sym_red_body: 'ఎర్రటి శరీరం',
+    sym_black_gills: 'నల్ల మొప్పలు',
+    sym_muscle_cramps: 'కండరాల తిమ్మిరి',
+    q_how_many_affected: '📊 ఎన్ని ప్రభావితమయ్యాయి?',
+    btn_a_few: 'కొన్ని',
+    btn_many: 'చాలా',
+    btn_most_all: 'దాదాపు అన్ని',
+    label_water_check: 'నీటి నాణ్యత తనిఖీ',
+    q_current_water_color: '🎨 ప్రస్తుతం నీటి రంగు ఏమిటి?',
+    btn_green: 'ఆకుపచ్చ',
+    btn_clear: 'క్లియర్',
+    q_smell_foam: '🫧 ఏదైనా చెడు వాసన లేదా అధిక నురుగు ఉందా?',
+    btn_none: 'ఏమీ లేదు',
+    btn_bad_smell: 'చెడు వాసన',
+    btn_foam_bubbles: 'నురుగు/బుడగలు',
+    label_feed_assess: 'మేత అంచనా',
+    q_feed_status: '🍽️ మేత పరిస్థితి ఎలా ఉంది?',
+    btn_normal: 'సాధారణం',
+    btn_reduced: 'తగ్గించబడింది',
+    btn_off_feed: 'మేత ఆగిపోయింది',
+    q_feed_brand_q: '🏷️ మీరు ప్రస్తుతం ఏ మేత బ్రాండ్‌ను ఉపయోగిస్తున్నారు?',
+    err_feed_brand_name: 'దయచేసి మేత బ్రాండ్ పేరును టైప్ చేయండి.',
+    q_leftovers: '📊 చెక్ ట్రేలో ఏదైనా మిగిలిపోయిన మేత ఉందా?',
+    btn_a_little: 'కొంచెం',
+    btn_lot_of_feed: 'చాలా మేత',
+    greet_event: 'నేను మీకు మెరుగ్గా సహాయం చేయడానికి కొన్ని త్వరిత ప్రశ్నలు అడగనివ్వండి.',
+    msg_cancelled: '❌ విచారణ రద్దు చేయబడింది. నేను మీకు ఇంకే విధంగా సహాయపడగలను?',
+    msg_not_understood: 'నాకు సరిగ్గా అర్థం కాలేదు. ప్రస్తుతానికి విచారణను ముగించాను. సహాయం కోసం "help" అని టైప్ చేయండి!',
+    msg_analyzing: '🔍 మీ పరిస్థితిని విశ్లేషిస్తున్నాను...',
+    msg_ai_fail_advice: 'మీరు వివరించిన దాని ఆధారంగా, ఇక్కడ తక్షణ చర్యలు ఉన్నాయి:',
+    msg_consult_expert: 'సరైన రోగ నిర్ధారణ కోసం దయచేసి స్థానిక ఆక్వాకల్చర్ నిపుణుడిని సంప్రదించండి.'
+  },
+  Hindi: {
+    label_mortality: 'मृत्यु दर रिपोर्ट',
+    q_mort_how_many: '💀 कितने मारे गए?',
+    btn_mort_few: '1–50',
+    btn_mort_many: '50 से अधिक',
+    btn_cancel: 'रद्द करें ❌',
+    q_since_when: '📅 कब से?',
+    btn_today: 'आज',
+    btn_yesterday: 'कल',
+    btn_2_3_days: '2-3 दिन',
+    q_water_smell: '👃 क्या पानी में कोई असामान्य गंध है?',
+    btn_yes: 'हाँ',
+    btn_no: 'नहीं',
+    q_body_signs: '🔍 क्या शरीर पर कोई दृश्य लक्षण हैं?',
+    q_fish_body_signs: '🔍 क्या मछली के शरीर पर कोई दृश्य लक्षण हैं?',
+    btn_no_signs: 'कोई लक्षण नहीं',
+    btn_red_body: 'लाल शरीर',
+    btn_white_spots: 'सफेद धब्बे',
+    btn_red_sores: 'लाल घाव',
+    btn_parasites: 'परजीवी',
+    label_slow_growth: 'धीमी वृद्धि की जाँच',
+    q_feed_using: '🍽️ आप कौन सा चारा उपयोग कर रहे हैं?',
+    err_feed_name: 'कृपया फीड ब्रांड/प्रकार का नाम टाइप करें।',
+    q_pond_color: '🎨 तालाब के पानी का रंग क्या है?',
+    btn_green_dark: 'हरा / गहरा',
+    btn_brown_black: 'भूरा / काला',
+    q_white_gut_signs: '🔬 क्या सफेद आंत/मल के कोई लक्षण हैं?',
+    btn_not_sure: 'निश्चित नहीं',
+    label_disease: 'रोग की जाँच',
+    q_symptoms: '🔬 आपको क्या लक्षण दिख रहे हैं?',
+    btn_select_symptoms: 'लक्षण चुनें',
+    label_fish_symptoms: 'मछली के लक्षण',
+    label_shrimp_symptoms: 'झींगा के लक्षण',
+    sym_red_ulcer: 'लाल धब्बे / अल्सर',
+    sym_dropsy: 'ड्रॉप्सी (सूजा हुआ पेट)',
+    sym_fin_rot: 'पूंछ/पंख सड़ना',
+    sym_argulus: 'मछली जूँ (आर्गुलस)',
+    sym_gasping: 'सतह पर हांफना',
+    sym_other: 'अन्य लक्षण',
+    sym_white_spots: 'सफेद धब्बे',
+    sym_white_gut: 'सफेद आंत',
+    sym_red_body: 'लाल शरीर',
+    sym_black_gills: 'काले गलफड़े',
+    sym_muscle_cramps: 'मांसपेशियों में ऐंठन',
+    q_how_many_affected: '📊 कितने प्रभावित हैं?',
+    btn_a_few: 'कुछ',
+    btn_many: 'कई',
+    btn_most_all: 'ज्यादातर/सभी',
+    label_water_check: 'पानी की गुणवत्ता की जांच',
+    q_current_water_color: '🎨 वर्तमान पानी का रंग क्या है?',
+    btn_green: 'हरा',
+    btn_clear: 'साफ',
+    q_smell_foam: '🫧 क्या कोई दुर्गंध या अत्यधिक झाग है?',
+    btn_none: 'कोई नहीं',
+    btn_bad_smell: 'दुर्गंध',
+    btn_foam_bubbles: 'झाग/बुलबुले',
+    label_feed_assess: 'चारा मूल्यांकन',
+    q_feed_status: '🍽️ चारे की स्थिति कैसी है?',
+    btn_normal: 'सामान्य',
+    btn_reduced: 'कम हो गया',
+    btn_off_feed: 'चारा बंद है',
+    q_feed_brand_q: '🏷️ आप वर्तमान में किस फीड ब्रांड का उपयोग कर रहे हैं?',
+    err_feed_brand_name: 'कृपया फीड ब्रांड का नाम टाइप करें।',
+    q_leftovers: '📊 क्या चेक ट्रे में कोई बचा हुआ चारा है?',
+    btn_a_little: 'थोड़ा सा',
+    btn_lot_of_feed: 'बहुत सारा चारा',
+    greet_event: 'मुझे कुछ त्वरित प्रश्न पूछने दें ताकि मैं आपकी बेहतर मदद कर सकूँ।',
+    msg_cancelled: '❌ जाँच रद्द कर दी गई। मैं आपकी और कैसे मदद कर सकता हूँ?',
+    msg_not_understood: 'मुझे ठीक से समझ नहीं आया। मैंने अभी के लिए जाँच बंद कर दी है। मदद के लिए "help" टाइप करें!',
+    msg_analyzing: '🔍 आपकी स्थिति का विश्लेषण कर रहा हूँ...',
+    msg_ai_fail_advice: 'आपने जो वर्णन किया है उसके आधार पर, यहाँ तत्काल कदम उठाए गए हैं:',
+    msg_consult_expert: 'उचित निदान के लिए कृपया स्थानीय जलीय कृषि विशेषज्ञ से परामर्श करें.'
+  }
+};
+
+function t(key, lang = 'English') {
+  return translations[lang]?.[key] || translations['English']?.[key] || key;
+}
+
 module.exports = {
   startEventFollowUp,
   handleEventStep,
   detectEventType,
   EVENT_TREES,
+  translations,
+  t
 };

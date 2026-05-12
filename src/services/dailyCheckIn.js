@@ -29,34 +29,35 @@ const FEED_STEPS = [
   {
     key: 'feed_brand',
     askOnce: true, // only ask first time, then skip
-    prompt: '🍽️ What feed brand are you using?',
+    prompt: (lang) => t('q_feed_brand', lang),
     type: 'text', // free text — only exception
     validate: (v) => v && v.trim().length >= 2,
-    errorMsg: 'Please type your feed brand name.',
+    errorMsg: (lang) => t('err_feed_brand', lang),
   },
   {
     key: 'feed_kg',
-    prompt: '🍽️ How many kg of feed did you use yesterday?',
-    buttons: [
-      { id: 'feed_lt10', title: 'Less than 10 kg' },
-      { id: 'feed_10_30', title: '10–30 kg' },
-      { id: 'feed_30_50', title: '30–50 kg' },
+    prompt: (lang) => t('q_feed_kg', lang),
+    buttons: (lang) => [
+      { id: 'feed_lt10', title: t('btn_lt10', lang) },
+      { id: 'feed_10_30', title: t('btn_10_30', lang) },
+      { id: 'feed_30_50', title: t('btn_30_50', lang) },
+      { id: 'feed_50plus', title: t('btn_50plus', lang) },
     ],
     parseButton: (input) => {
-      if (input.includes('less') || input.includes('10') && !input.includes('30') || input === 'feed_lt10') return '<10';
-      if (input.includes('10') && input.includes('30') || input === 'feed_10_30') return '10-30';
-      if (input.includes('30') && input.includes('50') || input === 'feed_30_50') return '30-50';
+      if (input.includes('less') || (input.includes('10') && !input.includes('30')) || input === 'feed_lt10') return '<10';
+      if ((input.includes('10') && input.includes('30')) || input === 'feed_10_30') return '10-30';
+      if ((input.includes('30') && input.includes('50')) || input === 'feed_30_50') return '30-50';
       if (input.includes('50') || input === 'feed_50plus') return '50+';
       return null;
     },
   },
   {
     key: 'feed_times',
-    prompt: '⏰ How many times do you feed per day?',
-    buttons: [
-      { id: 'times_1', title: '1 time' },
-      { id: 'times_2', title: '2 times' },
-      { id: 'times_3', title: '3-4 times' },
+    prompt: (lang) => t('q_feed_times', lang),
+    buttons: (lang) => [
+      { id: 'times_1', title: t('btn_1_time', lang) },
+      { id: 'times_2', title: t('btn_2_times', lang) },
+      { id: 'times_3', title: t('btn_3_4_times', lang) },
     ],
     parseButton: (input) => {
       if (input === '1' || input === 'times_1' || input.includes('1 time')) return 1;
@@ -74,14 +75,14 @@ const FEED_STEPS = [
 const WATER_STEPS = [
   {
     key: 'water_color',
-    prompt: '🎨 What is the pond water color today?',
-    buttons: [
-      { id: 'color_green', title: '🟢 Green' },
-      { id: 'color_dkgreen', title: '🟤 Dark Green' },
-      { id: 'color_brown', title: '🟫 Brown/Black' },
+    prompt: (lang) => t('q_water_color', lang),
+    buttons: (lang) => [
+      { id: 'color_green', title: t('btn_color_green', lang) },
+      { id: 'color_dkgreen', title: t('btn_color_dark_green', lang) },
+      { id: 'color_brown', title: t('btn_color_brown_black', lang) },
     ],
     parseButton: (input) => {
-      if (input.includes('green') && !input.includes('dark') || input === 'color_green') return 'green';
+      if ((input.includes('green') && !input.includes('dark')) || input === 'color_green') return 'green';
       if (input.includes('dark') || input === 'color_dkgreen') return 'dark_green';
       if (input.includes('brown') || input.includes('black') || input === 'color_brown') return 'brown_black';
       if (input.includes('clear') || input === 'color_clear') return 'clear';
@@ -90,11 +91,11 @@ const WATER_STEPS = [
   },
   {
     key: 'bad_smell',
-    prompt: '👃 Any bad smell from the pond?',
-    buttons: [
-      { id: 'smell_no', title: 'No' },
-      { id: 'smell_mild', title: 'Yes, mild' },
-      { id: 'smell_strong', title: 'Yes, strong' },
+    prompt: (lang) => t('q_bad_smell', lang),
+    buttons: (lang) => [
+      { id: 'smell_no', title: t('btn_smell_no', lang) },
+      { id: 'smell_mild', title: t('btn_smell_mild', lang) },
+      { id: 'smell_strong', title: t('btn_smell_strong', lang) },
     ],
     parseButton: (input) => {
       if (input === 'no' || input === 'smell_no') return 'no';
@@ -105,10 +106,10 @@ const WATER_STEPS = [
   },
   {
     key: 'foam_bubbles',
-    prompt: '🫧 Any unusual foam or bubbles?',
-    buttons: [
-      { id: 'foam_no', title: 'No' },
-      { id: 'foam_yes', title: 'Yes' },
+    prompt: (lang) => t('q_foam_bubbles', lang),
+    buttons: (lang) => [
+      { id: 'foam_no', title: t('btn_no', lang) },
+      { id: 'foam_yes', title: t('btn_yes', lang) },
     ],
     parseButton: (input) => {
       if (input === 'no' || input === 'foam_no') return 'no';
@@ -125,9 +126,9 @@ const WATER_STEPS = [
 const HEALTH_STEPS = [
   {
     key: 'disease_signs',
-    prompt: '🔬 Any disease signs in your pond?',
+    prompt: (lang) => t('q_disease_signs', lang),
     type: 'list',
-    listButtonLabel: 'Select Symptoms',
+    listButtonLabel: (lang) => t('btn_select_symptoms', lang),
     listSections: (lang, species) => {
       const isFish = isFishSpecies(species);
       if (isFish) {
@@ -180,18 +181,18 @@ const HEALTH_STEPS = [
   {
     key: 'disease_other_desc',
     condition: (state) => state.data && state.data.disease_signs === 'other',
-    prompt: '📝 Please describe the other signs you are seeing:',
+    prompt: (lang) => t('q_other_desc', lang),
     type: 'text',
     validate: (v) => v && v.trim().length >= 2,
-    errorMsg: 'Please type the signs you are seeing.',
+    errorMsg: (lang) => t('err_other_desc', lang),
   },
   {
     key: 'growth_status',
-    prompt: '📈 Are your shrimp/fish growing normally?',
-    buttons: [
-      { id: 'growth_yes', title: 'Yes, normal' },
-      { id: 'growth_slow', title: 'Slower than usual' },
-      { id: 'growth_unsure', title: 'Not sure' },
+    prompt: (lang) => t('q_growth_normal', lang),
+    buttons: (lang) => [
+      { id: 'growth_yes', title: t('btn_growth_yes', lang) },
+      { id: 'growth_slow', title: t('btn_growth_slow', lang) },
+      { id: 'growth_unsure', title: t('btn_growth_unsure', lang) },
     ],
     parseButton: (input) => {
       if (input === 'yes' || input.includes('normal') || input === 'growth_yes') return 'normal';
@@ -216,9 +217,12 @@ async function startDailyCheckIn(phone, farmerId, groupType) {
   const config = GROUP_MAP[groupType];
   if (!config) return;
 
-  const pond = await getFirstPondByFarmer(farmerId);
+  const { getFarmerById } = require('../models/database');
+  const farmer = await getFarmerById(farmerId);
+  const lang = farmer?.preferred_language || 'English';
+
   if (!pond) {
-    await sendTextMessage(phone, '⚠️ No pond found. Please complete setup first.');
+    await sendTextMessage(phone, t('err_no_pond', lang));
     return;
   }
 
@@ -237,7 +241,7 @@ async function startDailyCheckIn(phone, farmerId, groupType) {
     species: pond.species || 'vannamei',
   });
 
-  let greeting = getCheckInGreeting(groupType);
+  let greeting = getCheckInGreeting(groupType, lang);
   
   if (groupType === 'daily_health') {
     try {
@@ -245,7 +249,13 @@ async function startDailyCheckIn(phone, farmerId, groupType) {
       const lastDiseaseLog = recentLogs.find(l => l.log_data && l.log_data.disease_signs && l.log_data.disease_signs !== 'none');
       if (lastDiseaseLog) {
         const lastDisease = lastDiseaseLog.log_data.disease_signs.replace(/_/g, ' ');
-        greeting += `\n\nI noticed you recently reported *${lastDisease}*. Are you still seeing this, or any other signs?`;
+        if (lang === 'Telugu') {
+          greeting += `\n\nమీరు ఇటీవల *${lastDisease}* గురించి నివేదించినట్లు నేను గమనించాను. మీరు ఇప్పటికీ దీన్ని లేదా ఇతర లక్షణాలను చూస్తున్నారా?`;
+        } else if (lang === 'Hindi') {
+          greeting += `\n\nमैंने देखा कि आपने हाल ही में *${lastDisease}* की सूचना दी थी। क्या आप अभी भी इसे या कोई अन्य लक्षण देख रहे हैं?`;
+        } else {
+          greeting += `\n\nI noticed you recently reported *${lastDisease}*. Are you still seeing this, or any other signs?`;
+        }
       }
     } catch (err) {
       console.warn('⚠️ Could not fetch recent health logs for context:', err.message);
@@ -275,8 +285,9 @@ async function handleDailyStep(phone, message, groupType) {
 
   // Handle free text step (feed brand)
   if (stepDef.type === 'text') {
+    const lang = state.lang || 'English';
     if (!stepDef.validate(message)) {
-      await sendTextMessage(phone, stepDef.errorMsg);
+      await sendTextMessage(phone, typeof stepDef.errorMsg === 'function' ? stepDef.errorMsg(lang) : stepDef.errorMsg);
       return true;
     }
     updateStateData(phone, { [stepDef.key]: message.trim() });
@@ -331,17 +342,21 @@ async function askDailyQuestion(phone, groupType) {
   if (stepIndex >= steps.length) return;
 
   const stepDef = steps[stepIndex];
+  const { getFarmerById } = require('../models/database');
+  const farmer = await getFarmerById(state.farmerId);
+  const lang = farmer?.preferred_language || 'English';
+
+  const prompt = typeof stepDef.prompt === 'function' ? stepDef.prompt(lang) : stepDef.prompt;
 
   if (stepDef.type === 'text') {
-    await sendTextMessage(phone, stepDef.prompt);
+    await sendTextMessage(phone, prompt);
   } else if (stepDef.type === 'list') {
-    const { getFarmerById } = require('../models/database');
-    const farmer = await getFarmerById(state.farmerId);
-    const lang = farmer?.preferred_language || 'English';
     const sections = stepDef.listSections(lang, state.species);
-    await sendListMessage(phone, stepDef.prompt, stepDef.listButtonLabel, sections);
+    const listButtonLabel = typeof stepDef.listButtonLabel === 'function' ? stepDef.listButtonLabel(lang) : stepDef.listButtonLabel;
+    await sendListMessage(phone, prompt, listButtonLabel, sections);
   } else {
-    await sendButtonMessage(phone, stepDef.prompt, stepDef.buttons);
+    const buttons = typeof stepDef.buttons === 'function' ? stepDef.buttons(lang) : stepDef.buttons;
+    await sendButtonMessage(phone, prompt, buttons);
   }
 }
 
@@ -439,11 +454,11 @@ async function finalizeDailyCheckIn(phone, groupType) {
 // HELPERS
 // ========================
 
-function getCheckInGreeting(groupType) {
-  if (groupType === 'daily_feed') return '🍽️ *Feed Check-In*\nQuick questions about feeding. Takes 30 seconds!';
-  if (groupType === 'daily_water') return '💧 *Water Check-In*\nLet\'s check your pond water. Just 3 taps!';
-  if (groupType === 'daily_health') return '🔬 *Health Check-In*\nQuick health check for your pond.';
-  return '📋 Check-in time!';
+function getCheckInGreeting(groupType, lang = 'English') {
+  if (groupType === 'daily_feed') return t('greet_feed', lang);
+  if (groupType === 'daily_water') return t('greet_water', lang);
+  if (groupType === 'daily_health') return t('greet_health', lang);
+  return t('greet_default', lang);
 }
 
 function generateAlerts(logGroup, data, lang = 'English') {
@@ -522,7 +537,42 @@ const translations = {
     sym_red_body: 'Red body',
     sym_black_gills: 'Black gills',
     sym_muscle_cramps: 'Muscle cramps',
-    sym_other: 'Other signs'
+    sym_other: 'Other signs',
+    q_feed_brand: '🍽️ What feed brand are you using?',
+    err_feed_brand: 'Please type your feed brand name.',
+    q_feed_kg: '🍽️ How many kg of feed did you use yesterday?',
+    btn_lt10: 'Less than 10 kg',
+    btn_10_30: '10–30 kg',
+    btn_30_50: '30–50 kg',
+    btn_50plus: 'More than 50 kg',
+    q_feed_times: '⏰ How many times do you feed per day?',
+    btn_1_time: '1 time',
+    btn_2_times: '2 times',
+    btn_3_4_times: '3-4 times',
+    q_water_color: '🎨 What is the pond water color today?',
+    btn_color_green: '🟢 Green',
+    btn_color_dark_green: '🟤 Dark Green',
+    btn_color_brown_black: '🟫 Brown/Black',
+    q_bad_smell: '👃 Any bad smell from the pond?',
+    btn_smell_no: 'No',
+    btn_smell_mild: 'Yes, mild',
+    btn_smell_strong: 'Yes, strong',
+    q_foam_bubbles: '🫧 Any unusual foam or bubbles?',
+    btn_yes: 'Yes',
+    btn_no: 'No',
+    q_disease_signs: '🔬 Any disease signs in your pond?',
+    btn_select_symptoms: 'Select Symptoms',
+    q_other_desc: '📝 Please describe the other signs you are seeing:',
+    err_other_desc: 'Please type the signs you are seeing.',
+    q_growth_normal: '📈 Are your shrimp/fish growing normally?',
+    btn_growth_yes: 'Yes, normal',
+    btn_growth_slow: 'Slower than usual',
+    btn_growth_unsure: 'Not sure',
+    greet_feed: '🍽️ *Feed Check-In*\nQuick questions about feeding. Takes 30 seconds!',
+    greet_water: '💧 *Water Check-In*\nLet\'s check your pond water. Just 3 taps!',
+    greet_health: '🔬 *Health Check-In*\nQuick health check for your pond.',
+    greet_default: '📋 Check-in time!',
+    err_no_pond: '⚠️ No pond found. Please complete setup first.'
   },
   Telugu: {
     recorded: 'రికార్డ్ చేయబడింది',
@@ -564,7 +614,42 @@ const translations = {
     sym_red_body: 'ఎర్రటి శరీరం',
     sym_black_gills: 'నల్ల మొప్పలు',
     sym_muscle_cramps: 'కండరాల తిమ్మిరి',
-    sym_other: 'ఇతర లక్షణాలు'
+    sym_other: 'ఇతర లక్షణాలు',
+    q_feed_brand: '🍽️ మీరు ఏ బ్రాండ్ మేతను ఉపయోగిస్తున్నారు?',
+    err_feed_brand: 'దయచేసి మీ మేత బ్రాండ్ పేరును టైప్ చేయండి.',
+    q_feed_kg: '🍽️ నిన్న మీరు ఎన్ని కిలోల మేతను ఉపయోగించారు?',
+    btn_lt10: '10 కిలోల కంటే తక్కువ',
+    btn_10_30: '10–30 కిలోలు',
+    btn_30_50: '30–50 కిలోలు',
+    btn_50plus: '50 కిలోల కంటే ఎక్కువ',
+    q_feed_times: '⏰ మీరు రోజుకు ఎన్ని సార్లు మేత వేస్తారు?',
+    btn_1_time: '1 సారి',
+    btn_2_times: '2 సార్లు',
+    btn_3_4_times: '3-4 సార్లు',
+    q_water_color: '🎨 ఈరోజు చెరువు నీటి రంగు ఏమిటి?',
+    btn_color_green: '🟢 ఆకుపచ్చ',
+    btn_color_dark_green: '🟤 ముదురు ఆకుపచ్చ',
+    btn_color_brown_black: '🟫 గోధుమ/నలుపు',
+    q_bad_smell: '👃 చెరువు నుండి ఏదైనా వాసన వస్తుందా?',
+    btn_smell_no: 'లేదు',
+    btn_smell_mild: 'అవును, తక్కువగా',
+    btn_smell_strong: 'అవును, బలంగా',
+    q_foam_bubbles: '🫧 అసాధారణమైన నురుగు లేదా బుడగలు ఉన్నాయా?',
+    btn_yes: 'అవును',
+    btn_no: 'లేదు',
+    q_disease_signs: '🔬 మీ చెరువులో ఏదైనా వ్యాధి లక్షణాలు ఉన్నాయా?',
+    btn_select_symptoms: 'లక్షణాలను ఎంచుకోండి',
+    q_other_desc: '📝 దయచేసి మీరు చూస్తున్న ఇతర లక్షణాలను వివరించండి:',
+    err_other_desc: 'దయచేసి మీరు చూస్తున్న లక్షణాలను టైప్ చేయండి.',
+    q_growth_normal: '📈 మీ రొయ్యలు/చేపలు సాధారణంగా పెరుగుతున్నాయా?',
+    btn_growth_yes: 'అవును, సాధారణంగా',
+    btn_growth_slow: 'సాధారణం కంటే నెమ్మదిగా',
+    btn_growth_unsure: 'ఖచ్చితంగా తెలియదు',
+    greet_feed: '🍽️ *మేత చెక్-ఇన్*\nమేత గురించి చిన్న ప్రశ్నలు. కేవలం 30 సెకన్లలో ముగుస్తుంది!',
+    greet_water: '💧 *నీటి చెక్-ఇన్*\nమీ చెరువు నీటిని తనిఖీ చేద్దాం. కేవలం 3 ట్యాప్‌లు!',
+    greet_health: '🔬 *ఆరోగ్య చెక్-ఇన్*\nమీ చెరువు కోసం త్వరిత ఆరోగ్య తనిఖీ.',
+    greet_default: '📋 చెక్-ఇన్ సమయం!',
+    err_no_pond: '⚠️ చెరువు కనుగొనబడలేదు. దయచేసి ముందుగా సెటప్ పూర్తి చేయండి.'
   },
   Hindi: {
     recorded: 'दर्ज किया गया',
@@ -606,7 +691,42 @@ const translations = {
     sym_red_body: 'लाल शरीर',
     sym_black_gills: 'काले गलफड़े',
     sym_muscle_cramps: 'मांसपेशियों में ऐंठन',
-    sym_other: 'अन्य लक्षण'
+    sym_other: 'अन्य लक्षण',
+    q_feed_brand: '🍽️ आप कौन सा फीड ब्रांड उपयोग कर रहे हैं?',
+    err_feed_brand: 'कृपया अपने फीड ब्रांड का नाम टाइप करें।',
+    q_feed_kg: '🍽️ आपने कल कितने किलो चारा उपयोग किया?',
+    btn_lt10: '10 किलो से कम',
+    btn_10_30: '10–30 किलो',
+    btn_30_50: '30–50 किलो',
+    btn_50plus: '50 किलो से अधिक',
+    q_feed_times: '⏰ आप दिन में कितनी बार चारा डालते हैं?',
+    btn_1_time: '1 बार',
+    btn_2_times: '2 बार',
+    btn_3_4_times: '3-4 बार',
+    q_water_color: '🎨 आज तालाब के पानी का रंग क्या है?',
+    btn_color_green: '🟢 हरा',
+    btn_color_dark_green: '🟤 गहरा हरा',
+    btn_color_brown_black: '🟫 भूरा/काला',
+    q_bad_smell: '👃 क्या तालाब से कोई गंध आ रही है?',
+    btn_smell_no: 'नहीं',
+    btn_smell_mild: 'हाँ, हल्की',
+    btn_smell_strong: 'हाँ, तेज़',
+    q_foam_bubbles: '🫧 क्या कोई असामान्य झाग या बुलबुले हैं?',
+    btn_yes: 'हाँ',
+    btn_no: 'नहीं',
+    q_disease_signs: '🔬 क्या आपके तालाब में कोई बीमारी के लक्षण हैं?',
+    btn_select_symptoms: 'लक्षण चुनें',
+    q_other_desc: '📝 कृपया उन अन्य लक्षणों का वर्णन करें जिन्हें आप देख रहे हैं:',
+    err_other_desc: 'कृपया वे लक्षण टाइप करें जिन्हें आप देख रहे हैं।',
+    q_growth_normal: '📈 क्या आपकी झींगा/मछली सामान्य रूप से बढ़ रही है?',
+    btn_growth_yes: 'हाँ, सामान्य',
+    btn_growth_slow: 'हमेशा से धीमी',
+    btn_growth_unsure: 'निश्चित नहीं',
+    greet_feed: '🍽️ *फीड चेक-इन*\nचारे के बारे में छोटे सवाल। बस 30 सेकंड में!',
+    greet_water: '💧 *पानी चेक-इन*\nआइए आपके तालाब के पानी की जाँच करें। बस 3 टैप!',
+    greet_health: '🔬 *स्वास्थ्य चेक-इन*\nआपके तालाब के लिए त्वरित स्वास्थ्य जांच।',
+    greet_default: '📋 चेक-इन का समय!',
+    err_no_pond: '⚠️ कोई तालाब नहीं मिला। कृपया पहले सेटअप पूरा करें।'
   }
 };
 
@@ -654,5 +774,6 @@ module.exports = {
   handleDailyStep,
   getTodayCheckInType,
   GROUP_MAP,
-  translations
+  translations,
+  t
 };

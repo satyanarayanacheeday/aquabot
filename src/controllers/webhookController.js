@@ -75,9 +75,9 @@ async function handleIncoming(req, res) {
       const reply = buttonId || listId || buttonTitle || listTitle || '';
       await handleTextMessage(phone, reply);
     } else {
-      await sendTextMessage(phone,
-        `I can understand text messages and images. 📝📸\n\nPlease send a text question or a photo for disease detection.`
-      );
+      const farmer = await getFarmerByPhone(phone);
+      const lang = farmer?.preferred_language || 'English';
+      await sendTextMessage(phone, t('msg_unsupported', lang));
     }
   } catch (error) {
     logger.error('Error handling incoming message', { error: error.message, stack: error.stack });
@@ -112,11 +112,12 @@ async function handleTextMessage(phone, text) {
 
   // GLOBAL EXIT HANDLER: Allow escaping any flow
   if (['stop', 'exit', 'cancel', 'menu'].includes(normalizedText)) {
+    const lang = farmer?.preferred_language || 'English';
     clearState(phone);
     if (normalizedText === 'menu') {
       await sendHelpMessage(phone);
     } else {
-      await sendTextMessage(phone, '❌ Flow cancelled. You are now back in normal chat mode.');
+      await sendTextMessage(phone, t('msg_cancelled', lang));
     }
     return;
   }
@@ -275,10 +276,11 @@ async function handleTextMessage(phone, text) {
   // 7. Default: AI Q&A (RAG)
   logger.info(`🤖 Routing to AI Q&A for: "${text.substring(0, 80)}"`);
   let answer;
+  const lang = farmer?.preferred_language || 'English';
   try {
-    answer = await answerQuestion(text, farmer.id, farmer.preferred_language);
+    answer = await answerQuestion(text, farmer.id, lang);
   } catch (err) {
-    answer = `I'm having trouble right now. Please try again in a moment.\n\nIf urgent, consult your local aquaculture expert. 🙏`;
+    answer = t('err_ai_qa', lang);
   }
 
   // Save chat history
@@ -303,12 +305,14 @@ async function handleImageMessage(phone, imageData) {
   logger.info(`📸 Image from ${phone}`);
 
   const farmer = await getFarmerByPhone(phone);
+  const lang = farmer?.preferred_language || 'English';
+
   if (!farmer || !farmer.onboarding_complete) {
-    await sendTextMessage(phone, 'Please complete your setup first! Send any text to get started.');
+    await sendTextMessage(phone, t('msg_setup_first', lang));
     return;
   }
 
-  await sendTextMessage(phone, '🔬 Analyzing your image... Please wait.');
+  await sendTextMessage(phone, t('msg_analyzing_img', lang));
 
   try {
     const imageBuffer = await downloadMedia(imageData.id);
@@ -358,13 +362,10 @@ async function handleImageMessage(phone, imageData) {
       logger.warn('Could not save image chat history', { error: err.message });
     }
 
-    await sendTextMessage(phone, `🔬 *Image Analysis*\n\n${analysis}`);
+    await sendTextMessage(phone, `${t('msg_img_analysis_header', lang)}${analysis}`);
   } catch (error) {
     logger.error('Image analysis failed', { error: error.message, phone });
-    await sendTextMessage(phone,
-      `Sorry, I couldn't analyze this image. Please try again with a clearer photo.\n\n` +
-      `💡 Tip: Take the photo in good lighting with the shrimp/fish clearly visible.`
-    );
+    await sendTextMessage(phone, t('msg_img_fail', lang));
   }
 }
 
@@ -372,19 +373,22 @@ async function handleImageMessage(phone, imageData) {
  * Show pond health score
  */
 async function showHealthScore(phone, farmerId) {
+  const farmer = await getFarmerByPhone(phone);
+  const lang = farmer?.preferred_language || 'English';
+
   try {
     const pond = await getFirstPondByFarmer(farmerId);
     if (!pond) {
-      await sendTextMessage(phone, '📊 No pond data yet. Complete a check-in first!');
+      await sendTextMessage(phone, t('msg_no_pond_data', lang));
       return;
     }
 
     const scoreData = await getLatestHealthScore(pond.id);
-    const msg = formatHealthScoreMessage(scoreData);
+    const msg = formatHealthScoreMessage(scoreData, lang);
     await sendTextMessage(phone, msg);
   } catch (err) {
     logger.error('Health score fetch failed', { error: err.message });
-    await sendTextMessage(phone, '⚠️ Could not fetch health score. Try again later.');
+    await sendTextMessage(phone, t('err_health_score', lang));
   }
 }
 
@@ -393,21 +397,23 @@ async function showHealthScore(phone, farmerId) {
  * Send help/menu message
  */
 async function sendHelpMessage(phone) {
+  const farmer = await getFarmerByPhone(phone);
+  const lang = farmer?.preferred_language || 'English';
+
   await sendTextMessage(phone,
-    `🦐 *aquaIQ — Your Pond Assistant*\n\n` +
-    `Here's what I can do:\n\n` +
-    `💬 *Ask Questions* — Just type any farming question\n` +
-    `📸 *Disease Detection* — Send a shrimp/fish photo\n` +
-    `📝 *Check-In* — Type "update" to log pond data\n` +
-    `📋 *Weekly Report* — Type "weekly" for your weekly check\n` +
-    `📊 *Health Score* — Type "score" to see pond status\n` +
-    `❓ *Help* — Type "help" to see this menu\n\n` +
-    `I'll also check in with you on:\n` +
-    `🍽️ Monday — Feed\n` +
-    `💧 Wednesday — Water\n` +
-    `🔬 Friday — Health\n` +
-    `📋 Sunday — Weekly summary\n\n` +
-    `Just start typing! 💬`
+    `${t('msg_help_header', lang)}\n\n` +
+    `${t('msg_help_qa', lang)}\n` +
+    `${t('msg_help_disease', lang)}\n` +
+    `${t('msg_help_update', lang)}\n` +
+    `${t('msg_help_weekly', lang)}\n` +
+    `${t('msg_help_score', lang)}\n` +
+    `${t('msg_help_help', lang)}\n\n` +
+    `${t('msg_help_schedule', lang)}\n` +
+    `${t('msg_help_monday', lang)}\n` +
+    `${t('msg_help_wednesday', lang)}\n` +
+    `${t('msg_help_friday', lang)}\n` +
+    `${t('msg_help_sunday', lang)}\n\n` +
+    `${t('msg_help_footer', lang)}`
   );
 }
 
@@ -420,7 +426,91 @@ function sanitizeInput(text) {
   return text.replace(/[\x00-\x09\x0B-\x1F\x7F]/g, '').trim();
 }
 
+// ========================
+// TRANSLATIONS
+// ========================
+const translations = {
+  English: {
+    msg_unsupported: 'I can understand text messages and images. 📝📸\n\nPlease send a text question or a photo for disease detection.',
+    msg_cancelled: '❌ Flow cancelled. You are now back in normal chat mode.',
+    msg_setup_first: 'Please complete your setup first! Send any text to get started.',
+    msg_analyzing_img: '🔬 Analyzing your image... Please wait.',
+    msg_img_analysis_header: '🔬 *Image Analysis*\n\n',
+    msg_img_fail: 'Sorry, I couldn\'t analyze this image. Please try again with a clearer photo.\n\n💡 Tip: Take the photo in good lighting with the shrimp/fish clearly visible.',
+    msg_no_pond_data: '📊 No pond data yet. Complete a check-in first!',
+    err_health_score: '⚠️ Could not fetch health score. Try again later.',
+    err_ai_qa: 'I\'m having trouble right now. Please try again in a moment.\n\nIf urgent, consult your local aquaculture expert. 🙏',
+    msg_help_header: '🦐 *aquaIQ — Your Pond Assistant*\n\nHere\'s what I can do:',
+    msg_help_qa: '💬 *Ask Questions* — Just type any farming question',
+    msg_help_disease: '📸 *Disease Detection* — Send a shrimp/fish photo',
+    msg_help_update: '📝 *Check-In* — Type "update" to log pond data',
+    msg_help_weekly: '📋 *Weekly Report* — Type "weekly" for your weekly check',
+    msg_help_score: '📊 *Health Score* — Type "score" to see pond status',
+    msg_help_help: '❓ *Help* — Type "help" to see this menu',
+    msg_help_schedule: 'I\'ll also check in with you on:',
+    msg_help_monday: '🍽️ Monday — Feed',
+    msg_help_wednesday: '💧 Wednesday — Water',
+    msg_help_friday: '🔬 Friday — Health',
+    msg_help_sunday: '📋 Sunday — Weekly summary',
+    msg_help_footer: 'Just start typing! 💬'
+  },
+  Telugu: {
+    msg_unsupported: 'నేను టెక్స్ట్ సందేశాలు మరియు చిత్రాలను అర్థం చేసుకోగలను. 📝📸\n\nదయచేసి వ్యాధి గుర్తింపు కోసం ప్రశ్న లేదా ఫోటోను పంపండి.',
+    msg_cancelled: '❌ ప్రక్రియ రద్దు చేయబడింది. మీరు ఇప్పుడు సాధారణ చాట్ మోడ్‌లో ఉన్నారు.',
+    msg_setup_first: 'దయచేసి ముందుగా మీ సెటప్ పూర్తి చేయండి! ప్రారంభించడానికి ఏదైనా టెక్స్ట్ పంపండి.',
+    msg_analyzing_img: '🔬 మీ చిత్రాన్ని విశ్లేషిస్తున్నాను... దయచేసి వేచి ఉండండి.',
+    msg_img_analysis_header: '🔬 *చిత్ర విశ్లేషణ*\n\n',
+    msg_img_fail: 'క్షమించండి, నేను ఈ చిత్రాన్ని విశ్లేషించలేకపోయాను. దయచేసి స్పష్టమైన ఫోటోతో మళ్ళీ ప్రయత్నించండి.\n\n💡 చిట్కా: రొయ్యలు/చేపలు స్పష్టంగా కనిపించేలా మంచి వెలుతురులో ఫోటో తీయండి.',
+    msg_no_pond_data: '📊 ఇంకా చెరువు డేటా లేదు. మొదట ఒకసారి చెక్-ఇన్ పూర్తి చేయండి!',
+    err_health_score: '⚠️ హెల్త్ స్కోర్‌ని పొందడం సాధ్యం కాలేదు. తర్వాత మళ్ళీ ప్రయత్నించండి.',
+    err_ai_qa: 'ప్రస్తుతం నాకు చిన్న సమస్య ఎదురైంది. దయచేసి కాసేపటి తర్వాత మళ్ళీ ప్రయత్నించండి.\n\nఅత్యవసరమైతే, మీ స్థానిక ఆక్వాకల్చర్ నిపుణుడిని సంప్రదించండి. 🙏',
+    msg_help_header: '🦐 *aquaIQ — మీ చెరువు సహాయకుడు*\n\nనేను ఏమి చేయగలనో ఇక్కడ ఉంది:',
+    msg_help_qa: '💬 *ప్రశ్నలు అడగండి* — ఏదైనా సాగు ప్రశ్నను టైప్ చేయండి',
+    msg_help_disease: '📸 *వ్యాధి గుర్తింపు* — రొయ్యల/చేపల ఫోటో పంపండి',
+    msg_help_update: '📝 *చెక్-ఇన్* — డేటాను నమోదు చేయడానికి "update" అని టైప్ చేయండి',
+    msg_help_weekly: '📋 *వారపు నివేదిక* — వారపు తనిఖీ కోసం "weekly" అని టైప్ చేయండి',
+    msg_help_score: '📊 *హెల్త్ స్కోర్* — చెరువు స్థితిని చూడటానికి "score" అని టైప్ చేయండి',
+    msg_help_help: '❓ *సహాయం* — ఈ మెనూ చూడటానికి "help" అని టైప్ చేయండి',
+    msg_help_schedule: 'నేను వీటిపై కూడా మిమ్మల్ని సంప్రదిస్తాను:',
+    msg_help_monday: '🍽️ సోమవారం — మేత',
+    msg_help_wednesday: '💧 బుధవారం — నీరు',
+    msg_help_friday: '🔬 శుక్రవారం — ఆరోగ్యం',
+    msg_help_sunday: '📋 ఆదివారం — వారపు సారాంశం',
+    msg_help_footer: 'టైప్ చేయడం ప్రారంభించండి! 💬'
+  },
+  Hindi: {
+    msg_unsupported: 'मैं टेक्स्ट संदेशों और छवियों को समझ सकता हूँ। 📝📸\n\nकृपया रोग की पहचान के लिए एक प्रश्न या फोटो भेजें।',
+    msg_cancelled: '❌ प्रक्रिया रद्द कर दी गई। अब आप सामान्य चैट मोड में हैं।',
+    msg_setup_first: 'कृपया पहले अपना सेटअप पूरा करें! शुरू करने के लिए कोई भी टेक्स्ट भेजें।',
+    msg_analyzing_img: '🔬 आपकी छवि का विश्लेषण कर रहा हूँ... कृपया प्रतीक्षा करें।',
+    msg_img_analysis_header: '🔬 *छवि विश्लेषण*\n\n',
+    msg_img_fail: 'क्षमा करें, मैं इस छवि का विश्लेषण नहीं कर सका। कृपया स्पष्ट फोटो के साथ पुनः प्रयास करें।\n\n💡 टिप: झींगा/मछली स्पष्ट रूप से दिखाई देने के लिए अच्छी रोशनी में फोटो लें।',
+    msg_no_pond_data: '📊 अभी तक कोई तालाब डेटा नहीं है। पहले एक चेक-इन पूरा करें!',
+    err_health_score: '⚠️ हेल्थ स्कोर नहीं मिल सका। बाद में पुनः प्रयास करें।',
+    err_ai_qa: 'मुझे अभी कुछ समस्या हो रही है। कृपया कुछ देर बाद पुनः प्रयास करें।\n\nयदि आवश्यक हो, तो अपने स्थानीय जलीय कृषि विशेषज्ञ से परामर्श करें। 🙏',
+    msg_help_header: '🦐 *aquaIQ — आपका तालाब सहायक*\n\nयहाँ मैं क्या कर सकता हूँ:',
+    msg_help_qa: '💬 *प्रश्न पूछें* — बस कोई भी खेती से जुड़ा प्रश्न टाइप करें',
+    msg_help_disease: '📸 *रोग पहचान* — झींगा/मछली की फोटो भेजें',
+    msg_help_update: '📝 *चेक-इन* — डेटा लॉग करने के लिए "update" टाइप करें',
+    msg_help_weekly: '📋 *साप्ताहिक रिपोर्ट* — साप्ताहिक जांच के लिए "weekly" टाइप करें',
+    msg_help_score: '📊 *हेल्थ स्कोर* — तालाब की स्थिति देखने के लिए "score" टाइप करें',
+    msg_help_help: '❓ *सहायता* — यह मेनू देखने के लिए "help" टाइप करें',
+    msg_help_schedule: 'मैं आपसे इन पर भी संपर्क करूँगा:',
+    msg_help_monday: '🍽️ सोमवार — चारा',
+    msg_help_wednesday: '💧 बुधवार — पानी',
+    msg_help_friday: '🔬 शुक्रवार — स्वास्थ्य',
+    msg_help_sunday: '📋 रविवार — साप्ताहिक सारांश',
+    msg_help_footer: 'बस टाइप करना शुरू करें! 💬'
+  }
+};
+
+function t(key, lang = 'English') {
+  return translations[lang]?.[key] || translations['English']?.[key] || key;
+}
+
 module.exports = {
   verifyWebhook,
   handleIncoming,
+  translations,
+  t
 };

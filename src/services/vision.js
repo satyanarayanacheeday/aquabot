@@ -70,11 +70,32 @@ async function analyzeImage(imageBuffer, preferredLanguage = 'English', pondCont
     return response.text;
   } catch (error) {
     console.error('❌ Vision analysis failed:', error.message);
-    return `I couldn't analyze this image right now. Please try again.\n\nIf you notice disease symptoms, please consult an aquaculture expert immediately. 🙏`;
+    return t('err_vision_fail', preferredLanguage);
   }
+}
+
+// ========================
+// TRANSLATIONS
+// ========================
+const translations = {
+  English: {
+    err_vision_fail: 'I couldn\'t analyze this image right now. Please try again.\n\nIf you notice disease symptoms, please consult an aquaculture expert immediately. 🙏'
+  },
+  Telugu: {
+    err_vision_fail: 'నేను ప్రస్తుతం ఈ చిత్రాన్ని విశ్లేషించలేకపోయాను. దయచేసి మళ్ళీ ప్రయత్నించండి.\n\nమీరు వ్యాధి లక్షణాలను గమనించినట్లయితే, దయచేసి వెంటనే ఆక్వాకల్చర్ నిపుణుడిని సంప్రదించండి. 🙏'
+  },
+  Hindi: {
+    err_vision_fail: 'मैं अभी इस छवि का विश्लेषण नहीं कर सका। कृपया पुनः प्रयास करें।\n\nयदि आप रोग के लक्षण देखते हैं, तो कृपया तुरंत जलीय कृषि विशेषज्ञ से परामर्श करें। 🙏'
+  }
+};
+
+function t(key, lang = 'English') {
+  return translations[lang]?.[key] || translations['English']?.[key] || key;
 }
 
 module.exports = {
   analyzeImage,
+  translations,
+  t
 };
 

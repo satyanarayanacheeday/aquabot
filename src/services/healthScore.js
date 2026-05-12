@@ -171,34 +171,88 @@ function evaluateGrowth(healthLogs, weeklyLogs) {
 // FORMAT HEALTH SCORE MESSAGE
 // ========================
 
-function formatHealthScoreMessage(scoreData) {
-  if (!scoreData) return '📊 No health data yet. Complete a check-in to see your pond score!';
+function formatHealthScoreMessage(scoreData, lang = 'English') {
+  if (!scoreData) return t('msg_no_health_data', lang);
 
   const { score, factors } = scoreData;
 
   const emoji = score === 'green' ? '🟢' : score === 'yellow' ? '🟡' : '🔴';
-  const label = score === 'green' ? 'Healthy' : score === 'yellow' ? 'Watch Closely' : 'High Risk';
+  const label = score === 'green' ? t('label_healthy', lang) : score === 'yellow' ? t('label_watch', lang) : t('label_high_risk', lang);
 
-  let msg = `${emoji} *Pond Health: ${label}*\n\n`;
+  let msg = `${emoji} *${t('label_pond_health', lang)}: ${label}*\n\n`;
 
   for (const [factor, value] of Object.entries(factors)) {
     const fEmoji = value === 'green' ? '🟢' : value === 'yellow' ? '🟡' : '🔴';
-    const fLabel = factor.charAt(0).toUpperCase() + factor.slice(1);
+    const fLabel = t(`label_${factor}`, lang);
     msg += `${fEmoji} ${fLabel}\n`;
   }
 
   if (score === 'red') {
-    msg += '\n⚠️ *Action needed!* Check the red factors above and take immediate steps.';
+    msg += t('msg_action_needed', lang);
   } else if (score === 'yellow') {
-    msg += '\n💡 Some factors need attention. Keep monitoring closely.';
+    msg += t('msg_attention_needed', lang);
   } else {
-    msg += '\n✅ Everything looks good! Keep up the great work.';
+    msg += t('msg_everything_good', lang);
   }
 
   return msg;
 }
 
+// ========================
+// TRANSLATIONS
+// ========================
+const translations = {
+  English: {
+    msg_no_health_data: '📊 No health data yet. Complete a check-in to see your pond score!',
+    label_healthy: 'Healthy',
+    label_watch: 'Watch Closely',
+    label_high_risk: 'High Risk',
+    label_pond_health: 'Pond Health',
+    label_feed: 'Feed',
+    label_water: 'Water',
+    label_disease: 'Disease',
+    label_growth: 'Growth',
+    msg_action_needed: '\n⚠️ *Action needed!* Check the red factors above and take immediate steps.',
+    msg_attention_needed: '\n💡 Some factors need attention. Keep monitoring closely.',
+    msg_everything_good: '\n✅ Everything looks good! Keep up the great work.'
+  },
+  Telugu: {
+    msg_no_health_data: '📊 ఇంకా ఆరోగ్య సమాచారం లేదు. మీ చెరువు స్కోర్‌ని చూడటానికి చెక్-ఇన్ పూర్తి చేయండి!',
+    label_healthy: 'ఆరోగ్యంగా ఉంది',
+    label_watch: 'జాగ్రత్తగా గమనించండి',
+    label_high_risk: 'అధిక ప్రమాదం',
+    label_pond_health: 'చెరువు ఆరోగ్యం',
+    label_feed: 'మేత',
+    label_water: 'నీరు',
+    label_disease: 'వ్యాధి',
+    label_growth: 'పెరుగుదల',
+    msg_action_needed: '\n⚠️ *చర్య అవసరం!* పైన ఉన్న ఎరుపు రంగు అంశాలను తనిఖీ చేయండి మరియు తక్షణ చర్యలు తీసుకోండి.',
+    msg_attention_needed: '\n💡 కొన్ని అంశాలపై శ్రద్ధ అవసరం. నిశితంగా గమనిస్తూ ఉండండి.',
+    msg_everything_good: '\n✅ అంతా బాగుంది! ఇలాగే కొనసాగించండి.'
+  },
+  Hindi: {
+    msg_no_health_data: '📊 अभी तक कोई स्वास्थ्य डेटा नहीं है। अपने तालाब का स्कोर देखने के लिए चेक-इन पूरा करें!',
+    label_healthy: 'स्वस्थ',
+    label_watch: 'बारीकी से देखें',
+    label_high_risk: 'उच्च जोखिम',
+    label_pond_health: 'तालाब का स्वास्थ्य',
+    label_feed: 'चारा',
+    label_water: 'पानी',
+    label_disease: 'बीमारी',
+    label_growth: 'विकास',
+    msg_action_needed: '\n⚠️ *कार्रवाई की आवश्यकता!* ऊपर दिए गए लाल कारकों की जांच करें और तत्काल कदम उठाएं।',
+    msg_attention_needed: '\n💡 कुछ कारकों पर ध्यान देने की आवश्यकता है। बारीकी से निगरानी करते रहें।',
+    msg_everything_good: '\n✅ सब कुछ अच्छा लग रहा है! शानदार काम जारी रखें।'
+  }
+};
+
+function t(key, lang = 'English') {
+  return translations[lang]?.[key] || translations['English']?.[key] || key;
+}
+
 module.exports = {
   calculateHealthScore,
   formatHealthScoreMessage,
+  translations,
+  t
 };
