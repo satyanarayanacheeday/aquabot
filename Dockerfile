@@ -1,6 +1,13 @@
-FROM node:18-alpine
+# --- Stage 1: Build Frontend ---
+FROM node:18-alpine AS build-frontend
+WORKDIR /app/dashboard
+COPY dashboard/package*.json ./
+RUN npm install
+COPY dashboard/ ./
+RUN npm run build
 
-# Use production environment
+# --- Stage 2: Build Backend ---
+FROM node:18-alpine
 ENV NODE_ENV=production
 
 # Create non-root user for security
@@ -8,14 +15,15 @@ RUN addgroup -S aquaiq && adduser -S aquaiq -G aquaiq
 
 WORKDIR /app
 
-# Copy package files
+# Copy backend dependencies
 COPY package*.json ./
-
-# Install only production dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy the rest of the application code
+# Copy backend code
 COPY . .
+
+# Copy built frontend from Stage 1
+COPY --from=build-frontend /app/dashboard/dist ./dashboard/dist
 
 # Create logs directory
 RUN mkdir -p logs && chown -R aquaiq:aquaiq /app

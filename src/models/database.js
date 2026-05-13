@@ -359,4 +359,85 @@ module.exports = {
   searchKnowledge, insertKnowledgeEmbedding, clearKnowledgeBase,
   scheduleFollowUp, getDueFollowUps, markFollowUpCompleted,
   hasPendingDailyCheckIn, markPendingCheckInsCompleted,
+  getDashboardStats, getAllFarmersForDashboard, getFullChatHistory
 };
+
+// ========================
+// DASHBOARD AGGREGATIONS
+// ========================
+
+async function getDashboardStats() {
+  if (USE_MOCK) {
+    const totalFarmers = mockStore.farmers.length;
+    const completedOnboarding = mockStore.farmers.filter(f => f.onboarding_complete).length;
+    const totalPonds = mockStore.ponds.length;
+    const healthCounts = { green: 0, yellow: 0, red: 0 };
+    mockStore.pond_health_scores.forEach(s => {
+      healthCounts[s.score] = (healthCounts[s.score] || 0) + 1;
+    });
+    return {
+      totalFarmers,
+      onboardingRate: totalFarmers ? Math.round((completedOnboarding / totalFarmers) * 100) : 0,
+      totalPonds,
+      healthDistribution: healthCounts
+    };
+  }
+
+  const { count: totalFarmers } = await supabase.from('farmers').select('*', { count: 'exact', head: true });
+  const { count: completedOnboarding } = await supabase.from('farmers').select('*', { count: 'exact', head: true }).eq('onboarding_complete', true);
+  const { count: totalPonds } = await supabase.from('ponds').select('*', { count: 'exact', head: true });
+  
+  // Get health distribution
+  const { data: healthScores } = await supabase.from('pond_health_scores').select('score');
+  const healthDistribution = (healthScores || []).reduce((acc, curr) => {
+    acc[curr.score] = (acc[curr.score] || 0) + 1;
+    return acc;
+  }, { green: 0, yellow: 0, red: 0 });
+
+  return {
+    totalFarmers: totalFarmers || 0,
+    onboardingRate: totalFarmers ? Math.round((completedOnboarding / totalFarmers) * 100) : 0,
+    totalPonds: totalPonds || 0,
+    healthDistribution
+  };
+}
+
+async function getAllFarmersForDashboard() {
+  if (USE_MOCK) {
+    return mockStore.farmers.map(f => {
+      const pondCount = mockStore.ponds.filter(p => p.farmer_id === f.id).length;
+      return { ...f, pondCount };
+    });
+  }
+  // Fetch farmers
+  const { data: farmers, error } = await supabase.from('farmers').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  
+  // Fetch pond counts separately for reliability (or use a view if performance was an issue)
+  const { data: pondCounts, error: pondError } = await supabase.from('ponds').select('farmer_id');
+  if (pondError) throw pondError;
+  
+  const countMap = (pondCounts || []).reduce((acc, p) => {
+    acc[p.farmer_id] = (acc[p.farmer_id] || 0) + 1;
+    return acc;
+  }, {});
+
+  return farmers.map(f => ({
+    ...f,
+    pondCount: countMap[f.id] || 0
+  }));
+}
+
+async function getFullChatHistory(farmerId) {
+  if (USE_MOCK) {
+    return mockStore.chat_history
+      .filter(c => c.farmer_id === farmerId)
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  }
+  const { data: chats, error } = await supabase.from('chat_history')
+    .select('*')
+    .eq('farmer_id', farmerId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return chats || [];
+}

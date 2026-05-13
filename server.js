@@ -30,6 +30,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const hpp = require('hpp');
 const webhookRoutes = require('./src/routes/webhook');
+const dashboardRoutes = require('./src/routes/dashboard');
 const { handleIncoming } = require('./src/controllers/webhookController');
 const eventBus = require('./src/utils/eventBus');
 const { startScheduler } = require('./src/utils/scheduler');
@@ -82,11 +83,13 @@ app.get('/health', (req, res) => {
 // WEBHOOK ROUTES (production API)
 // ========================
 app.use('/webhook', webhookRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // ========================
 // STATIC FRONTEND (served in all environments)
 // ========================
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/dashboard', express.static(path.join(__dirname, 'dashboard', 'dist')));
 
 // ========================
 // TEST UI — SSE stream + send (all environments)

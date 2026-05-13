@@ -70,19 +70,33 @@ echo "✅ Code ready at $APP_DIR"
 # ========================
 echo "📦 [6/10] Installing Node.js dependencies..."
 npm ci --omit=dev --prefer-offline
-echo "✅ Dependencies installed"
+echo "✅ Backend dependencies installed"
 
 # ========================
-# 7. Create logs directory
+# 7. Build Dashboard Frontend
+# ========================
+echo "📦 [7/11] Building Dashboard Frontend..."
+if [ -d "dashboard" ]; then
+  cd dashboard
+  npm install
+  npm run build
+  cd ..
+  echo "✅ Dashboard built"
+else
+  echo "⚠️  Dashboard directory not found, skipping build"
+fi
+
+# ========================
+# 8. Create logs directory
 # ========================
 echo "📁 Creating logs directory..."
 mkdir -p logs
 echo "✅ logs/ directory ready"
 
 # ========================
-# 8. Create .env file
+# 9. Create .env file
 # ========================
-echo "📝 [7/10] Writing .env..."
+echo "📝 [8/11] Writing .env..."
 
 # ── EDIT YOUR SECRETS BELOW BEFORE RUNNING ──────────────────
 cat > .env << 'ENVFILE'
@@ -111,16 +125,16 @@ ENVFILE
 echo "✅ .env written"
 
 # ========================
-# 9. Syntax-check server.js BEFORE starting
+# 10. Syntax-check server.js BEFORE starting
 # ========================
-echo "🔍 [8/10] Syntax-checking server.js..."
+echo "🔍 [9/11] Syntax-checking server.js..."
 node --check server.js
 echo "✅ server.js syntax OK"
 
 # ========================
-# 10. Start / Restart with PM2
+# 11. Start / Restart with PM2
 # ========================
-echo "🚀 [9/10] Starting app with PM2..."
+echo "🚀 [10/11] Starting app with PM2..."
 
 # Stop old instance if running
 pm2 delete "$APP_NAME" 2>/dev/null || true
@@ -159,7 +173,7 @@ echo "✅ App is healthy on port 3000"
 # ========================
 # 12. Configure Nginx
 # ========================
-echo "🔧 [10/10] Configuring Nginx reverse proxy..."
+echo "🔧 [11/11] Configuring Nginx reverse proxy..."
 
 PUBLIC_IP=$(curl -sf http://checkip.amazonaws.com || echo "YOUR_IP")
 
