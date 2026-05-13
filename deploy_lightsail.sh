@@ -94,12 +94,12 @@ mkdir -p logs
 echo "✅ logs/ directory ready"
 
 # ========================
-# 9. Create .env file
 # ========================
-echo "📝 [8/11] Writing .env..."
-
-# ── EDIT YOUR SECRETS BELOW BEFORE RUNNING ──────────────────
-cat > .env << 'ENVFILE'
+# 9. Create .env file (ONLY if it doesn't exist)
+# ========================
+if [ ! -f .env ]; then
+  echo "📝 [8/11] Writing .env..."
+  cat > .env << 'ENVFILE'
 # WhatsApp Cloud API
 WHATSAPP_TOKEN=your_whatsapp_token
 WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
@@ -113,14 +113,17 @@ SUPABASE_KEY=your_supabase_key
 # Gemini AI
 GEMINI_API_KEY=your_gemini_api_key
 
-# OpenWeather (optional)
-OPENWEATHER_API_KEY=your_openweather_api_key
+# Dashboard
+DASHBOARD_ADMIN_TOKEN=aquaiq-admin-2024
 
 # Server
 PORT=3000
 NODE_ENV=production
 ENVFILE
-# ── END OF SECRETS ───────────────────────────────────────────
+  echo "✅ .env created. PLEASE EDIT IT TO ADD YOUR KEYS."
+else
+  echo "✅ .env already exists — skipping creation to protect your keys."
+fi
 
 echo "✅ .env written"
 
