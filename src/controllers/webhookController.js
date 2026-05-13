@@ -141,6 +141,40 @@ async function handleTextMessage(phone, text) {
     const state = getState(phone);
     const flow = state.flow;
 
+    // --- NEW: Handle Feed Plan Count Input ---
+    if (flow === 'awaiting_feed_count') {
+      const { getFeedPlan, parseUserCount } = require('../services/feedPlan');
+      const lang = farmer.preferred_language || 'English';
+      const abw = parseUserCount(text);
+      
+      if (!abw) {
+        await sendTextMessage(phone, lang === 'Telugu' ? 'క్షమించండి, ఆ నంబర్ నాకు అర్థం కాలేదు. దయచేసి మీ రొయ్యల కౌంట్ (ఉదా: 100) తెలియజేయండి.' : 
+               (lang === 'Hindi' ? 'क्षमा करें, मुझे वह नंबर समझ नहीं आया। कृपया अपना झींगा काउंट (जैसे: 100) बताएं।' : 
+               'Sorry, I didn\'t catch that number. Please tell me your shrimp count (e.g., 100 count).'));
+        return;
+      }
+
+      const plan = await getFeedPlan(farmer.id, lang, abw);
+      if (plan && plan.type === 'success') {
+        await sendTextMessage(phone, plan.message);
+        clearState(phone);
+        
+        // Save to history
+        saveChatHistory({
+          farmer_id: farmer.id,
+          message: `[Count provided: ${text}]`,
+          response: plan.message,
+          message_type: 'feed_plan',
+        }).catch(() => {});
+      } else {
+        await sendTextMessage(phone, plan?.message || 'Error calculating plan.');
+        clearState(phone);
+      }
+      return;
+    }
+    // ------------------------------------------
+
+
     if (flow === 'onboarding') {
       await handleOnboardingStep(phone, text);
       return;
@@ -169,21 +203,16 @@ async function handleTextMessage(phone, text) {
     
     // NEW: Handle Feed Plan specifically
     if (topic === 'feed_plan') {
-      const { getFeedPlan } = require('../services/feedPlan');
       const lang = farmer.preferred_language || 'English';
-      const plan = await getFeedPlan(farmer.id, lang);
-      if (plan) {
-        await sendTextMessage(phone, plan.message);
-        // Save to chat history
-        await saveChatHistory({
-          farmer_id: farmer.id,
-          message: '[Selected Feed Plan from menu]',
-          response: plan.message,
-          message_type: 'feed_plan',
-        }).catch(() => {});
-      }
+      const q = lang === 'Telugu' ? 'మీ రొయ్యల ప్రస్తుత కౌంట్ ఎంత? (ఉదాహరణకు: 100 కౌంట్ లేదా 10 గ్రాములు)' : 
+               (lang === 'Hindi' ? 'आपका झींगा काउंट कितना है? (उदाहरण: 100 काउंट या 10 ग्राम)' : 
+               'To give you an accurate plan, what is your current shrimp count (e.g., 100 count) or size in grams?');
+      
+      setState(phone, { flow: 'awaiting_feed_count', farmerId: farmer.id });
+      await sendTextMessage(phone, q);
       return;
     }
+
 
     if (['disease', 'mortality', 'slow_growth', 'growth', 'water_quality', 'water', 'feed'].includes(topic)) {
 

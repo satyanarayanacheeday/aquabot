@@ -10,12 +10,14 @@ const { getFirstPondByFarmer, getRecentPondLogs } = require('../models/database'
 const GROWTH_CURVES = {
   vannamei: [
     { doc: 0, abw: 0.001, rate: 100 },
-    { doc: 15, abw: 0.1, rate: 15 },
-    { doc: 30, abw: 1, rate: 10 },
-    { doc: 45, abw: 3.5, rate: 7 },
-    { doc: 60, abw: 7, rate: 5 },
-    { doc: 90, abw: 15, rate: 3.5 },
-    { doc: 120, abw: 25, rate: 2.5 }
+    { doc: 15, abw: 0.1, rate: 12 },
+    { doc: 30, abw: 2.0, rate: 7 },
+    { doc: 45, abw: 10, rate: 4 },
+    { doc: 60, abw: 18, rate: 2.5 },
+    { doc: 90, abw: 28, rate: 2.0 },
+    { doc: 120, abw: 36, rate: 1.6 }
+
+
   ],
   tiger_shrimp: [
     { doc: 0, abw: 0.01, rate: 15 },
@@ -61,19 +63,26 @@ function getFeedingRate(species, abw) {
     return 1.5;
   }
   
-  // Shrimp rates
-  if (abw < 0.1) return 15;
-  if (abw < 1) return 12;
-  if (abw < 5) return 8;
-  if (abw < 10) return 5;
-  if (abw < 20) return 3.5;
-  return 2.5;
+  // Shrimp rates (Vannamei/Tiger) — High-intensity standards
+  if (abw < 0.1) return 12;
+  if (abw < 1) return 8;
+  if (abw < 5) return 5;
+  if (abw < 12) return 3.2; // 10g around 3.2%
+  if (abw < 20) return 2.5;
+  if (abw < 30) return 1.8;
+  return 1.4;
+
+
 }
 
 /**
  * Generate the feed plan
+ * @param {string} farmerId
+ * @param {string} lang
+ * @param {number} [userABW] - Optional user-provided Average Body Weight in grams
  */
-async function getFeedPlan(farmerId, lang = 'English') {
+async function getFeedPlan(farmerId, lang = 'English', userABW = null) {
+
   const pond = await getFirstPondByFarmer(farmerId);
   if (!pond) return null;
 
@@ -89,12 +98,19 @@ async function getFeedPlan(farmerId, lang = 'English') {
   const feedBrand = pond.feed_brand || null;
 
 
-  // 2. Calculate DOC (categorical to days)
+  // 2. Calculate DOC (from exact date or category fallback)
   let doc = 30;
-  if (pond.stocking_date === 'this_week') doc = 5;
-  else if (pond.stocking_date === 'this_month') doc = 15;
-  else if (pond.stocking_date === '1_2_months') doc = 45;
-  else if (pond.stocking_date === '3_plus_months') doc = 90;
+  if (pond.stocking_date && pond.stocking_date.includes('-')) {
+    const stockDate = new Date(pond.stocking_date);
+    const diffTime = Math.abs(new Date() - stockDate);
+    doc = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  } else {
+    // Fallback for old categorical data
+    if (pond.stocking_date === 'this_week') doc = 5;
+    else if (pond.stocking_date === 'this_month') doc = 15;
+    else if (pond.stocking_date === '1_2_months') doc = 45;
+    else if (pond.stocking_date === '3_plus_months') doc = 90;
+  }
 
   // 3. Estimate Mortality from logs
   let totalMortality = 0;
@@ -102,16 +118,24 @@ async function getFeedPlan(farmerId, lang = 'English') {
     const mortLogs = await getRecentPondLogs(pond.id, 'event', 20);
     mortLogs.forEach(log => {
       if (log.log_data.event_type === 'mortality') {
-        const qty = log.log_data.how_many === '50+' ? 100 : (log.log_data.how_many === '1-50' ? 25 : 0);
+        // Map buckets to conservative estimates
+        let qty = 0;
+        if (log.log_data.how_many === '1-50') qty = 25;
+        else if (log.log_data.how_many === '50-100') qty = 75;
+        else if (log.log_data.how_many === '100+') qty = 250; 
         totalMortality += qty;
       }
     });
+
   } catch (err) {
     console.warn('⚠️ Error estimating mortality:', err.message);
   }
 
   // 4. Calculate Estimates
-  const abw = estimateABW(pond.species, doc);
+  // If user provided ABW, use it. Otherwise, estimate from curve.
+  const abw = userABW || estimateABW(pond.species, doc);
+  const isEstimate = !userABW;
+
   const count = pond.seed_count;
   const survival = Math.max(0.5, (count - totalMortality) / count); // Floor at 50% for safety
   const biomassKg = (count * survival * abw) / 1000;
@@ -197,9 +221,10 @@ async function getFeedPlan(farmerId, lang = 'English') {
   response += `${t('label_doc', lang)}: ~${doc} days\n\n`;
   
   response += `📏 *${t('title_estimates', lang)}:*\n`;
-  response += `- ${t('label_abw', lang)}: ~${abw.toFixed(2)}g\n`;
+  response += `- ${t('label_abw', lang)}: ~${abw.toFixed(2)}g ${isEstimate ? '(Benchmark)' : '(Actual)'}\n`;
   response += `- ${t('label_survival', lang)}: ~${(survival * 100).toFixed(0)}%\n`;
   response += `- ${t('label_biomass', lang)}: ~${biomassKg.toFixed(0)} kg\n\n`;
+
 
   response += `📊 *${t('title_recommendation', lang)}:*\n`;
   response += `- *${t('label_total_feed', lang)}: ${dailyFeedKg.toFixed(1)} kg*\n`;
@@ -316,6 +341,36 @@ function t(key, lang = 'English') {
   return translations[lang]?.[key] || translations['English']?.[key] || key;
 }
 
+/**
+ * Parses user input for count or grams into a valid ABW in grams.
+ * Examples: "100 count" -> 10g, "15g" -> 15g, "20" -> 20g (defaults to grams if > 50? No, let's be careful).
+ * 
+ * @param {string} input 
+ * @returns {number|null} - ABW in grams
+ */
+function parseUserCount(input) {
+  if (!input) return null;
+  const clean = input.toLowerCase().replace(/[^0-9.]/g, '');
+  const num = parseFloat(clean);
+  if (isNaN(num)) return null;
+
+  // If user said "count", convert to grams (1000 / count)
+  if (input.toLowerCase().includes('count')) {
+    return 1000 / num;
+  }
+
+  // If number is > 60, it's likely "count per kg" (e.g., 100 count)
+  // If number is < 60, it's likely "grams" (e.g., 15g)
+  // This is a heuristic used in Andhra Pradesh farming.
+  if (num >= 60) {
+    return 1000 / num;
+  }
+
+  return num;
+}
+
 module.exports = {
-  getFeedPlan
+  getFeedPlan,
+  parseUserCount
 };
+

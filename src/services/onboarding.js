@@ -30,8 +30,9 @@ const translations = {
     q_shrimp_type: '🦐 Which shrimp species are you growing?',
     q_fish_type: '🐟 Which fish species are you growing?',
     q_village: '📍 Which village or town are you from?',
-    q_stocking: '📅 When did you stock this pond?',
-    q_stock_count: '🔢 How many seeds did you stock?',
+    q_stocking: '📅 What was your *Stocking Date*? \n(Example: 15/05/2024 or 15-05-2024)',
+    q_stock_err: '❌ Please enter a valid date in DD/MM/YYYY format. \nExample: 20/04/2024',
+
     q_size: '📐 What is the pond size?',
     btn_shrimp: '🦐 Shrimp',
     btn_vannamei: 'Vannamei',
@@ -76,8 +77,9 @@ const translations = {
     q_shrimp_type: '🦐 మీరు ఏ రకమైన రొయ్యలను పెంచుతున్నారు?',
     q_fish_type: '🐟 మీరు ఏ రకమైన చేపలను పెంచుతున్నారు?',
     q_village: '📍 మీ గ్రామం లేదా పట్టణం పేరు ఏమిటి?',
-    q_stocking: '📅 మీరు ఈ చెరువులో ఎప్పుడు స్టాక్ చేశారు?',
-    q_stock_count: '🔢 మీరు ఎన్ని సీడ్స్ స్టాక్ చేశారు (స్టాక్ కౌంట్)?',
+    q_stocking: '📅 మీరు ఈ చెరువులో విత్తనం (seed) ఎప్పుడు వేశారు? \n(ఉదాహరణ: 15/05/2024 లేదా 15-05-2024)',
+    q_stock_err: '❌ దయచేసి సరైన తేదీని DD/MM/YYYY ఫార్మాట్‌లో నమోదు చేయండి. \nఉదాహరణ: 20/04/2024',
+
     q_size: '📐 చెరువు పరిమాణం ఎంత?',
     btn_shrimp: '🦐 రొయ్యలు',
     btn_vannamei: 'వన్నామీ',
@@ -122,8 +124,9 @@ const translations = {
     q_shrimp_type: '🦐 आप किस प्रकार की झींगा पाल रहे हैं?',
     q_fish_type: '🐟 आप किस प्रकार की मछली पाल रहे हैं?',
     q_village: '📍 आप किस गाँव या शहर से हैं?',
-    q_stocking: '📅 आपने इस तालाब में स्टॉक कब किया?',
-    q_stock_count: '🔢 आपने कितने बीज (स्टॉक काउंट) डाले?',
+    q_stocking: '📅 आपने इस तालाब में स्टॉक कब किया? \n(उदाहरण: 15/05/2024 या 15-05-2024)',
+    q_stock_err: '❌ कृपया DD/MM/YYYY फॉर्मेट में सही तारीख दर्ज करें। \nउदाहरण: 20/04/2024',
+
     q_size: '📐 तालाब का आकार क्या है?',
     btn_shrimp: '🦐 झींगा',
     btn_vannamei: 'वन्नामेई',
@@ -340,24 +343,35 @@ async function handleOnboardingStep(phone, message) {
   // ---- GROUP 2: Pond Details ----
   if (group === 2) {
     if (step === 0) {
-      // Q3: Stocking date
-      let stockDate = null;
-      if (input.includes('month') || input === 'stock_month') stockDate = 'this_month';
-      else if (input.includes('1') || input.includes('2') || input === 'stock_1_2') stockDate = '1_2_months';
-      else if (input.includes('3') || input === 'stock_3plus') stockDate = '3_plus_months';
-
-      if (!stockDate) {
-        await askGroupQuestion(phone);
+      // Q3: Stocking date (Free text parsing)
+      const dateParts = input.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+      
+      if (!dateParts) {
+        const lang = state.data.preferred_language || 'English';
+        await sendTextMessage(phone, t('q_stock_err', lang));
         return true;
       }
 
-      updateStateData(phone, { stocking_date: stockDate });
+      let [_, d, m, y] = dateParts;
+      if (y.length === 2) y = '20' + y;
+      
+      const parsedDate = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`);
+      
+      if (isNaN(parsedDate.getTime()) || parsedDate > new Date()) {
+        const lang = state.data.preferred_language || 'English';
+        await sendTextMessage(phone, t('q_stock_err', lang));
+        return true;
+      }
+
+      const isoDate = parsedDate.toISOString().split('T')[0];
+      updateStateData(phone, { stocking_date: isoDate });
       
       const current = getState(phone);
       setState(phone, { ...current, step: 1 });
       await askGroupQuestion(phone);
       return true;
     }
+
 
     if (step === 1) {
       // Q3.5: Stock Count (Numeric)
@@ -453,16 +467,10 @@ async function askGroupQuestion(phone) {
   // GROUP 2
   if (group === 2) {
     if (step === 0) {
-      await sendButtonMessage(phone,
-        t('q_stocking', lang),
-        [
-          { id: 'stock_month', title: t('btn_month', lang) },
-          { id: 'stock_1_2', title: t('btn_months_1_2', lang) },
-          { id: 'stock_3plus', title: t('btn_months_3_plus', lang) },
-        ]
-      );
+      await sendTextMessage(phone, t('q_stocking', lang));
       return;
     }
+
     if (step === 1) {
       await sendTextMessage(phone, t('q_stock_count', lang));
       return;
@@ -584,6 +592,10 @@ function getSizeLabel(size, lang = 'English') {
 }
 
 function getStockingLabel(date, lang = 'English') {
+  if (date && date.includes('-')) {
+    const [y, m, d] = date.split('-');
+    return `${d}/${m}/${y}`;
+  }
   const labels = {
     this_week: t('btn_week', lang),
     this_month: t('btn_month', lang),
