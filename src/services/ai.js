@@ -59,9 +59,11 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
     let farmContext = '';
     let healthContext = '';
     let recommendationContext = '';
+    let feedPlanContext = '';
 
     try {
       const farmerData = await getFarmerById(farmerId);
+
 
       if (farmerData) {
         farmContext += `\n\n## 🧑‍🌾 FARMER PROFILE:\n`;
@@ -82,11 +84,31 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
       if (pond) {
         recommendationContext = getRecommendations(question, pond);
 
+        // -- NEW: Feed Plan Integration --
+        const feedKeywords = ['feed plan', 'how much feed', 'feeding schedule', 'feed calculator', 'feeding', 'మేత', 'మేత ప్రణాళిక', 'चारा', 'चारा योजना'];
+        const isFeedQuery = feedKeywords.some(k => question.toLowerCase().includes(k));
+
+        if (isFeedQuery) {
+          try {
+            const { getFeedPlan } = require('./feedPlan');
+            const feedPlanData = await getFeedPlan(farmerId, preferredLanguage);
+            if (feedPlanData && feedPlanData.type === 'success') {
+              feedPlanContext = `\n\n## 🍽️ AUTOMATED FEED PLAN:\n${feedPlanData.message}\n\nIMPORTANT: Use the data above to give a precise feeding recommendation.`;
+            } else if (feedPlanData && feedPlanData.type === 'missing_data') {
+              feedPlanContext = `\n\n## 🍽️ FEED PLAN ERROR:\n${feedPlanData.message}\nAsk the farmer for their stocking count to proceed.`;
+            }
+          } catch (err) {
+            console.warn('⚠️ Feed plan calculation failed:', err.message);
+          }
+        }
+
         farmContext += `\n\n## 🏊 POND DETAILS:\n`;
         farmContext += `- Species: ${pond.species}\n`;
         farmContext += `- Pond Size: ${pond.pond_size}\n`;
         farmContext += `- Stocking: ${pond.stocking_date}\n`;
+        farmContext += `- Stock Count: ${pond.seed_count || 'Missing'}\n`;
         if (pond.feed_brand) farmContext += `- Feed Brand: ${pond.feed_brand}\n`;
+
 
         // Get recent logs
         const recentLogs = await getRecentPondLogs(pond.id, null, 10);
@@ -152,8 +174,9 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
     const systemInstruction = SYSTEM_PROMPT +
       conversationSummary +
       knowledgeContext +
-      (question.length > 10 ? farmContext + healthContext + recommendationContext : '') +
+      (question.length > 10 ? farmContext + healthContext + recommendationContext + feedPlanContext : '') +
       langInstruction;
+
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',

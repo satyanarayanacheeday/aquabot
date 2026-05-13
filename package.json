@@ -1,6 +1,6 @@
 {
   "name": "aquaiq-v2",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "aquaIQ — Smart Pond Assistant for WhatsApp",
   "main": "server.js",
   "scripts": {
@@ -10,6 +10,7 @@
     "test": "node tests/test_complete.js",
     "test:followups": "node tests/test_followups.js",
     "test:scenarios": "node tests/scenarios.js",
+    "test:intelligence": "node src/tests/test_intelligence.js",
     "seed": "node scripts/seed_knowledge.js"
   },
   "dependencies": {

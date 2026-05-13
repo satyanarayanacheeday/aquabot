@@ -109,6 +109,16 @@ async function getFirstPondByFarmer(farmerId) {
   return pond || null;
 }
 
+async function getPondById(id) {
+  if (USE_MOCK) {
+    return mockStore.ponds.find(p => p.id === id) || null;
+  }
+  const { data: pond, error } = await supabase.from('ponds').select('*').eq('id', id).single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return pond || null;
+}
+
+
 async function updatePond(id, data) {
   if (USE_MOCK) {
     const idx = mockStore.ponds.findIndex(p => p.id === id);
@@ -352,7 +362,7 @@ async function markPendingCheckInsCompleted(farmerId) {
 
 module.exports = {
   createFarmer, getFarmerByPhone, getFarmerById, updateFarmer, getAllFarmers,
-  createPond, getPondsByFarmer, getFirstPondByFarmer, updatePond,
+  createPond, getPondsByFarmer, getFirstPondByFarmer, getPondById, updatePond,
   insertPondLog, getRecentPondLogs, getAllRecentPondLogs,
   upsertHealthScore, getLatestHealthScore,
   saveChatHistory, getRecentChats,

@@ -3,6 +3,10 @@ const { getFirstPondByFarmer, insertPondLog, updatePond, saveChatHistory, markPe
 const { setState, getState, clearState, updateStateData } = require('../state/conversationState');
 const { calculateHealthScore } = require('./healthScore');
 const productEngine = require('./productEngine');
+const { findRecentAnswer } = require('../utils/contextHelper');
+const intelligence = require('./intelligence');
+
+
 
 /**
  * Daily Check-In — Rotating Groups
@@ -226,24 +230,27 @@ async function startDailyCheckIn(phone, farmerId, groupType) {
     return;
   }
 
-  // For feed group: skip feed_brand if already saved
-  let startStep = 0;
-  if (groupType === 'daily_feed' && pond.feed_brand) {
-    startStep = 1; // skip brand question
-  }
-
+  // Start conversation state
   setState(phone, {
     flow: groupType,
-    step: startStep,
+    step: 0,
     data: {},
     farmerId,
     pondId: pond.id,
     species: pond.species || 'vannamei',
   });
 
+
   let greeting = getCheckInGreeting(groupType, lang);
   
+  // Intelligence: Add Proactive Follow-up if relevant
+  const followUp = await intelligence.getProactiveFollowUp(pond.id, lang);
+  if (followUp) {
+    greeting = `💬 ${followUp}\n\n` + greeting;
+  }
+
   if (groupType === 'daily_health') {
+
     try {
       const recentLogs = await getRecentPondLogs(pond.id, 'health', 3);
       const lastDiseaseLog = recentLogs.find(l => l.log_data && l.log_data.disease_signs && l.log_data.disease_signs !== 'none');
@@ -346,6 +353,30 @@ async function askDailyQuestion(phone, groupType) {
   const farmer = await getFarmerById(state.farmerId);
   const lang = farmer?.preferred_language || 'English';
 
+  // --- SMART SKIP LOGIC ---
+  // Skip if we have metadata or a very recent answer (last 24h)
+  const recentValue = await findRecentAnswer(state.pondId, stepDef.key);
+
+  if (recentValue && !state.attempts) {
+    console.log(`🧠 Daily Smart Skip: ${stepDef.key} -> ${recentValue}`);
+    
+    updateStateData(phone, { 
+      [stepDef.key]: recentValue,
+      step: state.step + 1
+    });
+
+    // Notify user
+    let skipMsg = `✅ I already have your ${stepDef.key.replace(/_/g, ' ')}: *${recentValue}*`;
+    if (lang === 'Telugu') skipMsg = `✅ మీ ${stepDef.key.replace(/_/g, ' ')} గురించి నాకు ఇప్పటికే తెలుసు: *${recentValue}*`;
+    if (lang === 'Hindi') skipMsg = `✅ मुझे आपका ${stepDef.key.replace(/_/g, ' ')} पहले से पता है: *${recentValue}*`;
+    
+    await sendTextMessage(phone, skipMsg);
+
+    return askDailyQuestion(phone, groupType);
+  }
+  // -------------------------
+
+
   const prompt = typeof stepDef.prompt === 'function' ? stepDef.prompt(lang) : stepDef.prompt;
 
   if (stepDef.type === 'text') {
@@ -430,7 +461,23 @@ async function finalizeDailyCheckIn(phone, groupType) {
     confirmMsg += recommendationMsg;
   }
 
+  // Intelligence: Check for anomalies
+  const anomalyAlert = await intelligence.checkAnomalies(state.pondId, data, config.logGroup, lang);
+  if (anomalyAlert) {
+    confirmMsg += `\n\n⚠️ *Alert:* ${anomalyAlert}`;
+  }
+
   confirmMsg += `\n\n${t('great_job', lang)} 🎯`;
+
+  // Intelligence: Check for Progressive Onboarding (missing metadata)
+  const onboardingQ = await intelligence.getProgressiveOnboardingQuestion(state.pondId, lang);
+  if (onboardingQ) {
+    confirmMsg += `\n\n💡 ${onboardingQ.prompt}\n(Just reply to answer)`;
+    // Note: We don't change the flow state here to avoid interrupting the completion, 
+    // but the next message from the user will be handled by the AI or we could set a sub-state.
+    // For now, we'll just let the AI handle the answer or log it if the user replies.
+  }
+
 
   // Save to chat history and clear pending follow-ups
   try {

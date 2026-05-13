@@ -3,6 +3,10 @@ const { getFirstPondByFarmer, insertPondLog, saveChatHistory } = require('../mod
 const { setState, getState, clearState, updateStateData } = require('../state/conversationState');
 const { answerQuestion } = require('./ai');
 const productEngine = require('./productEngine');
+const { findRecentAnswer } = require('../utils/contextHelper');
+const intelligence = require('./intelligence');
+
+
 
 /**
  * Event-Based Follow-Up
@@ -27,16 +31,16 @@ const EVENT_TREES = {
     steps: [
       {
         key: 'how_many',
-        prompt: (lang) => t('q_mort_how_many', lang),
+        prompt: (lang) => t('q_mort_find_dead', lang),
         buttons: (lang) => [
-          { id: 'mort_few', title: t('btn_mort_few', lang) },
-          { id: 'mort_many', title: t('btn_mort_many', lang) },
-          { id: 'cancel_flow', title: t('btn_cancel', lang) },
+          { id: 'mort_1_50', title: t('btn_mort_1_50', lang) },
+          { id: 'mort_50_100', title: t('btn_mort_50_100', lang) },
+          { id: 'mort_100plus', title: t('btn_mort_100plus', lang) },
         ],
         parseButton: (input) => {
-          if (input.includes('cancel') || input === 'cancel_flow') return 'cancel';
-          if (input.includes('1') || input.includes('50') || input === 'mort_few' || input === 'mort_some') return '1-50';
-          if (input.includes('more') || input === 'mort_many') return '50+';
+          if (input === 'mort_1_50' || input.includes('1-50')) return '1-50';
+          if (input === 'mort_50_100' || input.includes('50-100')) return '50-100';
+          if (input === 'mort_100plus' || input.includes('100+')) return '100+';
           return null;
         },
       },
@@ -57,44 +61,57 @@ const EVENT_TREES = {
         },
       },
       {
-        key: 'water_smell',
-        prompt: (lang) => t('q_water_smell', lang),
-        buttons: (lang) => [
-          { id: 'mort_smell_no', title: t('btn_no', lang) },
-          { id: 'mort_smell_yes', title: t('btn_yes', lang) },
-        ],
-        parseButton: (input) => {
-          if (input === 'no' || input === 'mort_smell_no') return 'no';
-          if (input === 'yes' || input === 'mort_smell_yes') return 'yes';
-          return null;
-        },
-      },
-      {
         key: 'body_signs',
-        prompt: (lang, species) => isFishSpecies(species) ? t('q_fish_body_signs', lang) : t('q_body_signs', lang),
-        buttons: (lang, species) => {
-          if (isFishSpecies(species)) {
-            return [
-              { id: 'mort_sign_none', title: t('btn_no_signs', lang) },
-              { id: 'mort_sign_sores', title: t('btn_red_sores', lang) },
-              { id: 'mort_sign_parasite', title: t('btn_parasites', lang) },
-            ];
+        prompt: (lang) => t('q_body_signs_mort', lang),
+        type: 'list',
+        listButtonLabel: (lang) => t('btn_select_symptoms', lang),
+        listSections: (lang, species) => {
+          const isFish = isFishSpecies(species);
+          if (isFish) {
+            return [{
+              title: t('label_fish_symptoms', lang),
+              rows: [
+                { id: 'mort_sign_sores', title: t('sym_red_ulcer', lang) },
+                { id: 'mort_sign_dropsy', title: t('sym_dropsy', lang) },
+                { id: 'mort_sign_rot', title: t('sym_fin_rot', lang) },
+                { id: 'mort_sign_parasite', title: t('sym_argulus', lang) },
+                { id: 'mort_sign_gasping', title: t('sym_gasping', lang) },
+                { id: 'mort_sign_other', title: t('sym_other', lang) },
+                { id: 'mort_sign_none', title: t('sym_no_signs', lang) }
+              ]
+            }];
+          } else {
+            return [{
+              title: t('label_shrimp_symptoms', lang),
+              rows: [
+                { id: 'mort_sign_white', title: t('sym_white_spots', lang) },
+                { id: 'mort_sign_gut', title: t('sym_white_gut', lang) },
+                { id: 'mort_sign_red', title: t('sym_red_body', lang) },
+                { id: 'mort_sign_gills', title: t('sym_black_gills', lang) },
+                { id: 'mort_sign_cramp', title: t('sym_muscle_cramps', lang) },
+                { id: 'mort_sign_other', title: t('sym_other', lang) },
+                { id: 'mort_sign_none', title: t('sym_no_signs', lang) }
+              ]
+            }];
           }
-          return [
-            { id: 'mort_sign_none', title: t('btn_no_signs', lang) },
-            { id: 'mort_sign_red', title: t('btn_red_body', lang) },
-            { id: 'mort_sign_white', title: t('btn_white_spots', lang) },
-          ];
         },
         parseButton: (input) => {
           if (input === 'no' || input.includes('no sign') || input === 'mort_sign_none') return 'none';
+          if (input.includes('white spot') || input === 'mort_sign_white') return 'white_spots';
           if (input.includes('red') || input.includes('sores') || input === 'mort_sign_red' || input === 'mort_sign_sores') return 'red_body_sores';
-          if (input.includes('white') || input.includes('spot') || input === 'mort_sign_white') return 'white_spots';
-          if (input.includes('parasite') || input === 'mort_sign_parasite') return 'parasites';
+          if (input.includes('gut') || input === 'mort_sign_gut') return 'white_gut';
+          if (input.includes('gills') || input === 'mort_sign_gills') return 'black_gills';
+          if (input.includes('cramp') || input === 'mort_sign_cramp') return 'muscle_cramps';
+          if (input.includes('dropsy') || input === 'mort_sign_dropsy') return 'dropsy';
+          if (input.includes('fin') || input.includes('rot') || input === 'mort_sign_rot') return 'fin_tail_rot';
+          if (input.includes('lice') || input.includes('argulus') || input === 'mort_sign_parasite') return 'parasites';
+          if (input.includes('gasping') || input === 'mort_sign_gasping') return 'gasping';
+          if (input.includes('other') || input === 'mort_sign_other') return 'other';
           return null;
         },
       },
     ],
+
   },
 
   slow_growth: {
@@ -328,9 +345,18 @@ async function startEventFollowUp(phone, farmerId, eventType, originalMessage = 
   });
 
   const label = typeof tree.label === 'function' ? tree.label(lang) : tree.label;
-  await sendTextMessage(phone,
-    `📋 *${label}*\n\n${t('greet_event', lang)}`
-  );
+  
+  // Intelligence: Bio-security warning for multi-pond farmers
+  let greeting = `📋 *${label}*\n\n${t('greet_event', lang)}`;
+  if (eventType === 'disease' || eventType === 'mortality') {
+    const bioWarning = await intelligence.getBioSecurityWarning(farmerId, pond?.id, lang);
+    if (bioWarning) {
+      greeting += `\n\n${bioWarning}`;
+    }
+  }
+
+  await sendTextMessage(phone, greeting);
+
 
   await askEventQuestion(phone);
   return true;
@@ -409,12 +435,40 @@ async function askEventQuestion(phone) {
   const tree = EVENT_TREES[state.eventType];
   const stepIndex = state.step;
 
-  if (stepIndex >= tree.steps.length) return;
-  let stepDef = { ...tree.steps[stepIndex] }; // shallow copy to preserve functions
+  if (stepIndex >= tree.steps.length) {
+    await finalizeEvent(phone);
+    return;
+  }
 
+  const stepDef = { ...tree.steps[stepIndex] };
   const { getFarmerById } = require('../models/database');
   const farmer = await getFarmerById(state.farmerId);
   const lang = farmer?.preferred_language || 'English';
+
+  // --- SMART SKIP LOGIC ---
+  // Check if we already have this answer recently (last 24h)
+  const recentValue = await findRecentAnswer(state.pondId, stepDef.key);
+  
+  if (recentValue && !state.attempts) {
+    console.log(`🧠 Smart Skip: Found recent value for ${stepDef.key} -> ${recentValue}`);
+    
+    // Save the data and move to next step automatically
+    updateStateData(phone, { 
+      [stepDef.key]: recentValue,
+      step: state.step + 1
+    });
+
+    // Notify user of the skip to maintain context
+    let skipMsg = `✅ I already have your ${stepDef.key.replace(/_/g, ' ')} from earlier today: *${recentValue}*`;
+    if (lang === 'Telugu') skipMsg = `✅ ఈరోజు మీ ${stepDef.key.replace(/_/g, ' ')} గురించి నాకు ఇప్పటికే సమాచారం ఉంది: *${recentValue}*`;
+    if (lang === 'Hindi') skipMsg = `✅ मेरे पास आज का आपका ${stepDef.key.replace(/_/g, ' ')} पहले से है: *${recentValue}*`;
+    
+    await sendTextMessage(phone, skipMsg);
+
+    // Recursively call to check next question
+    return askEventQuestion(phone);
+  }
+  // -------------------------
 
   const prompt = typeof stepDef.prompt === 'function' ? stepDef.prompt(lang, state.species) : stepDef.prompt;
 
@@ -429,6 +483,7 @@ async function askEventQuestion(phone) {
     await sendButtonMessage(phone, prompt, buttons);
   }
 }
+
 
 // ========================
 // FINALIZE — Send collected data to AI for diagnosis
@@ -550,7 +605,16 @@ async function finalizeEvent(phone) {
     }
     
     const label = typeof tree.label === 'function' ? tree.label(lang) : tree.label;
-    await sendTextMessage(phone, `📋 *${label} — Assessment*\n\n${diagnosis}${recommendedProductSection ? '\n\n' + recommendedProductSection : ''}`);
+    let finalMsg = `📋 *${label} — Assessment*\n\n${diagnosis}${recommendedProductSection ? '\n\n' + recommendedProductSection : ''}`;
+    
+    // Intelligence: Check for anomalies (jumps in mortality)
+    const anomalyAlert = await intelligence.checkAnomalies(state.pondId, data, 'event', lang);
+    if (anomalyAlert) {
+      finalMsg += `\n\n⚠️ *Alert:* ${anomalyAlert}`;
+    }
+
+    await sendTextMessage(phone, finalMsg);
+
   } catch (err) {
     console.error('❌ Event AI analysis failed:', err.message);
     await sendTextMessage(phone,
@@ -648,10 +712,12 @@ function detectEventType(text) {
 const translations = {
   English: {
     label_mortality: 'Mortality Report',
-    q_mort_how_many: '💀 How many died?',
-    btn_mort_few: '1–50',
-    btn_mort_many: 'More than 50',
+    q_mort_find_dead: '💀 How many did you find dead?',
+    btn_mort_1_50: '1-50',
+    btn_mort_50_100: '50-100',
+    btn_mort_100plus: '100+',
     btn_cancel: 'Cancel ❌',
+
     q_since_when: '📅 Since when?',
     btn_today: 'Today',
     btn_yesterday: 'Yesterday',
@@ -659,7 +725,8 @@ const translations = {
     q_water_smell: '👃 Any unusual water smell?',
     btn_yes: 'Yes',
     btn_no: 'No',
-    q_body_signs: '🔍 Any visible signs on the body?',
+    q_body_signs_mort: '🔍 Any visible symptoms?',
+
     q_fish_body_signs: '🔍 Any visible signs on the fish body?',
     btn_no_signs: 'No signs',
     btn_red_body: 'Red body',
@@ -721,10 +788,12 @@ const translations = {
   },
   Telugu: {
     label_mortality: 'మరణాల నివేదిక',
-    q_mort_how_many: '💀 ఎన్ని చనిపోయాయి?',
-    btn_mort_few: '1–50',
-    btn_mort_many: '50 కంటే ఎక్కువ',
+    q_mort_find_dead: '💀 మీరు ఎన్ని చనిపోయి ఉండటం గమనించారు?',
+    btn_mort_1_50: '1-50',
+    btn_mort_50_100: '50-100',
+    btn_mort_100plus: '100+',
     btn_cancel: 'రద్దు చేయి ❌',
+
     q_since_when: '📅 ఎప్పటి నుండి?',
     btn_today: 'ఈరోజు',
     btn_yesterday: 'నిన్న',
@@ -732,7 +801,8 @@ const translations = {
     q_water_smell: '👃 నీటిలో ఏవైనా అసాధారణ వాసనలు ఉన్నాయా?',
     btn_yes: 'అవును',
     btn_no: 'లేదు',
-    q_body_signs: '🔍 శరీరంపై ఏవైనా స్పష్టమైన లక్షణాలు ఉన్నాయా?',
+    q_body_signs_mort: '🔍 ఏవైనా లక్షణాలు కనిపిస్తున్నాయా?',
+
     q_fish_body_signs: '🔍 చేప శరీరంపై ఏవైనా స్పష్టమైన లక్షణాలు ఉన్నాయా?',
     btn_no_signs: 'లక్షణాలు లేవు',
     btn_red_body: 'ఎర్రటి శరీరం',
@@ -794,10 +864,12 @@ const translations = {
   },
   Hindi: {
     label_mortality: 'मृत्यु दर रिपोर्ट',
-    q_mort_how_many: '💀 कितने मारे गए?',
-    btn_mort_few: '1–50',
-    btn_mort_many: '50 से अधिक',
+    q_mort_find_dead: '💀 आपको कितने मरे हुए मिले?',
+    btn_mort_1_50: '1-50',
+    btn_mort_50_100: '50-100',
+    btn_mort_100plus: '100+',
     btn_cancel: 'रद्द करें ❌',
+
     q_since_when: '📅 कब से?',
     btn_today: 'आज',
     btn_yesterday: 'कल',
@@ -805,7 +877,8 @@ const translations = {
     q_water_smell: '👃 क्या पानी में कोई असामान्य गंध है?',
     btn_yes: 'हाँ',
     btn_no: 'नहीं',
-    q_body_signs: '🔍 क्या शरीर पर कोई दृश्य लक्षण हैं?',
+    q_body_signs_mort: '🔍 क्या कोई लक्षण दिखाई दे रहे हैं?',
+
     q_fish_body_signs: '🔍 क्या मछली के शरीर पर कोई दृश्य लक्षण हैं?',
     btn_no_signs: 'कोई लक्षण नहीं',
     btn_red_body: 'लाल शरीर',

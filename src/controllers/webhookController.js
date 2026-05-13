@@ -167,7 +167,26 @@ async function handleTextMessage(phone, text) {
   if (normalizedText.startsWith('prob_')) {
     const topic = normalizedText.replace('prob_', '');
     
+    // NEW: Handle Feed Plan specifically
+    if (topic === 'feed_plan') {
+      const { getFeedPlan } = require('../services/feedPlan');
+      const lang = farmer.preferred_language || 'English';
+      const plan = await getFeedPlan(farmer.id, lang);
+      if (plan) {
+        await sendTextMessage(phone, plan.message);
+        // Save to chat history
+        await saveChatHistory({
+          farmer_id: farmer.id,
+          message: '[Selected Feed Plan from menu]',
+          response: plan.message,
+          message_type: 'feed_plan',
+        }).catch(() => {});
+      }
+      return;
+    }
+
     if (['disease', 'mortality', 'slow_growth', 'growth', 'water_quality', 'water', 'feed'].includes(topic)) {
+
       // Map 'water' to 'water_quality' and 'growth' to 'slow_growth'
       let eventType = topic;
       if (topic === 'water') eventType = 'water_quality';
@@ -204,33 +223,39 @@ async function handleTextMessage(phone, text) {
         text: `Hi! 👋 I'm your aquaIQ assistant.\n\n💡 *How can I help you today?*\nSelect a topic below to get started immediately:`,
         button: 'Select Topic',
         topics: [
-          { id: 'prob_disease', title: '🔬 Disease', desc: 'Identification & Prevention' },
+           { id: 'prob_disease', title: '🔬 Disease', desc: 'Identification & Prevention' },
+          { id: 'prob_feed_plan', title: '🍽️ Feed Plan', desc: 'Daily Feed Calculator' },
           { id: 'prob_water_quality', title: '💧 Water Quality', desc: 'Management Advice' },
-          { id: 'prob_feed', title: '🍽️ Feed', desc: 'Management Tips' },
+          { id: 'prob_feed', title: '🍽️ Feed Tips', desc: 'Management Tips' },
           { id: 'prob_slow_growth', title: '📈 Slow Growth', desc: 'Growth & Weight Issues' },
           { id: 'prob_mortality', title: '⚠️ Mortality', desc: 'Handling Losses' }
+
         ]
       },
       Telugu: {
         text: `నమస్కారం! 👋 నేను మీ aquaIQ అసిస్టెంట్‌ని.\n\n💡 *ఈరోజు నేను మీకు ఎలా సహాయపడగలను?*\nవెంటనే ప్రారంభించడానికి దిగువన ఒక అంశాన్ని ఎంచుకోండి:`,
         button: 'అంశాన్ని ఎంచుకోండి',
         topics: [
-          { id: 'prob_disease', title: '🔬 వ్యాధి', desc: 'గుర్తింపు మరియు నివారణ' },
+           { id: 'prob_disease', title: '🔬 వ్యాధి', desc: 'గుర్తింపు మరియు నివారణ' },
+          { id: 'prob_feed_plan', title: '🍽️ మేత ప్రణాళిక', desc: 'రోజువారీ మేత కాలిక్యులేటర్' },
           { id: 'prob_water_quality', title: '💧 నీటి నాణ్యత', desc: 'నిర్వహణ సలహా' },
-          { id: 'prob_feed', title: '🍽️ మేత', desc: 'నిర్వహణ చిట్కాలు' },
+          { id: 'prob_feed', title: '🍽️ మేత చిట్కాలు', desc: 'నిర్వహణ చిట్కాలు' },
           { id: 'prob_slow_growth', title: '📈 నెమ్మదిగా పెరుగుదల', desc: 'పెరుగుదల మరియు బరువు సమస్యలు' },
           { id: 'prob_mortality', title: '⚠️ మరణాలు', desc: 'నష్టాలను ఎదుర్కోవడం' }
+
         ]
       },
       Hindi: {
         text: `नमस्ते! 👋 मैं आपका aquaIQ सहायक हूँ।\n\n💡 *आज मैं आपकी क्या मदद कर सकता हूँ?*\nतुरंत शुरू करने के लिए नीचे एक विषय चुनें:`,
         button: 'विषय चुनें',
         topics: [
-          { id: 'prob_disease', title: '🔬 रोग', desc: 'पहचान और रोकथाम' },
+           { id: 'prob_disease', title: '🔬 रोग', desc: 'पहचान और रोकथाम' },
+          { id: 'prob_feed_plan', title: '🍽️ चारा योजना', desc: 'दैनिक चारा कैलकुलेटर' },
           { id: 'prob_water_quality', title: '💧 पानी की गुणवत्ता', desc: 'प्रबंधन सलाह' },
-          { id: 'prob_feed', title: '🍽️ चारा', desc: 'प्रबंधन युक्तियाँ' },
+          { id: 'prob_feed', title: '🍽️ चारा युक्तियाँ', desc: 'प्रबंधन युक्तियाँ' },
           { id: 'prob_slow_growth', title: '📈 धीमी वृद्धि', desc: 'विकास और वजन के मुद्दे' },
           { id: 'prob_mortality', title: '⚠️ मृत्यु दर', desc: 'नुकसान को संभालना' }
+
         ]
       }
     };
