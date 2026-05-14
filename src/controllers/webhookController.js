@@ -255,9 +255,9 @@ async function handleTextMessage(phone, text) {
            { id: 'prob_disease', title: '🔬 Disease', desc: 'Identification & Prevention' },
           { id: 'prob_feed_plan', title: '🍽️ Feed Plan', desc: 'Daily Feed Calculator' },
           { id: 'prob_water_quality', title: '💧 Water Quality', desc: 'Management Advice' },
-          { id: 'prob_feed', title: '🍽️ Feed Tips', desc: 'Management Tips' },
           { id: 'prob_slow_growth', title: '📈 Slow Growth', desc: 'Growth & Weight Issues' },
           { id: 'prob_mortality', title: '⚠️ Mortality', desc: 'Handling Losses' }
+
 
         ]
       },
@@ -268,9 +268,9 @@ async function handleTextMessage(phone, text) {
            { id: 'prob_disease', title: '🔬 వ్యాధి', desc: 'గుర్తింపు మరియు నివారణ' },
           { id: 'prob_feed_plan', title: '🍽️ మేత ప్రణాళిక', desc: 'రోజువారీ మేత కాలిక్యులేటర్' },
           { id: 'prob_water_quality', title: '💧 నీటి నాణ్యత', desc: 'నిర్వహణ సలహా' },
-          { id: 'prob_feed', title: '🍽️ మేత చిట్కాలు', desc: 'నిర్వహణ చిట్కాలు' },
           { id: 'prob_slow_growth', title: '📈 నెమ్మదిగా పెరుగుదల', desc: 'పెరుగుదల మరియు బరువు సమస్యలు' },
           { id: 'prob_mortality', title: '⚠️ మరణాలు', desc: 'నష్టాలను ఎదుర్కోవడం' }
+
 
         ]
       },
@@ -279,11 +279,11 @@ async function handleTextMessage(phone, text) {
         button: 'विषय चुनें',
         topics: [
            { id: 'prob_disease', title: '🔬 रोग', desc: 'पहचान और रोकथाम' },
-          { id: 'prob_feed_plan', title: '🍽️ चारा योजना', desc: 'दैनिक चारा कैलकुलेटर' },
+          { id: 'prob_feed_plan', title: '🍽️ फीड प्लान', desc: 'दैनिक चारा कैलकुलेटर' },
           { id: 'prob_water_quality', title: '💧 पानी की गुणवत्ता', desc: 'प्रबंधन सलाह' },
-          { id: 'prob_feed', title: '🍽️ चारा युक्तियाँ', desc: 'प्रबंधन युक्तियाँ' },
-          { id: 'prob_slow_growth', title: '📈 धीमी वृद्धि', desc: 'विकास और वजन के मुद्दे' },
-          { id: 'prob_mortality', title: '⚠️ मृत्यु दर', desc: 'नुकसान को संभालना' }
+          { id: 'prob_slow_growth', title: '📈 धीमी वृद्धि', desc: 'विकास और वजन संबंधी समस्याएं' },
+          { id: 'prob_mortality', title: '⚠️ मृत्यु दर', desc: 'नुकसान से निपटना' }
+
 
         ]
       }

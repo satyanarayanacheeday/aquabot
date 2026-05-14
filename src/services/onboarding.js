@@ -65,8 +65,11 @@ const translations = {
     btn_select_topic: 'Select Topic',
     topic_disease: '🔬 Disease',
     topic_water: '💧 Water Quality',
-    topic_feed: '🍽️ Feed',
+    topic_feed: '🍽️ Feed Tips',
+    topic_feed_plan: '🍽️ Feed Plan',
+    desc_feed_plan: 'Daily feed calculator',
     topic_growth: '📈 Slow Growth',
+
     topic_mortality: '⚠️ Mortality',
     desc_mortality: 'Dealing with losses'
   },
@@ -112,8 +115,11 @@ const translations = {
     btn_select_topic: 'అంశాన్ని ఎంచుకోండి',
     topic_disease: '🔬 వ్యాధి',
     topic_water: '💧 నీటి నాణ్యత',
-    topic_feed: '🍽️ మేత',
+    topic_feed: '🍽️ మేత చిట్కాలు',
+    topic_feed_plan: '🍽️ మేత ప్రణాళిక',
+    desc_feed_plan: 'రోజువారీ మేత కాలిక్యులేటర్',
     topic_growth: '📈 నెమ్మదిగా పెరుగుదల',
+
     topic_mortality: '⚠️ మరణాలు',
     desc_mortality: 'నష్టాలను ఎదుర్కోవడం'
   },
@@ -159,8 +165,11 @@ const translations = {
     btn_select_topic: 'विषय चुनें',
     topic_disease: '🔬 बीमारी',
     topic_water: '💧 पानी की गुणवत्ता',
-    topic_feed: '🍽️ चारा',
+    topic_feed: '🍽️ चारा युक्तियाँ',
+    topic_feed_plan: '🍽️ फीड प्लान',
+    desc_feed_plan: 'दैनिक चारा कैलकुलेटर',
     topic_growth: '📈 धीमी वृद्धि',
+
     topic_mortality: '⚠️ मृत्यु दर',
     desc_mortality: 'नुकसान से निपटना'
   }
@@ -552,9 +561,10 @@ async function finalizeOnboarding(phone) {
       rows: [
         { id: 'prob_disease', title: t('topic_disease', lang), description: t('desc_disease', lang) },
         { id: 'prob_water', title: t('topic_water', lang), description: t('desc_water', lang) },
-        { id: 'prob_feed', title: t('topic_feed', lang), description: t('desc_feed', lang) },
+        { id: 'prob_feed_plan', title: t('topic_feed_plan', lang), description: t('desc_feed_plan', lang) },
         { id: 'prob_growth', title: t('topic_growth', lang), description: t('desc_growth', lang) },
         { id: 'prob_mortality', title: t('topic_mortality', lang), description: t('desc_mortality', lang) },
+
       ],
     }]
   );
