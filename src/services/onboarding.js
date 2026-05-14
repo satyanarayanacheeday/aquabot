@@ -33,13 +33,17 @@ const translations = {
     help_today_desc: 'Select a topic below to get started immediately.',
     btn_select_topic: 'Select Topic',
     topic_disease: '🔬 Disease',
+    desc_disease: 'Report symptoms & get advice',
     topic_water: '💧 Water Quality',
+    desc_water: 'Manage ammonia, pH, & DO',
     topic_feed_plan: '🍽️ Feed Plan',
     desc_feed_plan: 'Daily feed calculator',
     topic_growth: '📈 Slow Growth',
+    desc_growth: 'Improve growth rates',
     topic_mortality: '⚠️ Mortality',
-    desc_mortality: 'Dealing with losses'
+    desc_mortality: 'Dealing with sudden losses'
   },
+
   Telugu: {
     intro_g1: '👋 ప్రారంభిద్దాం! మీ ఫారం గురించి కొన్ని త్వరిత ప్రశ్నలు.',
     q_species: '🌊 మీరు ఏ జాతిని పెంచుతున్నారు?',
@@ -57,13 +61,17 @@ const translations = {
     help_today_desc: 'వెంటనే ప్రారంభించడానికి క్రింద ఒక అంశాన్ని ఎంచుకోండి.',
     btn_select_topic: 'అంశాన్ని ఎంచుకోండి',
     topic_disease: '🔬 వ్యాధి',
+    desc_disease: 'లక్షణాలు మరియు సలహాలు',
     topic_water: '💧 నీటి నాణ్యత',
+    desc_water: 'అమ్మోనియా, pH, మరియు DO',
     topic_feed_plan: '🍽️ మేత ప్రణాళిక',
     desc_feed_plan: 'రోజువారీ మేత కాలిక్యులేటర్',
     topic_growth: '📈 నెమ్మదిగా పెరుగుదల',
+    desc_growth: 'పెరుగుదల రేటును మెరుగుపరచండి',
     topic_mortality: '⚠️ మరణాలు',
     desc_mortality: 'నష్టాలను ఎదుర్కోవడం'
   },
+
   Hindi: {
     intro_g1: '👋 चलिए शुरू करते हैं! आपके फार्म के बारे में कुछ त्वरित प्रश्न।',
     q_species: '🌊 आप कौन सी प्रजाति पाल रहे हैं?',
@@ -81,13 +89,17 @@ const translations = {
     help_today_desc: 'तुरंत शुरू करने के लिए नीचे एक विषय चुनें.',
     btn_select_topic: 'विषय चुनें',
     topic_disease: '🔬 बीमारी',
+    desc_disease: 'लक्षण और सलाह',
     topic_water: '💧 पानी की गुणवत्ता',
+    desc_water: 'अमोनिया, pH और DO प्रबंधन',
     topic_feed_plan: '🍽️ फीड प्लान',
     desc_feed_plan: 'दैनिक चारा कैलकुलेटर',
     topic_growth: '📈 धीमी वृद्धि',
+    desc_growth: 'विकास दर में सुधार',
     topic_mortality: '⚠️ मृत्यु दर',
     desc_mortality: 'नुकसान से निपटना'
   }
+
 };
 
 function t(key, lang = 'English') {
@@ -251,12 +263,13 @@ async function finalizeOnboarding(phone) {
     [{
       title: t('btn_select_topic', lang),
       rows: [
-        { id: 'prob_disease', title: t('topic_disease', lang) },
-        { id: 'prob_water', title: t('topic_water', lang) },
+        { id: 'prob_disease', title: t('topic_disease', lang), description: t('desc_disease', lang) },
+        { id: 'prob_water', title: t('topic_water', lang), description: t('desc_water', lang) },
         { id: 'prob_feed_plan', title: t('topic_feed_plan', lang), description: t('desc_feed_plan', lang) },
-        { id: 'prob_growth', title: t('topic_growth', lang) },
-        { id: 'prob_mortality', title: t('topic_mortality', lang) },
+        { id: 'prob_growth', title: t('topic_growth', lang), description: t('desc_growth', lang) },
+        { id: 'prob_mortality', title: t('topic_mortality', lang), description: t('desc_mortality', lang) },
       ],
+
     }]
   );
 }
