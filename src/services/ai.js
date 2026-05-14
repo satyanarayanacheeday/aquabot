@@ -38,10 +38,26 @@ async function generateEmbedding(text) {
 /**
  * Answer a farmer's question using RAG + Gemini
  */
-async function answerQuestion(question, farmerId, preferredLanguage = 'English') {
+  // 1. Sanitize input
+  const sanitizedQuestion = question.trim().substring(0, 1000);
+
   try {
-    // 1. Generate embedding & search knowledge base
-    const embedding = await generateEmbedding(question);
+    // 2. Fetch context in parallel (MASSIVE speedup)
+    const [
+      embedding,
+      farmerData,
+      allPonds,
+      chats,
+      summary
+    ] = await Promise.all([
+      generateEmbedding(sanitizedQuestion),
+      getFarmerById(farmerId),
+      getPondsByFarmer(farmerId),
+      getRecentChats(farmerId, 6),
+      getOrRefreshSummary(farmerId)
+    ]);
+
+    // 3. Process Embedding & Knowledge
     let knowledgeContext = '';
     if (embedding) {
       try {
@@ -50,132 +66,91 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
           knowledgeContext = '\n\n## Relevant Knowledge Base:\n' +
             matches.map(m => `- ${m.content}`).join('\n');
         }
-      } catch (err) {
-        console.warn('⚠️ Knowledge search failed:', err.message);
-      }
+      } catch (err) {}
     }
 
-    // 2. Get farmer and pond context
+    // 4. Process Farm & Pond Details
     let farmContext = '';
     let healthContext = '';
     let recommendationContext = '';
     let feedPlanContext = '';
 
-    try {
-      const farmerData = await getFarmerById(farmerId);
-
-
-      if (farmerData) {
-        farmContext += `\n\n## 🧑‍🌾 FARMER PROFILE:\n`;
-        farmContext += `- Village: ${farmerData.village || 'Unknown'}\n`;
-        farmContext += `- Farm type: ${farmerData.farm_type || 'Unknown'}\n`;
-      }
-
-      // Get pond data (detect pond number from question)
-      let pond = null;
-      const pondNumMatch = question.match(/pond\s*(\d+)/i);
-      if (pondNumMatch) {
-        const requestedNum = parseInt(pondNumMatch[1]);
-        const allPonds = await getPondsByFarmer(farmerId);
-        pond = allPonds.find(p => p.pond_number === requestedNum) || allPonds[0] || null;
-      } else {
-        pond = await getFirstPondByFarmer(farmerId);
-      }
-      if (pond) {
-        recommendationContext = getRecommendations(question, pond);
-
-        // -- NEW: Feed Plan Integration --
-        const feedKeywords = ['feed plan', 'how much feed', 'feeding schedule', 'feed calculator', 'feeding', 'మేత', 'మేత ప్రణాళిక', 'चारा', 'चारा योजना'];
-        const isFeedQuery = feedKeywords.some(k => question.toLowerCase().includes(k));
-
-        if (isFeedQuery) {
-          try {
-            const { getFeedPlan } = require('./feedPlan');
-            const feedPlanData = await getFeedPlan(farmerId, preferredLanguage);
-            if (feedPlanData && feedPlanData.type === 'success') {
-              feedPlanContext = `\n\n## 🍽️ AUTOMATED FEED PLAN:\n${feedPlanData.message}\n\nIMPORTANT: Use the data above to give a precise feeding recommendation.`;
-            } else if (feedPlanData && feedPlanData.type === 'missing_data') {
-              feedPlanContext = `\n\n## 🍽️ FEED PLAN ERROR:\n${feedPlanData.message}\nAsk the farmer for their stocking count to proceed.`;
-            }
-          } catch (err) {
-            console.warn('⚠️ Feed plan calculation failed:', err.message);
-          }
-        }
-
-        farmContext += `\n\n## 🏊 POND DETAILS:\n`;
-        farmContext += `- Species: ${pond.species}\n`;
-        farmContext += `- Pond Size: ${pond.pond_size}\n`;
-        farmContext += `- Stocking: ${pond.stocking_date}\n`;
-        farmContext += `- Stock Count: ${pond.seed_count || 'Missing'}\n`;
-        if (pond.feed_brand) farmContext += `- Feed Brand: ${pond.feed_brand}\n`;
-
-
-        // Get recent logs
-        const recentLogs = await getRecentPondLogs(pond.id, null, 10);
-        if (recentLogs.length > 0) {
-          farmContext += `\n\n## 📊 RECENT POND DATA:\n`;
-          recentLogs.forEach(log => {
-            const data = log.log_data;
-            farmContext += `- [${log.log_group}] ${new Date(log.created_at).toLocaleDateString()}: ${JSON.stringify(data)}\n`;
-          });
-        }
-
-        // Get health score
-        const healthScore = await getLatestHealthScore(pond.id);
-        if (healthScore) {
-          healthContext = `\n\n## 📊 POND HEALTH SCORE:\n`;
-          healthContext += `- Overall: ${healthScore.score.toUpperCase()}\n`;
-          healthContext += `- Factors: ${JSON.stringify(healthScore.factors)}\n`;
-          healthContext += `Use this score in your advice. If yellow/red, mention specific actions.`;
-        }
-      }
-    } catch (err) {
-      console.warn('⚠️ Could not fetch farm context:', err.message);
+    if (farmerData) {
+      farmContext += `\n\n## 🧑‍🌾 FARMER PROFILE:\n`;
+      farmContext += `- Village: ${farmerData.village || 'Unknown'}\n`;
+      farmContext += `- Farm type: ${farmerData.farm_type || 'Unknown'}\n`;
     }
 
-    // 3. Get conversation summary (LLM-based, cached per farmer)
-    let conversationSummary = '';
-    try {
-      conversationSummary = await getOrRefreshSummary(farmerId);
-      if (conversationSummary) {
-        conversationSummary = `\n\n## Previous Conversation Summary\n${conversationSummary}`;
-      }
-    } catch (err) {
-      console.warn('⚠️ Conversation summary fetch failed:', err.message);
+    // Determine target pond
+    const pondNumMatch = sanitizedQuestion.match(/pond\s*(\d+)/i);
+    let pond = null;
+    if (pondNumMatch) {
+      const requestedNum = parseInt(pondNumMatch[1]);
+      pond = allPonds.find(p => p.pond_number === requestedNum) || allPonds[0] || null;
+    } else {
+      pond = allPonds[0] || null;
     }
 
-    // 4. Get recent chat history (last 6 messages for immediate continuity)
-    let contents = [];
-    try {
-      const recentChats = await getRecentChats(farmerId, 6);
-      if (recentChats.length > 0) {
-        recentChats.forEach(c => {
-          if (c.message && c.message.trim() !== '') {
-            contents.push({ role: 'user', parts: [{ text: c.message.trim() }] });
-          } else {
-            contents.push({ role: 'user', parts: [{ text: '[User submitted data]' }] });
+    if (pond) {
+      // Fetch Pond-Specific data in parallel
+      const [recentLogs, healthScore] = await Promise.all([
+        getRecentPondLogs(pond.id, null, 10),
+        getLatestHealthScore(pond.id)
+      ]);
+
+      recommendationContext = getRecommendations(sanitizedQuestion, pond);
+
+      // Feed Plan check
+      const feedKeywords = ['feed plan', 'how much feed', 'feeding schedule', 'feed calculator', 'feeding', 'మేత', 'మేత ప్రణాళిక', 'चारा', 'चारा योजना'];
+      if (feedKeywords.some(k => sanitizedQuestion.toLowerCase().includes(k))) {
+        try {
+          const { getFeedPlan } = require('./feedPlan');
+          const feedPlanData = await getFeedPlan(farmerId, preferredLanguage);
+          if (feedPlanData?.type === 'success') {
+            feedPlanContext = `\n\n## 🍽️ AUTOMATED FEED PLAN:\n${feedPlanData.message}\n\nIMPORTANT: Use the data above to give a precise feeding recommendation.`;
           }
-          if (c.response && c.response.trim() !== '') {
-            contents.push({ role: 'model', parts: [{ text: c.response.trim() }] });
-          } else {
-            contents.push({ role: 'model', parts: [{ text: '[Action completed]' }] });
-          }
+        } catch (err) {}
+      }
+
+      farmContext += `\n\n## 🏊 POND DETAILS:\n`;
+      farmContext += `- Species: ${pond.species}\n`;
+      farmContext += `- Pond Size: ${pond.pond_size}\n`;
+      farmContext += `- Stocking: ${pond.stocking_date}\n`;
+      farmContext += `- Stock Count: ${pond.seed_count || 'Missing'}\n`;
+
+      if (recentLogs.length > 0) {
+        farmContext += `\n\n## 📊 RECENT POND DATA:\n`;
+        recentLogs.forEach(log => {
+          farmContext += `- [${log.log_group}] ${new Date(log.created_at).toLocaleDateString()}: ${JSON.stringify(log.log_data)}\n`;
         });
       }
-    } catch (err) {
-      // Non-critical
+
+      if (healthScore) {
+        healthContext = `\n\n## 📊 POND HEALTH SCORE: ${healthScore.score.toUpperCase()}\n`;
+        healthContext += `- Factors: ${JSON.stringify(healthScore.factors)}\n`;
+      }
     }
 
-    // Add current question
-    contents.push({ role: 'user', parts: [{ text: question }] });
+    // 5. Build Chat Contents
+    let contents = [];
+    if (chats.length > 0) {
+      chats.forEach(c => {
+        if (c.message) contents.push({ role: 'user', parts: [{ text: c.message.trim() }] });
+        if (c.response) contents.push({ role: 'model', parts: [{ text: c.response.trim() }] });
+      });
+    }
+    contents.push({ role: 'user', parts: [{ text: sanitizedQuestion }] });
 
-    // 5. Call Gemini
-    const langInstruction = `\n\n## Language Constraints\nYou MUST reply in **${preferredLanguage}**. Use casual, communicative language. Do NOT use overly deep, formal, or complex literary vocabulary.`;
+    // 6. Final Call
+    const conversationSummary = summary ? `\n\n## Previous Conversation Summary\n${summary}` : '';
+    const langInstruction = `\n\n## Language Constraints\nYou MUST reply in **${preferredLanguage}**. Use casual, communicative language.`;
+    
     const systemInstruction = SYSTEM_PROMPT +
       conversationSummary +
       knowledgeContext +
-      (question.length > 10 ? farmContext + healthContext + recommendationContext + feedPlanContext : '') +
+      (sanitizedQuestion.length > 10 ? farmContext + healthContext + recommendationContext + feedPlanContext : '') +
       langInstruction;
+
 
 
     const response = await ai.models.generateContent({

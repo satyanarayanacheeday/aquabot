@@ -13,6 +13,19 @@ const logger = require('../utils/logger');
 
 // Input limits
 const MAX_MESSAGE_LENGTH = 2000;
+const processedMessages = new Set(); // Simple in-memory deduplication
+
+/**
+ * Basic input sanitization
+ */
+function sanitizeInput(text) {
+  if (!text || typeof text !== 'string') return '';
+  // Remove control characters and limit length
+  return text
+    .replace(/[\x00-\x1F\x7F]/g, '') // Remove non-printable chars
+    .trim();
+}
+
 
 /**
  * GET /webhook — Verify webhook with Meta
@@ -55,7 +68,20 @@ async function handleIncoming(req, res) {
     const messageId = message.id;
     const messageType = message.type;
 
+    // Deduplication check
+    if (processedMessages.has(messageId)) {
+      logger.debug(`⏭️ Skipping duplicate message: ${messageId}`);
+      return;
+    }
+    processedMessages.add(messageId);
+    // Keep cache small (last 1000 IDs)
+    if (processedMessages.size > 1000) {
+      const firstItem = processedMessages.values().next().value;
+      processedMessages.delete(firstItem);
+    }
+
     logger.info(`📨 Incoming ${messageType} from ${phone}`);
+
 
     // Mark as read
     await markAsRead(messageId);
@@ -91,12 +117,14 @@ async function handleTextMessage(phone, text) {
   // Input sanitization
   text = sanitizeInput(text);
   if (!text) return;
+  
   if (text.length > MAX_MESSAGE_LENGTH) {
     text = text.substring(0, MAX_MESSAGE_LENGTH);
   }
 
   const normalizedText = text.toLowerCase().trim();
-  logger.info(`💬 Text from ${phone}: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
+  logger.info(`💬 Text from ${phone}: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+
 
   // 1. Check if farmer exists
   const farmer = await getFarmerByPhone(phone);

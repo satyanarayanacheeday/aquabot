@@ -29,6 +29,8 @@ if (process.env.NODE_ENV === 'production' && !process.env.WHATSAPP_APP_SECRET) {
 const helmet = require('helmet');
 const morgan = require('morgan');
 const hpp = require('hpp');
+const rateLimit = require('express-rate-limit');
+
 const webhookRoutes = require('./src/routes/webhook');
 const dashboardRoutes = require('./src/routes/dashboard');
 const { handleIncoming } = require('./src/controllers/webhookController');
@@ -54,6 +56,23 @@ app.use(express.json({
 // Security
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(hpp());
+
+// Rate Limiting
+const webhookLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // Limit each IP to 100 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many requests, please try again later.'
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 
 // Logging: concise in production, verbose in dev
 app.use(morgan(isProduction ? 'combined' : 'dev', {
@@ -82,8 +101,9 @@ app.get('/health', (req, res) => {
 // ========================
 // WEBHOOK ROUTES (production API)
 // ========================
-app.use('/webhook', webhookRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/webhook', webhookLimiter, webhookRoutes);
+app.use('/api/dashboard', apiLimiter, dashboardRoutes);
+
 
 // ========================
 // STATIC FRONTEND (served in all environments)
