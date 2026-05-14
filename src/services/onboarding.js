@@ -209,9 +209,10 @@ async function startOnboarding(phone) {
     '🦐🐟 Welcome to *aquaIQ*!\nYour Smart Pond Assistant\n\nSelect your language:\nమీ భాషను ఎంచుకోండి:\nअपनी भाषा चुनें:',
     [
       { id: 'lang_en', title: 'English' },
-      { id: 'lang_te', title: 'Telugu' },
-      { id: 'lang_hi', title: 'Hindi' },
+      { id: 'lang_te', title: 'తెలుగు (Telugu)' },
+      { id: 'lang_hi', title: 'हिंदी (Hindi)' },
     ]
+
   );
 }
 
@@ -239,9 +240,10 @@ async function handleOnboardingStep(phone, message) {
         'Please select your language:',
         [
           { id: 'lang_en', title: 'English' },
-          { id: 'lang_te', title: 'Telugu' },
-          { id: 'lang_hi', title: 'Hindi' },
+          { id: 'lang_te', title: 'తెలుగు (Telugu)' },
+          { id: 'lang_hi', title: 'हिंदी (Hindi)' },
         ]
+
       );
       return true;
     }
