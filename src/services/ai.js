@@ -1,6 +1,6 @@
 const ai = require('../config/gemini');
 const SYSTEM_PROMPT = require('../prompts/systemPrompt');
-const { searchKnowledge, getRecentChats, getFirstPondByFarmer, getPondsByFarmer, getFarmerById, getRecentPondLogs, getLatestHealthScore } = require('../models/database');
+const { searchKnowledge, getRecentChats, getPondsByFarmer, getFarmerById, getRecentPondLogs, getLatestHealthScore } = require('../models/database');
 const { getRecommendations } = require('./recommendation');
 const { getOrRefreshSummary } = require('./conversationSummary');
 
@@ -14,7 +14,6 @@ async function generateEmbedding(text) {
       contents: [{ parts: [{ text: text }] }]
     });
     
-    // The new SDK (v2) returns embeddings in different structures depending on version
     if (response.embedding && response.embedding.values) {
       return response.embedding.values;
     }
@@ -27,18 +26,15 @@ async function generateEmbedding(text) {
     return null;
   } catch (error) {
     console.error('⚠️ Embedding generation failed:', error.message);
-    // If it's a 404, maybe the model name is wrong for this region/key
-    if (error.message?.includes('404')) {
-      console.log('💡 TIP: Try using "embedding-001" if "text-embedding-004" is not available.');
-    }
     return null;
   }
 }
 
+/**
+ * Answer a farmer's question using RAG + Gemini
  */
 async function answerQuestion(question, farmerId, preferredLanguage = 'English') {
   // 1. Sanitize input
-
   const sanitizedQuestion = question.trim().substring(0, 1000);
 
   try {
@@ -151,15 +147,9 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
       (sanitizedQuestion.length > 10 ? farmContext + healthContext + recommendationContext + feedPlanContext : '') +
       langInstruction;
 
-
-
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: contents,
-
-
-
-
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.7,
@@ -170,11 +160,6 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
     return response.text;
   } catch (error) {
     console.error('❌ AI answer failed:', error);
-
-    if (error.message?.includes('404') || error.status === 404) {
-      console.error('💡 TIP: Gemini API may be disabled or model name is incorrect.');
-    }
-
     throw error;
   }
 }
