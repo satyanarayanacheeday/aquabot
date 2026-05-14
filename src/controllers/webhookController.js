@@ -149,8 +149,7 @@ async function handleTextMessage(phone, text) {
       
       if (!abw) {
         await sendTextMessage(phone, lang === 'Telugu' ? 'క్షమించండి, ఆ నంబర్ నాకు అర్థం కాలేదు. దయచేసి మీ రొయ్యల కౌంట్ (ఉదా: 100) తెలియజేయండి.' : 
-               (lang === 'Hindi' ? 'क्षमा करें, मुझे वह नंबर समझ नहीं आया। कृपया अपना झींगा काउंट (जैसे: 100) बताएं।' : 
-               'Sorry, I didn\'t catch that number. Please tell me your shrimp count (e.g., 100 count).'));
+               'Sorry, I didn\'t catch that number. Please tell me your shrimp count (e.g., 100 count).');
         return;
       }
 
@@ -158,20 +157,62 @@ async function handleTextMessage(phone, text) {
       if (plan && plan.type === 'success') {
         await sendTextMessage(phone, plan.message);
         clearState(phone);
-        
-        // Save to history
-        saveChatHistory({
-          farmer_id: farmer.id,
-          message: `[Count provided: ${text}]`,
-          response: plan.message,
-          message_type: 'feed_plan',
-        }).catch(() => {});
       } else {
         await sendTextMessage(phone, plan?.message || 'Error calculating plan.');
         clearState(phone);
       }
       return;
     }
+
+    // JIT COLLECTION: Stocking Date
+    if (flow === 'awaiting_jit_stocking_date') {
+      const dateParts = text.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+      if (!dateParts) {
+        await sendTextMessage(phone, lang === 'Telugu' ? '❌ దయచేసి సరైన తేదీని DD/MM/YYYY ఫార్మాట్‌లో నమోదు చేయండి.' : '❌ Please enter a valid date (DD/MM/YYYY).');
+        return;
+      }
+      let [_, d, m, y] = dateParts;
+      if (y.length === 2) y = '20' + y;
+      const parsedDate = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`);
+      if (isNaN(parsedDate.getTime()) || parsedDate > new Date()) {
+        await sendTextMessage(phone, '❌ Invalid date.');
+        return;
+      }
+      const isoDate = parsedDate.toISOString().split('T')[0];
+      const pond = await getFirstPondByFarmer(farmer.id);
+      const { updatePond } = require('../models/database');
+      await updatePond(pond.id, { stocking_date: isoDate });
+
+      // Move to next requirement: Feed Count
+      const q = lang === 'Telugu' ? 'బాగుంది! ఇప్పుడు మీ రొయ్యల కౌంట్ లేదా గ్రాములు తెలియజేయండి.' : 'Great! Now, what is your current shrimp count (e.g., 100 count) or size?';
+      setState(phone, { flow: 'awaiting_feed_count', farmerId: farmer.id });
+      await sendTextMessage(phone, q);
+      return;
+    }
+
+    // JIT COLLECTION: Pond Size
+    if (flow === 'awaiting_jit_pond_size') {
+      let pondSize = null;
+      if (text.includes('less') || text.includes('<1') || text.includes('size_small')) pondSize = 'less_than_1_acre';
+      else if (text.includes('1') && text.includes('3') || text.includes('size_medium')) pondSize = '1_3_acres';
+      else if (text.includes('more') || text.includes('>3') || text.includes('size_large')) pondSize = 'more_than_3_acres';
+
+      if (!pondSize) {
+        await sendTextMessage(phone, 'Please select a size: <1 acre, 1-3 acres, or >3 acres.');
+        return;
+      }
+      const pond = await getFirstPondByFarmer(farmer.id);
+      const { updatePond } = require('../models/database');
+      await updatePond(pond.id, { pond_size: pondSize });
+      
+      clearState(phone);
+      // Proceed to original topic (water)
+      const { deliverImmediateValue } = require('../services/immediateValue');
+      await deliverImmediateValue(phone, farmer.id, farmer.village, 'water', lang);
+      return;
+    }
+    // ------------------------------------------
+
     // ------------------------------------------
 
 
@@ -201,9 +242,20 @@ async function handleTextMessage(phone, text) {
   if (normalizedText.startsWith('prob_')) {
     const topic = normalizedText.replace('prob_', '');
     
-    // NEW: Handle Feed Plan specifically
+    // NEW: Handle Feed Plan specifically with JIT check
     if (topic === 'feed_plan') {
       const lang = farmer.preferred_language || 'English';
+      const pond = await getFirstPondByFarmer(farmer.id);
+      
+      // 1. Check Stocking Date first
+      if (!pond.stocking_date) {
+        setState(phone, { flow: 'awaiting_jit_stocking_date', farmerId: farmer.id });
+        await sendTextMessage(phone, lang === 'Telugu' ? 'ఖచ్చితమైన మేత ప్రణాళిక కోసం, మీ *స్టాకింగ్ తేదీ* చెప్పండి (ఉదా: 15/05/2024).' : 
+                 'To calculate a precise plan, I first need your *Stocking Date* (Example: 15/05/2024).');
+        return;
+      }
+
+      // 2. Then check Count
       const q = lang === 'Telugu' ? 'మీ రొయ్యల ప్రస్తుత కౌంట్ ఎంత? (ఉదాహరణకు: 100 కౌంట్ లేదా 10 గ్రాములు)' : 
                (lang === 'Hindi' ? 'आपका झींगा काउंट कितना है? (उदाहरण: 100 काउंट या 10 ग्राम)' : 
                'To give you an accurate plan, what is your current shrimp count (e.g., 100 count) or size in grams?');
@@ -213,8 +265,31 @@ async function handleTextMessage(phone, text) {
       return;
     }
 
+    // NEW: Handle Water Quality with JIT Pond Size check
+    if (topic === 'water' || topic === 'water_quality') {
+      const lang = farmer.preferred_language || 'English';
+      const pond = await getFirstPondByFarmer(farmer.id);
 
-    if (['disease', 'mortality', 'slow_growth', 'growth', 'water_quality', 'water', 'feed'].includes(topic)) {
+      if (!pond.pond_size) {
+        setState(phone, { flow: 'awaiting_jit_pond_size', farmerId: farmer.id });
+        await sendButtonMessage(phone, 
+          lang === 'Telugu' ? 'మీ చెరువు పరిమాణం ఎంత?' : 'What is your pond size?',
+          [
+            { id: 'jit_size_s', title: lang === 'Telugu' ? '1 ఎకరం కంటే తక్కువ' : '<1 acre' },
+            { id: 'jit_size_m', title: lang === 'Telugu' ? '1-3 ఎకరాలు' : '1-3 acres' },
+            { id: 'jit_size_l', title: lang === 'Telugu' ? '3 ఎకరాల కంటే ఎక్కువ' : '>3 acres' }
+          ]
+        );
+        return;
+      }
+      // If already has size, proceed to event follow-up or tips
+      await startEventFollowUp(phone, farmer.id, 'water_quality');
+      return;
+    }
+
+
+    if (['disease', 'mortality', 'slow_growth', 'growth', 'feed'].includes(topic)) {
+
 
       // Map 'water' to 'water_quality' and 'growth' to 'slow_growth'
       let eventType = topic;
