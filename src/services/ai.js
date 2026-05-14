@@ -35,10 +35,10 @@ async function generateEmbedding(text) {
   }
 }
 
-/**
- * Answer a farmer's question using RAG + Gemini
  */
+async function answerQuestion(question, farmerId, preferredLanguage = 'English') {
   // 1. Sanitize input
+
   const sanitizedQuestion = question.trim().substring(0, 1000);
 
   try {
