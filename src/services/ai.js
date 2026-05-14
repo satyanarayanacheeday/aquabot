@@ -179,8 +179,10 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
 
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash-latest',
       contents: contents,
+
+
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.7,

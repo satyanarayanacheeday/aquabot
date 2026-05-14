@@ -1,5 +1,5 @@
 const { getRecentPondLogs, getPondById, getPondsByFarmer } = require('../models/database');
-const { t } = require('./dailyCheckIn'); // Reuse translations or create new
+// No longer needed: const { t } = require('./dailyCheckIn');
 
 /**
  * Checks for anomalies in recently reported data compared to history.
