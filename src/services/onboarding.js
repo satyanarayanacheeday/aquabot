@@ -32,6 +32,8 @@ const translations = {
     q_village: '📍 Which village or town are you from?',
     q_stocking: '📅 What was your *Stocking Date*? \n(Example: 15/05/2024 or 15-05-2024)',
     q_stock_err: '❌ Please enter a valid date in DD/MM/YYYY format. \nExample: 20/04/2024',
+    q_stock_count: '🔢 How many seeds did you stock (Stock Count)?',
+
 
     q_size: '📐 What is the pond size?',
     btn_shrimp: '🦐 Shrimp',
@@ -82,6 +84,8 @@ const translations = {
     q_village: '📍 మీ గ్రామం లేదా పట్టణం పేరు ఏమిటి?',
     q_stocking: '📅 మీరు ఈ చెరువులో విత్తనం (seed) ఎప్పుడు వేశారు? \n(ఉదాహరణ: 15/05/2024 లేదా 15-05-2024)',
     q_stock_err: '❌ దయచేసి సరైన తేదీని DD/MM/YYYY ఫార్మాట్‌లో నమోదు చేయండి. \nఉదాహరణ: 20/04/2024',
+    q_stock_count: '🔢 మీరు ఎన్ని సీడ్స్ స్టాక్ చేశారు (స్టాక్ కౌంట్)?',
+
 
     q_size: '📐 చెరువు పరిమాణం ఎంత?',
     btn_shrimp: '🦐 రొయ్యలు',
@@ -132,6 +136,8 @@ const translations = {
     q_village: '📍 आप किस गाँव या शहर से हैं?',
     q_stocking: '📅 आपने इस तालाब में स्टॉक कब किया? \n(उदाहरण: 15/05/2024 या 15-05-2024)',
     q_stock_err: '❌ कृपया DD/MM/YYYY फॉर्मेट में सही तारीख दर्ज करें। \nउदाहरण: 20/04/2024',
+    q_stock_count: '🔢 आपने कितने बीज (स्टॉक काउंट) डाले?',
+
 
     q_size: '📐 तालाब का आकार क्या है?',
     btn_shrimp: '🦐 झींगा',
