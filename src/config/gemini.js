@@ -11,4 +11,6 @@ const ai = new GoogleGenAI({
   apiVersion: 'v1beta'
 });
 
+
+
 module.exports = ai;

@@ -59,8 +59,10 @@ CRITICAL INSTRUCTIONS:
     const langInstruction = `\n\n## Language\nReply in **${preferredLanguage}**. Casual, communicative language.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash-latest',
+      model: 'gemini-2.5-flash',
       contents: [{ role: 'user', parts: [{ text: context + langInstruction }] }],
+
+
 
       config: {
         systemInstruction: SYSTEM_PROMPT,
