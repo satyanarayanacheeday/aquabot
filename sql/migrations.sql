@@ -80,6 +80,8 @@ CREATE TABLE IF NOT EXISTS chat_history (
   message TEXT,
   response TEXT,
   message_type TEXT DEFAULT 'text',
+  media_url TEXT,
+  ml_metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

@@ -1,5 +1,6 @@
 const { sendTextMessage, sendListMessage, markAsRead, downloadMedia } = require('../services/whatsapp');
-const { getFarmerByPhone, saveChatHistory, getLatestHealthScore, getFirstPondByFarmer, getRecentPondLogs } = require('../models/database');
+const { getFarmerByPhone, saveChatHistory, updateChatHistory, getLatestHealthScore, getFirstPondByFarmer, getRecentPondLogs } = require('../models/database');
+const { uploadMedia } = require('../services/storage');
 const { startOnboarding, handleOnboardingStep } = require('../services/onboarding');
 const { startDailyCheckIn, handleDailyStep, getTodayCheckInType, GROUP_MAP } = require('../services/dailyCheckIn');
 const { startWeeklyCheckIn, handleWeeklyStep } = require('../services/weeklyCheckIn');
@@ -507,19 +508,45 @@ async function handleImageMessage(phone, imageData) {
     }
 
     const analysis = await analyzeImage(imageBuffer, farmer.preferred_language, pondContext);
+    const analysisText = analysis.text;
+    const analysisMetadata = analysis.metadata;
 
+    let chatRecordId = null;
     try {
-      await saveChatHistory({
+      const chatRecord = await saveChatHistory({
         farmer_id: farmer.id,
         message: '[Image uploaded for disease detection]',
-        response: analysis,
+        response: analysisText,
         message_type: 'image',
+        ml_metadata: analysisMetadata
       });
+      chatRecordId = chatRecord?.id;
     } catch (err) {
-      logger.warn('Could not save image chat history', { error: err.message });
+      logger.warn('Could not save image chat history initially', { error: err.message });
     }
 
-    await sendTextMessage(phone, `${t('msg_img_analysis_header', lang)}${analysis}`);
+    // Send the response immediately to avoid latency
+    await sendTextMessage(phone, `${t('msg_img_analysis_header', lang)}${analysisText}`);
+
+    // Asynchronously upload image to S3 and update the database with the URL
+    setImmediate(async () => {
+      try {
+        const mimeType = imageData.mime_type || 'image/jpeg';
+        const ext = mimeType.split('/')[1] || 'jpg';
+        const filename = `farmer_${farmer.id}_${Date.now()}.${ext}`;
+        
+        // Pass the metadata directly to the storage service for S3 Object Tagging/Metadata
+        const mediaUrl = await uploadMedia(imageBuffer, filename, mimeType, analysisMetadata);
+        
+        if (chatRecordId) {
+          await updateChatHistory(chatRecordId, { media_url: mediaUrl });
+          logger.info(`✅ Successfully linked S3 URL to chat record ${chatRecordId}`);
+        }
+      } catch (uploadError) {
+        logger.error('Background image upload failed', { error: uploadError.message });
+      }
+    });
+
   } catch (error) {
     logger.error('Image analysis failed', { error: error.message, phone });
     await sendTextMessage(phone, t('msg_img_fail', lang));

@@ -50,7 +50,7 @@ function App() {
             </button>
           </form>
           <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-            Default token: aquaiq-admin-2024
+            Check your server's .env file for the secure DASHBOARD_ADMIN_TOKEN
           </p>
         </div>
       </div>

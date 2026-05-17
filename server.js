@@ -8,7 +8,7 @@ const logger = require('./src/utils/logger');
 // ========================
 // ENVIRONMENT VALIDATION — fail fast
 // ========================
-const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_KEY', 'GEMINI_API_KEY', 'WHATSAPP_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'VERIFY_TOKEN'];
+const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_KEY', 'GEMINI_API_KEY', 'WHATSAPP_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'VERIFY_TOKEN', 'DASHBOARD_ADMIN_TOKEN'];
 const missing = REQUIRED_ENV.filter(key => !process.env[key] || process.env[key].startsWith('your_'));
 
 if (missing.length > 0 && process.env.NODE_ENV === 'production') {
@@ -30,6 +30,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const hpp = require('hpp');
 const rateLimit = require('express-rate-limit');
+const cors = require('cors');
 
 const webhookRoutes = require('./src/routes/webhook');
 const dashboardRoutes = require('./src/routes/dashboard');
@@ -56,6 +57,7 @@ app.use(express.json({
 // Security
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(hpp());
+app.use(cors()); // Allow all origins for now, or configure specific dashboard origin
 
 // Rate Limiting
 const webhookLimiter = rateLimit({

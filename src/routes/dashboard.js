@@ -6,11 +6,14 @@ const logger = require('../utils/logger');
 // Simple Admin Authentication Middleware
 const adminAuth = (req, res, next) => {
   const token = req.headers['x-admin-token'];
-  // In a real app, this should be a secure token from env or a session
-  // For this MVP, we'll use a simple check (user should set this in .env)
-  const ADMIN_TOKEN = process.env.DASHBOARD_ADMIN_TOKEN || 'aquaiq-admin-2024';
+  const ADMIN_TOKEN = process.env.DASHBOARD_ADMIN_TOKEN;
   
-  if (token === ADMIN_TOKEN) {
+  if (!ADMIN_TOKEN) {
+    logger.error('CRITICAL: DASHBOARD_ADMIN_TOKEN is not set in environment. Access denied.');
+    return res.status(500).json({ error: 'Server misconfiguration' });
+  }
+
+  if (token && token === ADMIN_TOKEN) {
     next();
   } else {
     logger.warn(`Unauthorized dashboard access attempt from ${req.ip}`);

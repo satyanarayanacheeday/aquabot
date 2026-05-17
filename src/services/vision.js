@@ -8,16 +8,18 @@ Your task:
 3. If disease signs are detected, identify the most likely disease
 4. Provide recommended actions
 
-Format your response for WhatsApp (short, scannable):
-- Start with what you observe
-- Name the possible condition/disease
-- List 2-3 specific recommended actions, remedies, or feed adjustments
-- If recommending remedies, give specific commercial brand name examples, noting that availability varies by region.
-- Add this exact disclaimer: "⚠️ *Caution:* Please consult a local expert before applying any treatments."
+Format your response as a valid JSON object with the following structure:
+{
+  "text": "Your formatted response for WhatsApp (short, scannable). Start with what you observe, name the condition, list 2-3 specific remedies (with commercial brand examples if applicable), and add this exact disclaimer: '⚠️ *Caution:* Please consult a local expert before applying any treatments.'",
+  "metadata": {
+    "species": "identified species or 'unknown'",
+    "disease_predicted": "identified disease or 'none'",
+    "confidence_level": "high/medium/low",
+    "objects_detected": ["list", "of", "things", "seen"]
+  }
+}
 
-If the image is unclear or not aquaculture-related, politely say so.
-
-IMPORTANT: Never diagnose with 100% certainty. Always say "possible" or "may indicate".`;
+IMPORTANT: Never diagnose with 100% certainty. Always say "possible" or "may indicate" in the text response. Return ONLY valid JSON, without any markdown formatting blocks.`;
 
 /**
  * Analyze a shrimp/fish image for disease detection using Gemini
@@ -67,10 +69,34 @@ async function analyzeImage(imageBuffer, preferredLanguage = 'English', pondCont
       ]
     });
 
-    return response.text;
+    let rawText = response.text;
+    
+    // Clean up potential markdown formatting around the JSON
+    if (rawText.startsWith('```json')) {
+      rawText = rawText.replace(/^```json\n/, '').replace(/\n```$/, '');
+    }
+
+    try {
+      const parsed = JSON.parse(rawText);
+      return {
+        text: parsed.text,
+        metadata: parsed.metadata || {}
+      };
+    } catch (parseError) {
+      console.error('Failed to parse Vision JSON response:', rawText);
+      // Fallback if the model ignores the JSON instruction
+      return {
+        text: rawText,
+        metadata: { error: 'Failed to parse JSON' }
+      };
+    }
+    
   } catch (error) {
     console.error('❌ Vision analysis failed:', error.message);
-    return t('err_vision_fail', preferredLanguage);
+    return {
+      text: t('err_vision_fail', preferredLanguage),
+      metadata: {}
+    };
   }
 }
 

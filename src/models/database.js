@@ -220,11 +220,25 @@ async function getLatestHealthScore(pondId) {
 
 async function saveChatHistory(data) {
   if (USE_MOCK) {
-    mockStore.chat_history.push({ id: uuidv4(), created_at: new Date().toISOString(), ...data });
-    return;
+    const entry = { id: uuidv4(), created_at: new Date().toISOString(), ...data };
+    mockStore.chat_history.push(entry);
+    return entry;
   }
-  const { error } = await supabase.from('chat_history').insert(data);
+  const { data: result, error } = await supabase.from('chat_history').insert(data).select().single();
   if (error) throw error;
+  return result;
+}
+
+async function updateChatHistory(id, data) {
+  if (USE_MOCK) {
+    const idx = mockStore.chat_history.findIndex(c => c.id === id);
+    if (idx === -1) throw new Error('Chat history not found');
+    mockStore.chat_history[idx] = { ...mockStore.chat_history[idx], ...data };
+    return mockStore.chat_history[idx];
+  }
+  const { data: result, error } = await supabase.from('chat_history').update(data).eq('id', id).select().single();
+  if (error) throw error;
+  return result;
 }
 
 async function getRecentChats(farmerId, limit = 10) {
@@ -365,7 +379,7 @@ module.exports = {
   createPond, getPondsByFarmer, getFirstPondByFarmer, getPondById, updatePond,
   insertPondLog, getRecentPondLogs, getAllRecentPondLogs,
   upsertHealthScore, getLatestHealthScore,
-  saveChatHistory, getRecentChats,
+  saveChatHistory, updateChatHistory, getRecentChats,
   searchKnowledge, insertKnowledgeEmbedding, clearKnowledgeBase,
   scheduleFollowUp, getDueFollowUps, markFollowUpCompleted,
   hasPendingDailyCheckIn, markPendingCheckInsCompleted,
