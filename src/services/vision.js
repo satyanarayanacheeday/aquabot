@@ -12,14 +12,15 @@ Format your response as a valid JSON object with the following structure:
 {
   "text": "Your formatted response for WhatsApp (short, scannable). Start with what you observe, name the condition, list 2-3 specific remedies (with commercial brand examples if applicable), and add this exact disclaimer: '⚠️ *Caution:* Please consult a local expert before applying any treatments.'",
   "metadata": {
-    "species": "identified species or 'unknown'",
-    "disease_predicted": "identified disease or 'none'",
+    "species": "identified species or 'unknown' (MUST BE ENGLISH)",
+    "disease_predicted": "identified disease or 'none' (MUST BE ENGLISH)",
     "confidence_level": "high/medium/low",
-    "objects_detected": ["list", "of", "things", "seen"]
+    "objects_detected": ["list", "of", "things", "seen", "(MUST BE ENGLISH)"]
   }
 }
 
-IMPORTANT: Never diagnose with 100% certainty. Always say "possible" or "may indicate" in the text response. Return ONLY valid JSON, without any markdown formatting blocks.`;
+IMPORTANT: Never diagnose with 100% certainty. Always say "possible" or "may indicate" in the text response. 
+CRITICAL: The \`metadata\` values MUST strictly be in English ASCII to avoid database/S3 errors, even if the \`text\` is in another language. You MUST always include the \`metadata\` object. Return ONLY valid JSON, without any markdown formatting blocks.`;
 
 /**
  * Analyze a shrimp/fish image for disease detection using Gemini

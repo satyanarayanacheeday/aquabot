@@ -101,7 +101,11 @@ async function handleIncoming(req, res) {
 
       const reply = buttonId || listId || buttonTitle || listTitle || '';
       await handleTextMessage(phone, reply);
+    } else if (['system', 'reaction', 'unknown'].includes(messageType)) {
+      // Silently ignore system messages, reactions, and unknown types
+      logger.debug(`Skipping message type: ${messageType}`);
     } else {
+      // For audio, video, document, etc.
       const farmer = await getFarmerByPhone(phone);
       const lang = farmer?.preferred_language || 'English';
       await sendTextMessage(phone, t('msg_unsupported', lang));
