@@ -101,14 +101,14 @@ async function handleIncoming(req, res) {
 
       const reply = buttonId || listId || buttonTitle || listTitle || '';
       await handleTextMessage(phone, reply);
-    } else if (['system', 'reaction', 'unknown'].includes(messageType)) {
-      // Silently ignore system messages, reactions, and unknown types
-      logger.debug(`Skipping message type: ${messageType}`);
-    } else {
-      // For audio, video, document, etc.
+    } else if (['audio', 'document', 'video', 'sticker', 'location', 'contacts'].includes(messageType)) {
+      // User explicitly sent an unsupported media type
       const farmer = await getFarmerByPhone(phone);
       const lang = farmer?.preferred_language || 'English';
       await sendTextMessage(phone, t('msg_unsupported', lang));
+    } else {
+      // Silently ignore everything else (system, reaction, unknown, unsupported, etc.)
+      logger.debug(`Silently ignored message type: ${messageType}`);
     }
   } catch (error) {
     logger.error('Error handling incoming message', { error: error.message, stack: error.stack });
