@@ -1,7 +1,7 @@
-const { sendTextMessage, sendListMessage, markAsRead, downloadMedia } = require('../services/whatsapp');
+const { sendTextMessage, sendButtonMessage, sendListMessage, markAsRead, downloadMedia } = require('../services/whatsapp');
 const { getFarmerByPhone, saveChatHistory, updateChatHistory, getLatestHealthScore, getFirstPondByFarmer, getRecentPondLogs } = require('../models/database');
 const { uploadMedia } = require('../services/storage');
-const { startOnboarding, handleOnboardingStep } = require('../services/onboarding');
+const { startOnboarding, handleOnboardingStep, t } = require('../services/onboarding');
 const { startDailyCheckIn, handleDailyStep, getTodayCheckInType, GROUP_MAP } = require('../services/dailyCheckIn');
 const { startWeeklyCheckIn, handleWeeklyStep } = require('../services/weeklyCheckIn');
 const { startEventFollowUp, handleEventStep, detectEventType } = require('../services/eventFollowUp');
@@ -11,6 +11,56 @@ const { getState, setState, clearState, isInFlow } = require('../state/conversat
 const { answerQuestion } = require('../services/ai');
 const { analyzeImage } = require('../services/vision');
 const logger = require('../utils/logger');
+
+/**
+ * JIT Species Prompting Helper
+ */
+async function askSpeciesJIT(phone, speciesType, lang) {
+  if (speciesType === 'default_shrimp') {
+    await sendButtonMessage(phone, t('q_shrimp_species', lang), [
+      { id: 'spec_vannamei', title: t('btn_vannamei', lang) },
+      { id: 'spec_monodon', title: t('btn_tiger', lang) }
+    ]);
+  } else if (speciesType === 'default_fish') {
+    await sendListMessage(phone, t('q_fish_species', lang), t('btn_select_topic', lang), [
+      {
+        title: t('btn_fish', lang),
+        rows: [
+          { id: 'spec_tilapia', title: t('btn_tilapia', lang) },
+          { id: 'spec_rohu', title: t('btn_rohu', lang) },
+          { id: 'spec_pangasius', title: t('btn_pangasius', lang) },
+          { id: 'spec_catfish', title: t('btn_catfish', lang) },
+          { id: 'spec_seabass', title: t('btn_seabass', lang) },
+          { id: 'spec_murrel', title: t('btn_murrel', lang) },
+          { id: 'spec_other_fish', title: t('btn_other_fish', lang) }
+        ]
+      }
+    ]);
+  } else if (speciesType === 'default_both') {
+    await sendListMessage(phone, t('q_both_species', lang), t('btn_select_topic', lang), [
+      {
+        title: t('btn_shrimp', lang),
+        rows: [
+          { id: 'spec_vannamei', title: t('btn_vannamei', lang) },
+          { id: 'spec_monodon', title: t('btn_tiger', lang) }
+        ]
+      },
+      {
+        title: t('btn_fish', lang),
+        rows: [
+          { id: 'spec_tilapia', title: t('btn_tilapia', lang) },
+          { id: 'spec_rohu', title: t('btn_rohu', lang) },
+          { id: 'spec_pangasius', title: t('btn_pangasius', lang) },
+          { id: 'spec_catfish', title: t('btn_catfish', lang) },
+          { id: 'spec_seabass', title: t('btn_seabass', lang) },
+          { id: 'spec_murrel', title: t('btn_murrel', lang) },
+          { id: 'spec_other_fish', title: t('btn_other_fish', lang) }
+        ]
+      }
+    ]);
+  }
+}
+
 
 // Input limits
 const MAX_MESSAGE_LENGTH = 2000;
@@ -244,7 +294,58 @@ async function handleTextMessage(phone, text) {
       await deliverImmediateValue(phone, farmer.id, farmer.village, 'water', lang);
       return;
     }
+
+    // JIT COLLECTION: Specific Species
+    if (flow === 'awaiting_jit_species') {
+      const inputId = text.trim();
+      let selectedSpecies = null;
+      if (inputId === 'spec_vannamei') selectedSpecies = 'vannamei';
+      else if (inputId === 'spec_monodon') selectedSpecies = 'monodon';
+      else if (inputId === 'spec_tilapia') selectedSpecies = 'tilapia';
+      else if (inputId === 'spec_rohu') selectedSpecies = 'rohu';
+      else if (inputId === 'spec_pangasius') selectedSpecies = 'pangasius';
+      else if (inputId === 'spec_catfish') selectedSpecies = 'catfish';
+      else if (inputId === 'spec_seabass') selectedSpecies = 'seabass';
+      else if (inputId === 'spec_murrel') selectedSpecies = 'murrel';
+      else if (inputId === 'spec_other_fish') selectedSpecies = 'other_fish';
+
+      // Fallback text parsing
+      if (!selectedSpecies) {
+        const lowerInput = inputId.toLowerCase();
+        if (lowerInput.includes('vannamei')) selectedSpecies = 'vannamei';
+        else if (lowerInput.includes('tiger')) selectedSpecies = 'monodon';
+        else if (lowerInput.includes('tilapia')) selectedSpecies = 'tilapia';
+        else if (lowerInput.includes('rohu') || lowerInput.includes('imc')) selectedSpecies = 'rohu';
+        else if (lowerInput.includes('pangasius')) selectedSpecies = 'pangasius';
+        else if (lowerInput.includes('catfish')) selectedSpecies = 'catfish';
+        else if (lowerInput.includes('seabass') || lowerInput.includes('pandugappa')) selectedSpecies = 'seabass';
+        else if (lowerInput.includes('murrel') || lowerInput.includes('korrameenu')) selectedSpecies = 'murrel';
+        else if (lowerInput.includes('other')) selectedSpecies = 'other_fish';
+      }
+
+      if (!selectedSpecies) {
+        const pond = await getFirstPondByFarmer(farmer.id);
+        const lang = farmer.preferred_language || 'English';
+        await askSpeciesJIT(phone, pond ? pond.species : 'default_shrimp', lang);
+        return;
+      }
+
+      const { updatePond } = require('../models/database');
+      await updatePond(state.pondId, { species: selectedSpecies });
+
+      const pending = state.pendingAction;
+      clearState(phone);
+
+      // Resume original action
+      if (pending.type === 'topic') {
+        await handleTextMessage(phone, `prob_${pending.topic}`);
+      } else if (pending.type === 'event') {
+        await startEventFollowUp(phone, state.farmerId, pending.eventType, pending.originalMessage);
+      }
+      return;
+    }
     // ------------------------------------------
+
 
     // ------------------------------------------
 
@@ -274,6 +375,22 @@ async function handleTextMessage(phone, text) {
   // 4. Handle topic selection from menu (prob_ prefix)
   if (normalizedText.startsWith('prob_')) {
     const topic = normalizedText.replace('prob_', '');
+    const pond = await getFirstPondByFarmer(farmer.id);
+    if (pond && ['default_shrimp', 'default_fish', 'default_both'].includes(pond.species)) {
+      setState(phone, {
+        flow: 'awaiting_jit_species',
+        pendingAction: {
+          type: 'topic',
+          topic: topic
+        },
+        farmerId: farmer.id,
+        pondId: pond.id
+      });
+      const lang = farmer.preferred_language || 'English';
+      await askSpeciesJIT(phone, pond.species, lang);
+      return;
+    }
+
     
     // NEW: Handle Feed Plan specifically with JIT check
     if (topic === 'feed_plan') {
@@ -431,9 +548,26 @@ async function handleTextMessage(phone, text) {
   // 6. Detect event-based problems from message content
   const eventType = detectEventType(text);
   if (eventType) {
+    const pond = await getFirstPondByFarmer(farmer.id);
+    if (pond && ['default_shrimp', 'default_fish', 'default_both'].includes(pond.species)) {
+      setState(phone, {
+        flow: 'awaiting_jit_species',
+        pendingAction: {
+          type: 'event',
+          eventType: eventType,
+          originalMessage: text
+        },
+        farmerId: farmer.id,
+        pondId: pond.id
+      });
+      const lang = farmer.preferred_language || 'English';
+      await askSpeciesJIT(phone, pond.species, lang);
+      return;
+    }
     await startEventFollowUp(phone, farmer.id, eventType, text);
     return;
   }
+
 
   // 7. Default: AI Q&A (RAG)
   logger.info(`🤖 Routing to AI Q&A for: "${text.substring(0, 80)}"`);

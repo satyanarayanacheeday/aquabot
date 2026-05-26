@@ -19,10 +19,23 @@ const translations = {
   English: {
     intro_g1: '👋 Let\'s get started! Just a few quick questions about your farm.',
     q_species: '🌊 What species are you growing?',
+    q_shrimp_species: '🦐 Which shrimp species are you growing?',
+    q_fish_species: '🐟 Which fish species are you growing?',
+    q_both_species: '🌊 Which species is this issue about?',
     q_village: '📍 Which village or town are you from?',
     btn_shrimp: '🦐 Shrimp',
     btn_fish: '🐟 Fish',
     btn_both: '🦐🐟 Both',
+    btn_vannamei: 'Vannamei',
+    btn_tiger: 'Tiger Shrimp',
+    btn_tilapia: 'Tilapia',
+    btn_rohu: 'Rohu / IMC',
+    btn_pangasius: 'Pangasius',
+    btn_catfish: 'Catfish',
+    btn_seabass: 'Seabass',
+    btn_murrel: 'Murrel',
+    btn_other_fish: 'Other Fish',
+    btn_shrimp_and_fish: 'Both Shrimp & Fish',
     reg_success: '🎉 *Registration Successful!*',
     farm_details: '📋 *Your Farm Details:*',
     label_type: '🌊 Type',
@@ -47,10 +60,23 @@ const translations = {
   Telugu: {
     intro_g1: '👋 ప్రారంభిద్దాం! మీ ఫారం గురించి కొన్ని త్వరిత ప్రశ్నలు.',
     q_species: '🌊 మీరు ఏ జాతిని పెంచుతున్నారు?',
+    q_shrimp_species: '🦐 మీరు ఏ రకమైన రొయ్యలను పెంచుతున్నారు?',
+    q_fish_species: '🐟 మీరు ఏ రకమైన చేపలను పెంచుతున్నారు?',
+    q_both_species: '🌊 ఈ సమస్య ఏ జాతికి సంబంధించినది?',
     q_village: '📍 మీ గ్రామం లేదా పట్టణం పేరు ఏమిటి?',
     btn_shrimp: '🦐 రొయ్యలు',
     btn_fish: '🐟 చేపలు',
     btn_both: '🦐🐟 రెండూ',
+    btn_vannamei: 'వెన్నామీ',
+    btn_tiger: 'టైగర్ రొయ్యలు',
+    btn_tilapia: 'తిలాపియా',
+    btn_rohu: 'రోహు / ఐఎంసి',
+    btn_pangasius: 'పంగేసియస్',
+    btn_catfish: 'జెల్లా / క్యాట్‌ఫిష్',
+    btn_seabass: 'పండుగప్ప / సీబాస్',
+    btn_murrel: 'కొర్రమీను / ముర్రెల్',
+    btn_other_fish: 'ఇతర చేపలు',
+    btn_shrimp_and_fish: 'రొయ్యలు & చేపలు రెండూ',
     reg_success: '🎉 *రిజిస్ట్రేషన్ పూర్తయింది!*',
     farm_details: '📋 *మీ ఫారం వివరాలు:*',
     label_type: '🌊 రకం',
@@ -75,10 +101,23 @@ const translations = {
   Hindi: {
     intro_g1: '👋 चलिए शुरू करते हैं! आपके फार्म के बारे में कुछ त्वरित प्रश्न।',
     q_species: '🌊 आप कौन सी प्रजाति पाल रहे हैं?',
+    q_shrimp_species: '🦐 आप कौन सी झींगा प्रजाति पाल रहे हैं?',
+    q_fish_species: '🐟 आप किस प्रकार की मछली पाल रहे हैं?',
+    q_both_species: '🌊 यह समस्या किस प्रजाति से संबंधित है?',
     q_village: '📍 आप किस गाँव या शहर से हैं?',
     btn_shrimp: '🦐 झींगा',
     btn_fish: '🐟 मछली',
     btn_both: '🦐🐟 दोनों',
+    btn_vannamei: 'वन्नामेई',
+    btn_tiger: 'टाइगर झींगा',
+    btn_tilapia: 'तिलापिया',
+    btn_rohu: 'रोहू / आईएमसी',
+    btn_pangasius: 'पंगासियस',
+    btn_catfish: 'कैटफ़िश',
+    btn_seabass: 'सीबास',
+    btn_murrel: 'मुरैल',
+    btn_other_fish: 'अन्य मछली',
+    btn_shrimp_and_fish: 'झींगा और मछली दोनों',
     reg_success: '🎉 *पंजीकरण सफल!*',
     farm_details: '📋 *आपके फार्म का विवरण:*',
     label_type: '🌊 प्रकार',
@@ -105,6 +144,7 @@ const translations = {
 function t(key, lang = 'English') {
   return translations[lang]?.[key] || translations['English']?.[key] || key;
 }
+
 
 // ========================
 // START ONBOARDING
@@ -238,11 +278,12 @@ async function finalizeOnboarding(phone) {
   await createPond({
     farmer_id: state.farmerId,
     pond_number: 1,
-    species: data.farm_type === 'shrimp' ? 'vannamei' : (data.farm_type === 'fish' ? 'tilapia' : 'vannamei_and_tilapia'),
+    species: data.farm_type === 'shrimp' ? 'default_shrimp' : (data.farm_type === 'fish' ? 'default_fish' : 'default_both'),
     stocking_date: null,
     pond_size: null,
     seed_count: null
   });
+
 
   clearState(phone);
 
@@ -277,4 +318,7 @@ async function finalizeOnboarding(phone) {
 module.exports = {
   startOnboarding,
   handleOnboardingStep,
+  translations,
+  t,
 };
+
