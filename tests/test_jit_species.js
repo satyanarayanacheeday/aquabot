@@ -219,6 +219,60 @@ async function runTests() {
   assert(logs.slice(-1)[0].text.includes('current shrimp count'), "Should automatically proceed to ask current count (ABW)");
   console.log('✅ Scenario 6: Passed!\n');
 
+  // ==========================================
+  // SCENARIO 7: General AI Q&A JIT Collection
+  // ==========================================
+  console.log('--- Scenario 7: General AI Q&A triggers sequential JIT context collection ---');
+  const phone7 = '919000000007';
+  clearMessageLog();
+
+  // Create onboarded farmer, species is default placeholder, stocking_date/seed_count/pond_size are null
+  const farmer7 = await createFarmer({ phone: phone7, onboarding_complete: true, preferred_language: 'English' });
+  await createPond({ 
+    farmer_id: farmer7.id, 
+    pond_number: 1, 
+    species: 'default_shrimp', 
+    stocking_date: null, 
+    seed_count: null, 
+    pond_size: null 
+  });
+
+  // Farmer asks a general Q&A / RAG question
+  await simulateMessage(phone7, 'what is the best water pH for shrimp?');
+
+  logs = getMessageLog();
+  // 1. Should first intercept and ask for species
+  assert(logs[0].text.includes('Which shrimp species'), "Should ask for specific species first");
+
+  // Select species Vannamei
+  await simulateMessage(phone7, 'Vannamei', 'interactive', { button_reply: { id: 'spec_vannamei', title: 'Vannamei' } });
+
+  // 2. Should automatically ask for stocking date next
+  logs = getMessageLog();
+  assert(logs.slice(-1)[0].text.includes('Stocking Date'), "Should ask for Stocking Date next");
+
+  // Enter stocking date
+  await simulateMessage(phone7, '10/05/2026');
+
+  // 3. Should automatically ask for seed count next
+  logs = getMessageLog();
+  assert(logs.slice(-1)[0].text.includes('How many seeds'), "Should ask for Seed Count next");
+
+  // Enter seed count
+  await simulateMessage(phone7, '200,000');
+
+  // 4. Should automatically ask for pond size next
+  logs = getMessageLog();
+  assert(logs.slice(-1)[0].text.includes('pond size'), "Should ask for Pond Size next");
+
+  // Enter pond size
+  await simulateMessage(phone7, '1-3 acres', 'interactive', { button_reply: { id: 'jit_size_m', title: '1-3 acres' } });
+
+  // 5. Once all details are filled, the bot must automatically call AI Q&A to answer the original question
+  logs = getMessageLog();
+  assert(logs.slice(-1)[0].text.includes('mocked AI response'), "Should automatically answer the original question with RAG");
+  console.log('✅ Scenario 7: Passed!\n');
+
   console.log('🎉 ALL JIT BOT TESTS PASSED SUCCESSFULLY! 🎉');
 }
 

@@ -62,6 +62,94 @@ async function askSpeciesJIT(phone, speciesType, lang) {
 }
 
 
+/**
+ * Unified JIT Context Checking Pipeline
+ * Checks if Species, Stocking Date, Seed Count, or Pond Size are missing.
+ * Prompts sequentially if anything is missing.
+ */
+async function checkAndRunJITPipeline(phone, farmer, text, pendingAction) {
+  const pond = await getFirstPondByFarmer(farmer.id);
+  if (!pond) return false;
+
+  const lang = farmer.preferred_language || 'English';
+
+  // 1. Check Species (if placeholder default_*)
+  if (['default_shrimp', 'default_fish', 'default_both'].includes(pond.species)) {
+    setState(phone, {
+      flow: 'awaiting_jit_species',
+      pendingAction: pendingAction || { type: 'rag', originalMessage: text },
+      farmerId: farmer.id,
+      pondId: pond.id
+    });
+    await askSpeciesJIT(phone, pond.species, lang);
+    return true;
+  }
+
+  // 2. Check Stocking Date
+  if (!pond.stocking_date) {
+    setState(phone, {
+      flow: 'awaiting_jit_stocking_date',
+      pendingAction: pendingAction || { type: 'rag', originalMessage: text },
+      farmerId: farmer.id,
+      pondId: pond.id
+    });
+    await sendTextMessage(phone, lang === 'Telugu' ? 'ఖచ్చితమైన సమాధానం కోసం, మీ *స్టాకింగ్ తేదీ* చెప్పండి (ఉదా: 15/05/2024).' : 
+             'To answer accurately, I first need your *Stocking Date* (Example: 15/05/2024).');
+    return true;
+  }
+
+  // 3. Check Seed Count (Stock)
+  if (!pond.seed_count) {
+    setState(phone, {
+      flow: 'awaiting_jit_seed_count',
+      pendingAction: pendingAction || { type: 'rag', originalMessage: text },
+      farmerId: farmer.id,
+      pondId: pond.id
+    });
+    await sendTextMessage(phone, lang === 'Telugu' ? '🔢 మీ చెరువులో ఎన్ని విత్తనాలు (seeds) వేశారు? (ఉదా: 100000)' : 
+             '🔢 How many seeds did you stock in this pond? (Example: 100000)');
+    return true;
+  }
+
+  // 4. Check Pond Size
+  if (!pond.pond_size) {
+    setState(phone, {
+      flow: 'awaiting_jit_pond_size',
+      pendingAction: pendingAction || { type: 'rag', originalMessage: text },
+      farmerId: farmer.id,
+      pondId: pond.id
+    });
+    await sendButtonMessage(phone, 
+      lang === 'Telugu' ? 'మీ చెరువు పరిమాణం ఎంత?' : 'What is your pond size?',
+      [
+        { id: 'jit_size_s', title: lang === 'Telugu' ? '1 ఎకరం కంటే తక్కువ' : '<1 acre' },
+        { id: 'jit_size_m', title: lang === 'Telugu' ? '1-3 ఎకరాలు' : '1-3 acres' },
+        { id: 'jit_size_l', title: lang === 'Telugu' ? '3 ఎకరాల కంటే ఎక్కువ' : '>3 acres' }
+      ]
+    );
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Resume the original action after JIT info has been collected
+ */
+async function resumeOriginalAction(phone, farmer, pending) {
+  if (!pending) return;
+  const lang = farmer.preferred_language || 'English';
+
+  if (pending.type === 'topic') {
+    await handleTextMessage(phone, `prob_${pending.topic}`);
+  } else if (pending.type === 'event') {
+    await startEventFollowUp(phone, farmer.id, pending.eventType, pending.originalMessage);
+  } else if (pending.type === 'rag') {
+    await handleTextMessage(phone, pending.originalMessage);
+  }
+}
+
+
 // Input limits
 const MAX_MESSAGE_LENGTH = 2000;
 const processedMessages = new Set(); // Simple in-memory deduplication
@@ -266,10 +354,24 @@ async function handleTextMessage(phone, text) {
       const { updatePond } = require('../models/database');
       await updatePond(pond.id, { stocking_date: isoDate });
 
-      // Move to next requirement: Feed Count
-      const q = lang === 'Telugu' ? 'బాగుంది! ఇప్పుడు మీ రొయ్యల కౌంట్ లేదా గ్రాములు తెలియజేయండి.' : 'Great! Now, what is your current shrimp count (e.g., 100 count) or size?';
-      setState(phone, { flow: 'awaiting_feed_count', farmerId: farmer.id });
-      await sendTextMessage(phone, q);
+      const pending = state.pendingAction;
+      clearState(phone);
+
+      const isJIT = await checkAndRunJITPipeline(phone, farmer, pending?.originalMessage || '', pending);
+      if (!isJIT) {
+        if (pending && pending.type === 'topic' && pending.topic === 'feed_plan') {
+          const q = lang === 'Telugu' ? 'మీ రొయ్యల ప్రస్తుత కౌంట్ ఎంత? (ఉదాహరణకు: 100 కౌంట్ లేదా 10 గ్రాములు)' : 
+                   'To give you an accurate plan, what is your current shrimp count (e.g., 100 count) or size in grams?';
+          setState(phone, { flow: 'awaiting_feed_count', farmerId: farmer.id });
+          await sendTextMessage(phone, q);
+        } else if (pending) {
+          await resumeOriginalAction(phone, farmer, pending);
+        } else {
+          const q = lang === 'Telugu' ? 'బాగుంది! ఇప్పుడు మీ రొయ్యల కౌంట్ లేదా గ్రాములు తెలియజేయండి.' : 'Great! Now, what is your current shrimp count (e.g., 100 count) or size?';
+          setState(phone, { flow: 'awaiting_feed_count', farmerId: farmer.id });
+          await sendTextMessage(phone, q);
+        }
+      }
       return;
     }
 
@@ -284,19 +386,35 @@ async function handleTextMessage(phone, text) {
       const { updatePond } = require('../models/database');
       await updatePond(pond.id, { seed_count: countVal });
       
-      const q = lang === 'Telugu' ? 'మీ రొయ్యల ప్రస్తుత కౌంట్ ఎంత? (ఉదాహరణకు: 100 కౌంట్ లేదా 10 గ్రాములు)' : 
-               'To give you an accurate plan, what is your current shrimp count (e.g., 100 count) or size in grams?';
-      setState(phone, { flow: 'awaiting_feed_count', farmerId: farmer.id });
-      await sendTextMessage(phone, q);
+      const pending = state.pendingAction;
+      clearState(phone);
+
+      const isJIT = await checkAndRunJITPipeline(phone, farmer, pending?.originalMessage || '', pending);
+      if (!isJIT) {
+        if (pending && pending.type === 'topic' && pending.topic === 'feed_plan') {
+          const q = lang === 'Telugu' ? 'మీ రొయ్యల ప్రస్తుత కౌంట్ ఎంత? (ఉదాహరణకు: 100 కౌంట్ లేదా 10 గ్రాములు)' : 
+                   'To give you an accurate plan, what is your current shrimp count (e.g., 100 count) or size in grams?';
+          setState(phone, { flow: 'awaiting_feed_count', farmerId: farmer.id });
+          await sendTextMessage(phone, q);
+        } else if (pending) {
+          await resumeOriginalAction(phone, farmer, pending);
+        } else {
+          const q = lang === 'Telugu' ? 'మీ రొయ్యల ప్రస్తుత కౌంట్ ఎంత? (ఉదాహరణకు: 100 కౌంట్ లేదా 10 గ్రాములు)' : 
+                   'To give you an accurate plan, what is your current shrimp count (e.g., 100 count) or size in grams?';
+          setState(phone, { flow: 'awaiting_feed_count', farmerId: farmer.id });
+          await sendTextMessage(phone, q);
+        }
+      }
       return;
     }
 
     // JIT COLLECTION: Pond Size
     if (flow === 'awaiting_jit_pond_size') {
       let pondSize = null;
-      if (text.includes('less') || text.includes('<1') || text.includes('size_small')) pondSize = 'less_than_1_acre';
-      else if (text.includes('1') && text.includes('3') || text.includes('size_medium')) pondSize = '1_3_acres';
-      else if (text.includes('more') || text.includes('>3') || text.includes('size_large')) pondSize = 'more_than_3_acres';
+      const cleanText = text.toLowerCase();
+      if (cleanText.includes('less') || cleanText.includes('<1') || cleanText.includes('size_small') || cleanText.includes('jit_size_s') || cleanText.includes('1 ఎకరం కంటే తక్కువ')) pondSize = 'less_than_1_acre';
+      else if (cleanText.includes('1') && cleanText.includes('3') || cleanText.includes('size_medium') || cleanText.includes('jit_size_m') || cleanText.includes('1-3 ఎకరాలు')) pondSize = '1_3_acres';
+      else if (cleanText.includes('more') || cleanText.includes('>3') || cleanText.includes('size_large') || cleanText.includes('jit_size_l') || cleanText.includes('3 ఎకరాల కంటే ఎక్కువ')) pondSize = 'more_than_3_acres';
 
       if (!pondSize) {
         await sendTextMessage(phone, 'Please select a size: <1 acre, 1-3 acres, or >3 acres.');
@@ -306,10 +424,21 @@ async function handleTextMessage(phone, text) {
       const { updatePond } = require('../models/database');
       await updatePond(pond.id, { pond_size: pondSize });
       
+      const pending = state.pendingAction;
       clearState(phone);
-      // Proceed to original topic (water)
-      const { deliverImmediateValue } = require('../services/immediateValue');
-      await deliverImmediateValue(phone, farmer.id, farmer.village, 'water', lang);
+
+      const isJIT = await checkAndRunJITPipeline(phone, farmer, pending?.originalMessage || '', pending);
+      if (!isJIT) {
+        if (pending && pending.type === 'topic' && (pending.topic === 'water' || pending.topic === 'water_quality')) {
+          const { deliverImmediateValue } = require('../services/immediateValue');
+          await deliverImmediateValue(phone, farmer.id, farmer.village, 'water', lang);
+        } else if (pending) {
+          await resumeOriginalAction(phone, farmer, pending);
+        } else {
+          const { deliverImmediateValue } = require('../services/immediateValue');
+          await deliverImmediateValue(phone, farmer.id, farmer.village, 'water', lang);
+        }
+      }
       return;
     }
 
@@ -354,11 +483,11 @@ async function handleTextMessage(phone, text) {
       const pending = state.pendingAction;
       clearState(phone);
 
-      // Resume original action
-      if (pending.type === 'topic') {
-        await handleTextMessage(phone, `prob_${pending.topic}`);
-      } else if (pending.type === 'event') {
-        await startEventFollowUp(phone, state.farmerId, pending.eventType, pending.originalMessage);
+      if (pending) {
+        const isJIT = await checkAndRunJITPipeline(phone, farmer, pending.originalMessage || '', pending);
+        if (!isJIT) {
+          await resumeOriginalAction(phone, farmer, pending);
+        }
       }
       return;
     }
@@ -629,6 +758,10 @@ async function handleTextMessage(phone, text) {
 
 
   // 7. Default: AI Q&A (RAG)
+  // Check JIT pipeline before routing to general AI Q&A
+  const isJIT = await checkAndRunJITPipeline(phone, farmer, text, { type: 'rag', originalMessage: text });
+  if (isJIT) return;
+
   logger.info(`🤖 Routing to AI Q&A for: "${text.substring(0, 80)}"`);
   let answer;
   const lang = farmer?.preferred_language || 'English';
