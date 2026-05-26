@@ -363,11 +363,10 @@ async function handleTextMessage(phone, text) {
 
       clearState(phone);
 
-      const confirmMsg = lang === 'Telugu' ? `✅ ధన్యవాదాలు! మీ ఫారమ్ స్థానాన్ని *${villageInput}* కు అప్‌డేట్ చేసాను. 🚀` :
-                         (lang === 'Hindi' ? `✅ धन्यवाद! मैंने आपके फ़ार्म का स्थान *${villageInput}* पर अपडेट कर दिया है। 🚀` :
-                         `✅ Thank you! I've updated your farm location to *${villageInput}*. 🚀`);
+      const confirmMsg = t('msg_jit_village_success', lang).replace('{village}', villageInput);
       await sendTextMessage(phone, confirmMsg);
       return;
+
     }
     // ------------------------------------------
 

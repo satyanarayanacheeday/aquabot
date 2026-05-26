@@ -621,9 +621,8 @@ async function finalizeEvent(phone) {
         flow: 'awaiting_jit_village',
         farmerId: state.farmerId
       });
-      const promptMsg = lang === 'Telugu' ? '📍 ఒక చిన్న విషయం, మీ ఫారం ఏ గ్రామం లేదా పట్టణంలో ఉంది?\nఇది మీ ప్రాంతానికి తగిన రోజువారీ సూచనలు మరియు నిపుణుల సలహాలను అందించడానికి మాకు సహాయపడుతుంది.' :
-                        (lang === 'Hindi' ? '📍 वैसे, आपका फार्म किस गाँव या शहर में स्थित है?\nयह हमें आपके क्षेत्र के लिए दैनिक चेक-इन और विशेषज्ञ सलाह को अनुकूलित करने में मदद करेगा।' :
-                        '📍 By the way, which village or town is your farm located in?\nThis will help us tailor future daily check-ins and expert advisories for your area.');
+      const onboardingService = require('./onboarding');
+      const promptMsg = onboardingService.t('q_jit_village', lang);
       await sendTextMessage(phone, promptMsg);
     }
 
@@ -641,12 +640,12 @@ async function finalizeEvent(phone) {
         flow: 'awaiting_jit_village',
         farmerId: state.farmerId
       });
-      const promptMsg = lang === 'Telugu' ? '📍 ఒక చిన్న విషయం, మీ ఫారం ఏ గ్రామం లేదా పట్టణంలో ఉంది?\nఇది మీ ప్రాంతానికి తగిన రోజువారీ సూచనలు మరియు నిపుణుల సలహాలను అందించడానికి మాకు సహాయపడుతుంది.' :
-                        (lang === 'Hindi' ? '📍 वैसे, आपका फार्म किस गाँव या शहर में स्थित है?\nयह हमें आपके क्षेत्र के लिए दैनिक चेक-इन और विशेषज्ञ सलाह को अनुकूलित करने में मदद करेगा।' :
-                        '📍 By the way, which village or town is your farm located in?\nThis will help us tailor future daily check-ins and expert advisories for your area.');
+      const onboardingService = require('./onboarding');
+      const promptMsg = onboardingService.t('q_jit_village', lang);
       await sendTextMessage(phone, promptMsg);
     }
   }
+
 
 }
 
