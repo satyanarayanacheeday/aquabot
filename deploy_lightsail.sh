@@ -1,0 +1,259 @@
+#!/bin/bash
+# ============================================================
+#  aquaIQ Bot — Complete Lightsail Deploy Script v3
+#  Run ONCE after SSH-ing into a fresh Ubuntu 22.04 instance:
+#    chmod +x deploy_lightsail.sh && ./deploy_lightsail.sh
+# ============================================================
+
+set -euo pipefail   # exit on error, unset var, or pipe failure
+
+REPO_URL="https://github.com/satyanarayanacheeday/aquabot.git"
+APP_DIR="/home/ubuntu/aquabot"
+APP_NAME="aquaiq"
+
+echo ""
+echo "============================================================"
+echo " 🚀  AQUAIQ BOT — LIGHTSAIL DEPLOY"
+echo "============================================================"
+echo ""
+
+# ========================
+# 1. System Updates
+# ========================
+echo "📦 [1/10] Updating system packages..."
+sudo apt-get update -y
+sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
+echo "✅ System updated"
+
+# ========================
+# 2. Install Node.js 20 (LTS)
+# ========================
+echo "📦 [2/10] Installing Node.js 20..."
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+echo "✅ Node.js $(node -v) | npm $(npm -v)"
+
+# ========================
+# 3. Install PM2
+# ========================
+echo "📦 [3/10] Installing PM2..."
+sudo npm install -g pm2
+echo "✅ PM2 $(pm2 -v)"
+
+# ========================
+# 4. Install Nginx + Certbot
+# ========================
+echo "📦 [4/10] Installing Nginx + Certbot..."
+sudo apt-get install -y nginx certbot python3-certbot-nginx
+sudo systemctl enable nginx
+sudo systemctl start nginx
+echo "✅ Nginx installed"
+
+# ========================
+# 5. Clone or Pull Repo
+# ========================
+echo "📦 [5/10] Setting up application code..."
+if [ -d "$APP_DIR" ]; then
+  echo "   ↻  Repo already exists — pulling latest..."
+  cd "$APP_DIR"
+  git fetch origin
+  git reset --hard origin/main   # clean pull, no merge conflicts
+else
+  echo "   ↓  Cloning repo..."
+  git clone "$REPO_URL" "$APP_DIR"
+  cd "$APP_DIR"
+fi
+echo "✅ Code ready at $APP_DIR"
+
+# ========================
+# 6. Install Node Dependencies
+# ========================
+echo "📦 [6/10] Installing Node.js dependencies..."
+npm ci --omit=dev --prefer-offline
+echo "✅ Backend dependencies installed"
+
+# ========================
+# 7. Build Dashboard Frontend
+# ========================
+echo "📦 [7/11] Building Dashboard Frontend..."
+if [ -d "dashboard" ]; then
+  cd dashboard
+  npm install
+  npm run build
+  cd ..
+  echo "✅ Dashboard built"
+else
+  echo "⚠️  Dashboard directory not found, skipping build"
+fi
+
+# ========================
+# 8. Create logs directory
+# ========================
+echo "📁 Creating logs directory..."
+mkdir -p logs
+echo "✅ logs/ directory ready"
+
+# ========================
+# ========================
+# 9. Create .env file (ONLY if it doesn't exist)
+# ========================
+if [ ! -f .env ]; then
+  echo "📝 [8/11] Writing .env..."
+  cat > .env << 'ENVFILE'
+# WhatsApp Cloud API
+WHATSAPP_TOKEN=your_whatsapp_token
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+VERIFY_TOKEN=your_verify_token
+WHATSAPP_APP_SECRET=your_app_secret
+
+# Supabase
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+
+# Gemini AI
+GEMINI_API_KEY=your_gemini_api_key
+
+# Dashboard
+DASHBOARD_ADMIN_TOKEN=aquaiq-admin-2024
+
+# Server
+PORT=3000
+NODE_ENV=production
+ENVFILE
+  echo "✅ .env created. PLEASE EDIT IT TO ADD YOUR KEYS."
+else
+  echo "✅ .env already exists — skipping creation to protect your keys."
+fi
+
+echo "✅ .env written"
+
+# ========================
+# 10. Syntax-check server.js BEFORE starting
+# ========================
+echo "🔍 [9/11] Syntax-checking server.js..."
+node --check server.js
+echo "✅ server.js syntax OK"
+
+# ========================
+# 11. Start / Restart with PM2
+# ========================
+echo "🚀 [10/11] Starting app with PM2..."
+
+# Stop old instance if running
+pm2 delete "$APP_NAME" 2>/dev/null || true
+
+pm2 start server.js \
+  --name "$APP_NAME" \
+  --max-memory-restart 400M \
+  --log logs/pm2.log \
+  --merge-logs \
+  --time
+
+pm2 save
+
+# Auto-restart on server reboot
+sudo env PATH="$PATH:/usr/bin" \
+  pm2 startup systemd -u ubuntu --hp /home/ubuntu | tail -1 | sudo bash -
+pm2 save
+
+echo "✅ PM2 started — waiting 5 s for app to bind port..."
+sleep 5
+
+# ========================
+# 11. Verify app is actually running
+# ========================
+echo "🔍 Verifying health endpoint..."
+if ! curl -sf http://127.0.0.1:3000/health > /dev/null; then
+  echo ""
+  echo "❌ App health check FAILED. Last PM2 logs:"
+  pm2 logs "$APP_NAME" --lines 30 --nostream
+  echo ""
+  echo "Fix the error above, then run: pm2 restart $APP_NAME"
+  exit 1
+fi
+echo "✅ App is healthy on port 3000"
+
+# ========================
+# 12. Configure Nginx
+# ========================
+echo "🔧 [11/11] Configuring Nginx reverse proxy..."
+
+PUBLIC_IP=$(curl -sf http://checkip.amazonaws.com || echo "YOUR_IP")
+
+sudo tee /etc/nginx/sites-available/aquaiq > /dev/null << NGINX
+server {
+    listen 80;
+    server_name _;          # Catch-all (works with IP; swap _ for domain later)
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Proxy to Node app
+    location / {
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade \$http_upgrade;
+        proxy_set_header   Connection 'upgrade';
+        proxy_set_header   Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 90s;
+
+        # Don't buffer webhook payloads
+        proxy_buffering    off;
+    }
+
+    # Health check (internal only)
+    location /health {
+        proxy_pass http://127.0.0.1:3000/health;
+        access_log off;
+    }
+
+    # Block dotfiles (.env, .git, etc)
+    location ~ /\. {
+        deny all;
+    }
+}
+NGINX
+
+# Enable site, disable default
+sudo ln -sf /etc/nginx/sites-available/aquaiq /etc/nginx/sites-enabled/aquaiq
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Test config and reload
+sudo nginx -t
+sudo systemctl reload nginx
+echo "✅ Nginx configured and reloaded"
+
+# ========================
+# DONE — Print Summary
+# ========================
+echo ""
+echo "============================================================"
+echo " ✅  AQUAIQ BOT DEPLOYED SUCCESSFULLY!"
+echo "============================================================"
+echo ""
+echo " 🌐  Bot accessible at: http://${PUBLIC_IP}"
+echo " 🔗  Webhook URL:       http://${PUBLIC_IP}/webhook"
+echo " ❤️   Health check:      http://${PUBLIC_IP}/health"
+echo ""
+echo " 📋  NEXT STEPS:"
+echo "   1️⃣  Lightsail Console → Networking → open ports 80 and 443"
+echo "   2️⃣  Lightsail Console → Attach a Static IP"
+echo "   3️⃣  Point your domain DNS A-record to: ${PUBLIC_IP}"
+echo "   4️⃣  Once DNS resolves, add HTTPS:"
+echo "        sudo certbot --nginx -d aquabot.satyacheeday.me"
+echo "   5️⃣  Update Meta webhook URL to: https://aquabot.satyacheeday.me/webhook"
+echo ""
+echo " 🛠️   USEFUL COMMANDS:"
+echo "   pm2 status               — Process status"
+echo "   pm2 logs $APP_NAME       — Live logs"
+echo "   pm2 restart $APP_NAME    — Restart app"
+echo "   pm2 monit                — CPU/RAM monitor"
+echo "   sudo nginx -t && sudo systemctl reload nginx  — Reload Nginx"
+echo ""
+pm2 status
