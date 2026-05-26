@@ -192,6 +192,33 @@ async function runTests() {
   assert(logs.slice(-1)[0].text.includes('updated your farm location to *Bhimavaram*'), "Should confirm village registration");
   console.log('✅ Scenario 5: Passed!\n');
 
+  // ==========================================
+  // SCENARIO 6: JIT Seed Count (Initial Count)
+  // ==========================================
+  console.log('--- Scenario 6: JIT Seed Count prompt triggers during Feed Plan flow ---');
+  const phone6 = '919000000006';
+  clearMessageLog();
+
+  // Onboarded farmer, species is set, stocking date is set, but seed_count is null
+  const farmer6 = await createFarmer({ phone: phone6, onboarding_complete: true });
+  await createPond({ farmer_id: farmer6.id, pond_number: 1, species: 'vannamei', stocking_date: '2026-05-10', seed_count: null });
+
+  // Farmer asks for feed
+  await simulateMessage(phone6, 'Feed entha evvali');
+
+  logs = getMessageLog();
+  assert(logs[0].text.includes('How many seeds did you stock'), "Should ask for initial stocking/seed count");
+
+  // Farmer enters seed count
+  await simulateMessage(phone6, '150,000');
+
+  const pond6 = await getFirstPondByFarmer(farmer6.id);
+  assert(pond6.seed_count === 150000, "Pond seed count should update in DB");
+
+  logs = getMessageLog();
+  assert(logs.slice(-1)[0].text.includes('current shrimp count'), "Should automatically proceed to ask current count (ABW)");
+  console.log('✅ Scenario 6: Passed!\n');
+
   console.log('🎉 ALL JIT BOT TESTS PASSED SUCCESSFULLY! 🎉');
 }
 
@@ -199,3 +226,4 @@ runTests().catch(err => {
   console.error(err);
   process.exit(1);
 });
+

@@ -273,6 +273,24 @@ async function handleTextMessage(phone, text) {
       return;
     }
 
+    // JIT COLLECTION: Seed Count
+    if (flow === 'awaiting_jit_seed_count') {
+      const countVal = parseInt(text.replace(/,/g, '').trim());
+      if (isNaN(countVal) || countVal <= 0) {
+        await sendTextMessage(phone, lang === 'Telugu' ? '❌ దయచేసి సరైన సంఖ్యను నమోదు చేయండి.' : '❌ Please enter a valid number.');
+        return;
+      }
+      const pond = await getFirstPondByFarmer(farmer.id);
+      const { updatePond } = require('../models/database');
+      await updatePond(pond.id, { seed_count: countVal });
+      
+      const q = lang === 'Telugu' ? 'మీ రొయ్యల ప్రస్తుత కౌంట్ ఎంత? (ఉదాహరణకు: 100 కౌంట్ లేదా 10 గ్రాములు)' : 
+               'To give you an accurate plan, what is your current shrimp count (e.g., 100 count) or size in grams?';
+      setState(phone, { flow: 'awaiting_feed_count', farmerId: farmer.id });
+      await sendTextMessage(phone, q);
+      return;
+    }
+
     // JIT COLLECTION: Pond Size
     if (flow === 'awaiting_jit_pond_size') {
       let pondSize = null;
@@ -430,7 +448,15 @@ async function handleTextMessage(phone, text) {
         return;
       }
 
-      // 2. Then check Count
+      // 2. Check Seed/Stock Count
+      if (!pond.seed_count) {
+        setState(phone, { flow: 'awaiting_jit_seed_count', farmerId: farmer.id });
+        await sendTextMessage(phone, lang === 'Telugu' ? '🔢 మీ చెరువులో ఎన్ని విత్తనాలు (seeds) వేశారు? (ఉదా: 100000)' : 
+                 '🔢 How many seeds did you stock in this pond? (Example: 100000)');
+        return;
+      }
+
+      // 3. Then check Count
       const q = lang === 'Telugu' ? 'మీ రొయ్యల ప్రస్తుత కౌంట్ ఎంత? (ఉదాహరణకు: 100 కౌంట్ లేదా 10 గ్రాములు)' : 
                (lang === 'Hindi' ? 'आपका झींगा काउंट कितना है? (उदाहरण: 100 काउंट या 10 ग्राम)' : 
                'To give you an accurate plan, what is your current shrimp count (e.g., 100 count) or size in grams?');
@@ -567,6 +593,14 @@ async function handleTextMessage(phone, text) {
 
   if (normalizedText === 'weekly' || normalizedText === 'report') {
     await startWeeklyCheckIn(phone, farmer.id);
+    return;
+  }
+
+  // 5.5 Detect feed plan calculation requests
+  const feedPlanKeywords = ['feed calculation', 'feed calculator', 'how much feed', 'feed amount', 'feed plan', 'feeding schedule', 'feed table', 'feed entha', 'feed limit', 'మేత ఎంత', 'మేత ఎంత వేయాలి', 'మేత ఎంత ఇవ్వాలి', 'चारा कितना', 'feed count', 'feed size'];
+  const isFeedQuery = feedPlanKeywords.some(kw => normalizedText.includes(kw)) || ['feed', 'feeding', 'మేత', 'चारा'].includes(normalizedText);
+  if (isFeedQuery) {
+    await handleTextMessage(phone, 'prob_feed_plan');
     return;
   }
 
