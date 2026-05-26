@@ -1,7 +1,7 @@
 const { sendTextMessage, sendButtonMessage, sendListMessage, markAsRead, downloadMedia } = require('../services/whatsapp');
 const { getFarmerByPhone, saveChatHistory, updateChatHistory, getLatestHealthScore, getFirstPondByFarmer, getRecentPondLogs } = require('../models/database');
 const { uploadMedia } = require('../services/storage');
-const { startOnboarding, handleOnboardingStep, t } = require('../services/onboarding');
+const { startOnboarding, handleOnboardingStep, t: onboardingT } = require('../services/onboarding');
 const { startDailyCheckIn, handleDailyStep, getTodayCheckInType, GROUP_MAP } = require('../services/dailyCheckIn');
 const { startWeeklyCheckIn, handleWeeklyStep } = require('../services/weeklyCheckIn');
 const { startEventFollowUp, handleEventStep, detectEventType } = require('../services/eventFollowUp');
@@ -17,44 +17,44 @@ const logger = require('../utils/logger');
  */
 async function askSpeciesJIT(phone, speciesType, lang) {
   if (speciesType === 'default_shrimp') {
-    await sendButtonMessage(phone, t('q_shrimp_species', lang), [
-      { id: 'spec_vannamei', title: t('btn_vannamei', lang) },
-      { id: 'spec_monodon', title: t('btn_tiger', lang) }
+    await sendButtonMessage(phone, onboardingT('q_shrimp_species', lang), [
+      { id: 'spec_vannamei', title: onboardingT('btn_vannamei', lang) },
+      { id: 'spec_monodon', title: onboardingT('btn_tiger', lang) }
     ]);
   } else if (speciesType === 'default_fish') {
-    await sendListMessage(phone, t('q_fish_species', lang), t('btn_select_topic', lang), [
+    await sendListMessage(phone, onboardingT('q_fish_species', lang), onboardingT('btn_select_topic', lang), [
       {
-        title: t('btn_fish', lang),
+        title: onboardingT('btn_fish', lang),
         rows: [
-          { id: 'spec_tilapia', title: t('btn_tilapia', lang) },
-          { id: 'spec_rohu', title: t('btn_rohu', lang) },
-          { id: 'spec_pangasius', title: t('btn_pangasius', lang) },
-          { id: 'spec_catfish', title: t('btn_catfish', lang) },
-          { id: 'spec_seabass', title: t('btn_seabass', lang) },
-          { id: 'spec_murrel', title: t('btn_murrel', lang) },
-          { id: 'spec_other_fish', title: t('btn_other_fish', lang) }
+          { id: 'spec_tilapia', title: onboardingT('btn_tilapia', lang) },
+          { id: 'spec_rohu', title: onboardingT('btn_rohu', lang) },
+          { id: 'spec_pangasius', title: onboardingT('btn_pangasius', lang) },
+          { id: 'spec_catfish', title: onboardingT('btn_catfish', lang) },
+          { id: 'spec_seabass', title: onboardingT('btn_seabass', lang) },
+          { id: 'spec_murrel', title: onboardingT('btn_murrel', lang) },
+          { id: 'spec_other_fish', title: onboardingT('btn_other_fish', lang) }
         ]
       }
     ]);
   } else if (speciesType === 'default_both') {
-    await sendListMessage(phone, t('q_both_species', lang), t('btn_select_topic', lang), [
+    await sendListMessage(phone, onboardingT('q_both_species', lang), onboardingT('btn_select_topic', lang), [
       {
-        title: t('btn_shrimp', lang),
+        title: onboardingT('btn_shrimp', lang),
         rows: [
-          { id: 'spec_vannamei', title: t('btn_vannamei', lang) },
-          { id: 'spec_monodon', title: t('btn_tiger', lang) }
+          { id: 'spec_vannamei', title: onboardingT('btn_vannamei', lang) },
+          { id: 'spec_monodon', title: onboardingT('btn_tiger', lang) }
         ]
       },
       {
-        title: t('btn_fish', lang),
+        title: onboardingT('btn_fish', lang),
         rows: [
-          { id: 'spec_tilapia', title: t('btn_tilapia', lang) },
-          { id: 'spec_rohu', title: t('btn_rohu', lang) },
-          { id: 'spec_pangasius', title: t('btn_pangasius', lang) },
-          { id: 'spec_catfish', title: t('btn_catfish', lang) },
-          { id: 'spec_seabass', title: t('btn_seabass', lang) },
-          { id: 'spec_murrel', title: t('btn_murrel', lang) },
-          { id: 'spec_other_fish', title: t('btn_other_fish', lang) }
+          { id: 'spec_tilapia', title: onboardingT('btn_tilapia', lang) },
+          { id: 'spec_rohu', title: onboardingT('btn_rohu', lang) },
+          { id: 'spec_pangasius', title: onboardingT('btn_pangasius', lang) },
+          { id: 'spec_catfish', title: onboardingT('btn_catfish', lang) },
+          { id: 'spec_seabass', title: onboardingT('btn_seabass', lang) },
+          { id: 'spec_murrel', title: onboardingT('btn_murrel', lang) },
+          { id: 'spec_other_fish', title: onboardingT('btn_other_fish', lang) }
         ]
       }
     ]);
@@ -363,7 +363,7 @@ async function handleTextMessage(phone, text) {
 
       clearState(phone);
 
-      const confirmMsg = t('msg_jit_village_success', lang).replace('{village}', villageInput);
+      const confirmMsg = onboardingT('msg_jit_village_success', lang).replace('{village}', villageInput);
       await sendTextMessage(phone, confirmMsg);
       return;
 
