@@ -344,7 +344,33 @@ async function handleTextMessage(phone, text) {
       }
       return;
     }
+
+    // JIT COLLECTION: Village (Location)
+    if (flow === 'awaiting_jit_village') {
+      const villageInput = text.trim();
+      const lang = farmer.preferred_language || 'English';
+
+      if (villageInput.length < 2) {
+        const promptMsg = lang === 'Telugu' ? '❌ దయచేసి సరైన గ్రామం లేదా పట్టణం పేరు నమోదు చేయండి.' :
+                          (lang === 'Hindi' ? '❌ कृपया एक वैध गाँव या शहर का नाम दर्ज करें।' :
+                          '❌ Please enter a valid village or town name.');
+        await sendTextMessage(phone, promptMsg);
+        return;
+      }
+
+      const { updateFarmer } = require('../models/database');
+      await updateFarmer(state.farmerId, { village: villageInput });
+
+      clearState(phone);
+
+      const confirmMsg = lang === 'Telugu' ? `✅ ధన్యవాదాలు! మీ ఫారమ్ స్థానాన్ని *${villageInput}* కు అప్‌డేట్ చేసాను. 🚀` :
+                         (lang === 'Hindi' ? `✅ धन्यवाद! मैंने आपके फ़ार्म का स्थान *${villageInput}* पर अपडेट कर दिया है। 🚀` :
+                         `✅ Thank you! I've updated your farm location to *${villageInput}*. 🚀`);
+      await sendTextMessage(phone, confirmMsg);
+      return;
+    }
     // ------------------------------------------
+
 
 
     // ------------------------------------------

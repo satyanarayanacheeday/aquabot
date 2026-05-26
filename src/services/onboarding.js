@@ -206,32 +206,17 @@ async function handleOnboardingStep(phone, message) {
     setState(phone, { ...getState(phone), group: 1, step: 0 });
 
     await sendTextMessage(phone, t('intro_g1', lang));
-    await sendTextMessage(phone, t('q_village', lang));
+    await sendButtonMessage(phone, t('q_species', lang), [
+      { id: 'farm_shrimp', title: t('btn_shrimp', lang) },
+      { id: 'farm_fish', title: t('btn_fish', lang) },
+      { id: 'farm_both', title: t('btn_both', lang) },
+    ]);
     return true;
   }
 
   // ---- GROUP 1: BASICS ----
   if (group === 1) {
     if (step === 0) {
-      // Village
-      if (input.length < 2) {
-        const lang = state.data.preferred_language || 'English';
-        await sendTextMessage(phone, t('q_village', lang));
-        return true;
-      }
-      updateStateData(phone, { village: message.trim() });
-      setState(phone, { ...getState(phone), step: 1 });
-      
-      const lang = state.data.preferred_language || 'English';
-      await sendButtonMessage(phone, t('q_species', lang), [
-        { id: 'farm_shrimp', title: t('btn_shrimp', lang) },
-        { id: 'farm_fish', title: t('btn_fish', lang) },
-        { id: 'farm_both', title: t('btn_both', lang) },
-      ]);
-      return true;
-    }
-
-    if (step === 1) {
       // Species
       let farmType = null;
       if (input.includes('shrimp') || input === 'farm_shrimp') farmType = 'shrimp';
@@ -254,6 +239,7 @@ async function handleOnboardingStep(phone, message) {
     }
   }
 
+
   return false;
 }
 
@@ -268,7 +254,7 @@ async function finalizeOnboarding(phone) {
 
   // Update farmer
   await updateFarmer(state.farmerId, {
-    village: data.village,
+    village: null,
     farm_type: data.farm_type,
     preferred_language: lang,
     onboarding_complete: true
@@ -284,7 +270,6 @@ async function finalizeOnboarding(phone) {
     seed_count: null
   });
 
-
   clearState(phone);
 
   const farmTypeLabel = data.farm_type === 'shrimp' ? t('btn_shrimp', lang) : (data.farm_type === 'fish' ? t('btn_fish', lang) : t('btn_both', lang));
@@ -292,11 +277,11 @@ async function finalizeOnboarding(phone) {
   await sendTextMessage(phone,
     `${t('reg_success', lang)}\n\n` +
     `${t('farm_details', lang)}\n` +
-    `${t('label_type', lang)}: ${farmTypeLabel}\n` +
-    `${t('label_village', lang)}: ${data.village}\n\n` +
+    `${t('label_type', lang)}: ${farmTypeLabel}\n\n` +
     `${t('pro_tip', lang)}\n\n` +
     `${t('ready_to_help', lang).replace('{type}', farmTypeLabel.toLowerCase())}`
   );
+
 
   await sendListMessage(phone,
     t('help_today_q', lang) + '\n\n' + t('help_today_desc', lang),

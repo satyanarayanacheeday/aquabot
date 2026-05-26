@@ -130,6 +130,68 @@ async function runTests() {
   assert(logs.some(m => m.text.includes('Disease Investigation')), "Should resume to Disease flow");
   console.log('✅ Scenario 3: Passed!\n');
 
+  // ==========================================
+  // SCENARIO 4: Simplified Onboarding Check
+  // ==========================================
+  console.log('--- Scenario 4: Verify simplified onboarding (Language + Species only) ---');
+  const phone4 = '919000000004';
+  clearMessageLog();
+
+  // 1. Farmer says hi -> asks for language
+  await simulateMessage(phone4, 'Hi');
+  assert(getMessageLog().slice(-1)[0].text.includes('Welcome to *aquaIQ*'), "Should welcome farmer");
+  assert(getMessageLog().slice(-1)[0].text.includes('English'), "Should ask for language");
+
+  // 2. Select language -> asks for species/farm type immediately (skipping village)
+  await simulateMessage(phone4, 'English', 'interactive', { button_reply: { id: 'lang_en', title: 'English' }});
+  assert(getMessageLog().slice(-1)[0].text.includes('What species are you growing'), "Should ask what species they farm immediately");
+
+  // 3. Select farm type -> completes onboarding
+  await simulateMessage(phone4, 'Shrimp', 'interactive', { button_reply: { id: 'farm_shrimp', title: 'Shrimp' }});
+  assert(getMessageLog().some(m => m.text.includes('Registration Successful')), "Should complete onboarding");
+
+  const farmer4 = await getFarmerByPhone(phone4);
+  assert(farmer4.onboarding_complete === true, "Farmer should be onboarded");
+  assert(farmer4.village === null, "Farmer village should be null initially");
+
+  const pond4 = await getFirstPondByFarmer(farmer4.id);
+  assert(pond4.species === 'default_shrimp', "Pond species should start as default_shrimp placeholder");
+  console.log('✅ Scenario 4: Passed!\n');
+
+  // ==========================================
+  // SCENARIO 5: JIT Village Collection (Post-Success)
+  // ==========================================
+  console.log('--- Scenario 5: JIT Village prompt triggers after diagnostic flow completes ---');
+  const phone5 = '919000000005';
+  clearMessageLog();
+
+  // Create farmer with onboarding_complete: true and village: null, pond with specific species (so we don't trigger species JIT)
+  const farmer5 = await createFarmer({ phone: phone5, onboarding_complete: true, village: null });
+  await createPond({ farmer_id: farmer5.id, pond_number: 1, species: 'vannamei' });
+
+  // Farmer triggers disease event
+  await simulateMessage(phone5, 'my shrimp are sick');
+  
+  // Answer Q1: Symptoms
+  await simulateMessage(phone5, 'White spots', 'interactive', { list_reply: { id: 'dis_spots', title: 'White spots' } });
+  // Answer Q2: Affected
+  await simulateMessage(phone5, 'A few', 'interactive', { button_reply: { id: 'dis_few', title: 'A few' } });
+
+  // Diagnostic flow should finalize, show assessment, and then prompt for village
+  logs = getMessageLog();
+  assert(logs.some(m => m.text.includes('Assessment')), "Should show final diagnostic assessment");
+  assert(logs.slice(-1)[0].text.includes('which village or town is your farm located in'), "Should ask for village after diagnosis");
+
+  // Farmer enters village
+  await simulateMessage(phone5, 'Bhimavaram');
+  
+  const farmer5Updated = await getFarmerByPhone(phone5);
+  assert(farmer5Updated.village === 'Bhimavaram', "Farmer village should update to Bhimavaram in DB");
+  
+  logs = getMessageLog();
+  assert(logs.slice(-1)[0].text.includes('updated your farm location to *Bhimavaram*'), "Should confirm village registration");
+  console.log('✅ Scenario 5: Passed!\n');
+
   console.log('🎉 ALL JIT BOT TESTS PASSED SUCCESSFULLY! 🎉');
 }
 
