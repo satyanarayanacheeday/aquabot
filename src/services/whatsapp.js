@@ -48,6 +48,7 @@ async function sendTextMessage(to, text) {
       }
     );
     console.log(`✅ Message sent to ${to}`);
+    eventBus.emit('message', { to, text });
     return response.data;
   } catch (error) {
     console.error(`❌ Failed to send message to ${to}:`, error.response?.data || error.message);
