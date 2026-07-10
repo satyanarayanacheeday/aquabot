@@ -210,7 +210,7 @@ app.get('/api/test/audio/:mediaId', (req, res) => {
   if (!buffer) {
     return res.status(404).send('Audio not found');
   }
-  res.setHeader('Content-Type', 'audio/wav');
+  res.setHeader('Content-Type', 'audio/mpeg');
   res.send(buffer);
 });
 

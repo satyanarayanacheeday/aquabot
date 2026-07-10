@@ -1000,8 +1000,8 @@ async function handleAudioMessage(phone, audioData, messageId) {
           // Step 8: Upload to WhatsApp and send
           const mediaId = await uploadMediaToWhatsApp(
             audioResponseBuffer,
-            'audio/wav',
-            `response_${Date.now()}.wav`
+            'audio/mpeg',
+            `response_${Date.now()}.mp3`
           );
           await sendAudioMessage(phone, mediaId);
           logger.info(`🔊 Audio reply sent to ${phone}`);

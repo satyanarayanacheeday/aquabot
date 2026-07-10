@@ -245,6 +245,7 @@ async function textToSpeech(text, language) {
       target_language_code: langConfig.ttsCode,
       speaker: langConfig.speaker,
       model: 'bulbul:v3',
+      output_audio_codec: 'mp3',
     }, {
       headers: {
         'api-subscription-key': SARVAM_API_KEY,
@@ -253,7 +254,7 @@ async function textToSpeech(text, language) {
       timeout: 30000,
     });
 
-    // Sarvam returns base64-encoded WAV audio in the `audios` array
+    // Sarvam returns base64-encoded MP3 audio in the `audios` array
     const audios = response.data.audios;
     if (!audios || audios.length === 0) {
       logger.warn('⚠️ Sarvam TTS returned empty audios array');
@@ -264,7 +265,7 @@ async function textToSpeech(text, language) {
     const combinedBase64 = audios.join('');
     const audioBuffer = Buffer.from(combinedBase64, 'base64');
     
-    logger.info(`✅ TTS result: ${audioBuffer.length} bytes WAV audio`);
+    logger.info(`✅ TTS result: ${audioBuffer.length} bytes MP3 audio`);
 
     // Store in cache
     setCachedAudio(cacheKey, audioBuffer);
