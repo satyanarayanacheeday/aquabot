@@ -72,6 +72,28 @@ function setCachedAudio(key, buffer) {
 // SPEECH-TO-TEXT (Saaras v3)
 // ========================
 
+const PHONETIC_CORRECTIONS = {
+  // Telugu misheard terms
+  'బయటకటట': 'వైట్ గట్',
+  'బయట కటట': 'వైట్ గట్',
+  'బయట కట్': 'వైట్ గట్',
+  'బయటకట్': 'వైట్ గట్',
+  'వైట్ గట్టు': 'వైట్ గట్',
+  'వైట్ గడ్డు': 'వైట్ గట్',
+  'లూస్ షెల్': 'లూజ్ షెల్',
+  'లూస్ షెడ్డు': 'లూజ్ షెల్',
+};
+
+function applyPhoneticCorrections(text) {
+  if (!text) return text;
+  let corrected = text;
+  for (const [misheard, correct] of Object.entries(PHONETIC_CORRECTIONS)) {
+    const regex = new RegExp(misheard, 'g');
+    corrected = corrected.replace(regex, correct);
+  }
+  return corrected;
+}
+
 /**
  * Transcribe audio using Sarvam AI (Saaras v3)
  * @param {Buffer} audioBuffer - Raw audio data from WhatsApp
@@ -88,7 +110,7 @@ async function transcribeAudio(audioBuffer, mimeType, language, audioId = null) 
     logger.info(`🎯 [LOCAL] Using simulated transcript for ${audioId}: "${text}"`);
     simulatedTranscripts.delete(audioId); // clean up after use
     return {
-      transcript: text,
+      transcript: applyPhoneticCorrections(text),
       languageCode: langConfig.sttCode,
       skipped: false
     };
@@ -139,10 +161,11 @@ async function transcribeAudio(audioBuffer, mimeType, language, audioId = null) 
     });
 
     const { transcript, language_code } = response.data;
-    logger.info(`✅ STT result: "${transcript?.substring(0, 80)}..." (lang: ${language_code})`);
+    const finalTranscript = applyPhoneticCorrections(transcript || '');
+    logger.info(`✅ STT result: "${finalTranscript.substring(0, 80)}..." (lang: ${language_code})`);
     
     return {
-      transcript: transcript || '',
+      transcript: finalTranscript,
       languageCode: language_code || langConfig.sttCode,
       skipped: false,
     };

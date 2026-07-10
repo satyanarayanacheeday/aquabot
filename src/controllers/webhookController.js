@@ -941,9 +941,8 @@ async function handleAudioMessage(phone, audioData, messageId) {
       else if (code.startsWith('hi')) newLang = 'Hindi';
       else if (code.startsWith('en')) newLang = 'English';
 
-      if (newLang && newLang !== farmer.preferred_language) {
-        logger.info(`🔄 Swapping farmer language from ${farmer.preferred_language} to ${newLang} based on detected voice input`);
-        await updateFarmer(farmer.id, { preferred_language: newLang });
+      if (newLang) {
+        logger.info(`🔄 Swapping active message language to ${newLang} based on detected voice input`);
         activeLang = newLang;
       }
     }
