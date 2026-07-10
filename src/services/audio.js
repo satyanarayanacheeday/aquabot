@@ -7,7 +7,7 @@ const logger = require('../utils/logger');
 // ========================
 const SARVAM_API_URL = 'https://api.sarvam.ai';
 const SARVAM_API_KEY = process.env.SARVAM_API_KEY;
-const TTS_SPEAKER = process.env.SARVAM_TTS_SPEAKER || 'shubh';
+const TTS_SPEAKER = process.env.SARVAM_TTS_SPEAKER || 'kavya';
 const ENABLE_AUDIO_RESPONSE = process.env.ENABLE_AUDIO_RESPONSE !== 'false'; // default: true
 
 // Cost optimization: limits
