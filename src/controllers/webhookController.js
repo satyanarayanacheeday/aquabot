@@ -906,6 +906,8 @@ async function handleAudioMessage(phone, audioData, messageId) {
   }
 
   try {
+    let activeLang = lang;
+
     // Step 1: Download audio from WhatsApp
     const audioBuffer = await downloadMedia(audioData.id);
     const mimeType = audioData.mime_type || 'audio/ogg';
@@ -932,7 +934,6 @@ async function handleAudioMessage(phone, audioData, messageId) {
     logger.info(`📝 Transcribed: "${transcript.substring(0, 100)}"`);
 
     // Dynamic language detection & swap based on STT result
-    let activeLang = lang;
     if (sttResult.languageCode) {
       const code = sttResult.languageCode.toLowerCase();
       let newLang = null;
@@ -986,7 +987,13 @@ async function handleAudioMessage(phone, audioData, messageId) {
     }
 
     // Step 7: Generate audio response (with cost optimizations)
-    if (responseText && shouldGenerateAudio(responseText, 'text')) {
+    const isErrorResponse = responseText && (
+      responseText.includes("trouble right now") || 
+      responseText.includes("సమస్య ఎదురైంది") || 
+      responseText.includes("समस्या हो रही है")
+    );
+
+    if (responseText && shouldGenerateAudio(responseText, 'text') && !isErrorResponse) {
       try {
         const audioResponseBuffer = await textToSpeech(responseText, activeLang);
 

@@ -11,7 +11,7 @@ const TTS_SPEAKER = process.env.SARVAM_TTS_SPEAKER || 'shubh';
 const ENABLE_AUDIO_RESPONSE = process.env.ENABLE_AUDIO_RESPONSE !== 'false'; // default: true
 
 // Cost optimization: limits
-const MIN_AUDIO_SIZE_BYTES = 8000;   // ~1 second of audio — skip accidental taps
+const MIN_AUDIO_SIZE_BYTES = 2000;   // ~1 second of compressed audio — skip tiny accidental taps
 const MAX_TTS_TEXT_LENGTH = 500;     // Truncate TTS input to save characters
 const MIN_TTS_TEXT_LENGTH = 30;      // Skip TTS for very short responses
 
@@ -115,13 +115,14 @@ async function transcribeAudio(audioBuffer, mimeType, language, audioId = null) 
     'audio/amr': 'amr',
     'audio/aac': 'aac',
   };
-  const ext = extMap[mimeType] || 'ogg';
+  const cleanMimeType = (mimeType || 'audio/ogg').split(';')[0].trim();
+  const ext = extMap[cleanMimeType] || 'ogg';
 
   // Build multipart form data
   const form = new FormData();
   form.append('file', audioBuffer, {
     filename: `voice.${ext}`,
-    contentType: mimeType || 'audio/ogg',
+    contentType: cleanMimeType,
   });
   form.append('language_code', 'unknown');
   form.append('model', 'saaras:v3');
