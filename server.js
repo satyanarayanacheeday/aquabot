@@ -38,6 +38,7 @@ const { handleIncoming } = require('./src/controllers/webhookController');
 const eventBus = require('./src/utils/eventBus');
 const { startScheduler } = require('./src/utils/scheduler');
 const { getActiveSessionCount } = require('./src/state/conversationState');
+const { addSimulatedTranscript } = require('./src/services/audio');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -144,22 +145,55 @@ setInterval(() => {
 }, 20000);
 
 app.post('/api/test/send', (req, res) => {
-  const { phone, text } = req.body;
-  if (!phone || !text) return res.status(400).send('Missing phone or text');
+  const { phone, text, messageType, audio, mimeType } = req.body;
+  if (!phone || (!text && !audio)) return res.status(400).send('Missing phone, text, or audio');
 
-  logger.info(`💬 [Test UI] Input from ${phone}: "${text}"`);
+  let mockMessage;
+  if (audio) {
+    // Real recorded audio uploaded from frontend
+    const audioBuffer = Buffer.from(audio, 'base64');
+    const audioId = 'mock_recorded_' + Date.now();
+    const { saveRecordedAudio } = require('./src/services/whatsapp');
+    saveRecordedAudio(audioId, audioBuffer);
+
+    logger.info(`💬 [Test UI] Voice note uploaded from ${phone}: ${audioBuffer.length} bytes, Mime: ${mimeType}`);
+
+    mockMessage = {
+      from: phone,
+      id: 'mock_' + Date.now(),
+      type: 'audio',
+      audio: {
+        id: audioId,
+        mime_type: mimeType || 'audio/webm'
+      }
+    };
+  } else if (messageType === 'audio') {
+    const audioId = 'mock_audio_' + Date.now();
+    addSimulatedTranscript(audioId, text);
+    mockMessage = {
+      from: phone,
+      id: 'mock_' + Date.now(),
+      type: 'audio',
+      audio: {
+        id: audioId,
+        mime_type: 'audio/ogg'
+      }
+    };
+  } else {
+    mockMessage = {
+      from: phone,
+      id: 'mock_' + Date.now(),
+      type: 'text',
+      text: { body: text }
+    };
+  }
 
   const mockPayload = {
     object: 'whatsapp_business_account',
     entry: [{
       changes: [{
         value: {
-          messages: [{
-            from: phone,
-            id: 'mock_' + Date.now(),
-            type: 'text',
-            text: { body: text }
-          }]
+          messages: [mockMessage]
         }
       }]
     }]
@@ -167,6 +201,17 @@ app.post('/api/test/send', (req, res) => {
 
   handleIncoming({ body: mockPayload }, { sendStatus: () => {} });
   res.sendStatus(200);
+});
+
+app.get('/api/test/audio/:mediaId', (req, res) => {
+  const { mediaId } = req.params;
+  const { getGeneratedAudio } = require('./src/services/whatsapp');
+  const buffer = getGeneratedAudio(mediaId);
+  if (!buffer) {
+    return res.status(404).send('Audio not found');
+  }
+  res.setHeader('Content-Type', 'audio/wav');
+  res.send(buffer);
 });
 
 eventBus.on('message', (data) => {

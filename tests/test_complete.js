@@ -27,6 +27,7 @@ const { clearState } = require('../src/state/conversationState');
 // HELPERS
 // ========================
 
+let msgIdCounter = 0;
 async function simulateMessage(phone, text, type = 'text', interactiveData = null) {
   console.log(`\x1b[36m🧑‍🌾 Farmer (${phone}):\x1b[0m ${text}`);
   const req = {
@@ -37,7 +38,7 @@ async function simulateMessage(phone, text, type = 'text', interactiveData = nul
           value: {
             messages: [{
               from: phone,
-              id: 'test_msg_' + Date.now(),
+              id: 'test_msg_' + Date.now() + '_' + (++msgIdCounter),
               type,
               text: type === 'text' ? { body: text } : undefined,
               interactive: type === 'interactive' ? interactiveData : undefined,
@@ -95,35 +96,25 @@ async function runAllTests() {
   assert(getMessageLog().slice(-1)[0].text.includes('aquaIQ'), 'Welcome message shown');
 
   await simulateMessage(phone, 'English', 'interactive', btn('lang_en', 'English'));
-  assert(getMessageLog().slice(-1)[0].text.includes('What do you farm'), 'Asks farm type');
-
-  await simulateMessage(phone, 'Shrimp', 'interactive', btn('farm_shrimp', 'Shrimp'));
-  assert(getMessageLog().slice(-1)[0].text.includes('village'), 'Asks village');
-
-  await simulateMessage(phone, 'Bhimavaram');
-  assert(getMessageLog().slice(-1)[0].text.includes('How many ponds'), 'Asks pond count');
-
-  await simulateMessage(phone, '1', 'interactive', btn('ponds_1', '1'));
   assert(getMessageLog().slice(-1)[0].text.includes('species'), 'Asks species');
 
-  await simulateMessage(phone, 'Vannamei', 'interactive', lst('sp_vannamei', 'Vannamei'));
-  assert(getMessageLog().slice(-1)[0].text.includes('stock'), 'Asks stocking date');
-
-  await simulateMessage(phone, 'This month', 'interactive', btn('stock_month', 'This month'));
-  assert(getMessageLog().slice(-1)[0].text.includes('pond size'), 'Asks pond size');
-
-  await simulateMessage(phone, '1-3 acres', 'interactive', btn('size_medium', '1-3 acres'));
-  assert(getMessageLog().slice(-1)[0].text.includes('help with today'), 'Asks help topic');
-
-  await simulateMessage(phone, 'Disease', 'interactive', lst('prob_disease', 'Disease'));
-  assert(getMessageLog().some(msg => msg.text.includes('All set')), 'Onboarding completed');
+  await simulateMessage(phone, 'Shrimp', 'interactive', btn('farm_shrimp', 'Shrimp'));
+  assert(getMessageLog().some(msg => msg.text.includes('Successful')), 'Onboarding completed');
+  
   assert(inMemoryDB.farmers.length === 1, 'Farmer saved in DB');
   assert(inMemoryDB.ponds.length === 1, 'Pond saved in DB');
   assert(inMemoryDB.farmers[0].preferred_language === 'English', 'Language saved');
-  assert(inMemoryDB.farmers[0].village === 'Bhimavaram', 'Village saved');
-  assert(inMemoryDB.ponds[0].species === 'vannamei', 'Species saved');
+  assert(inMemoryDB.farmers[0].village === null, 'Village is null initially');
+  assert(inMemoryDB.ponds[0].species === 'default_shrimp', 'Species is default_shrimp initially');
 
   const farmerId = inMemoryDB.farmers[0].id;
+
+  // Pre-populate JIT fields for downstream tests to avoid JIT prompts intercepting scenario flows
+  inMemoryDB.farmers[0].village = 'Bhimavaram';
+  inMemoryDB.ponds[0].species = 'vannamei';
+  inMemoryDB.ponds[0].stocking_date = '2024-05-15';
+  inMemoryDB.ponds[0].seed_count = 100000;
+  inMemoryDB.ponds[0].pond_size = '1_3_acres';
 
   // ============================================
   // SCENARIO 2: DAILY FEED CHECK-IN
@@ -221,10 +212,7 @@ async function runAllTests() {
   assert(getMessageLog().slice(-1)[0].text.includes('Since when'), 'Asks since when');
 
   await simulateMessage(phone, 'Today', 'interactive', btn('mort_today', 'Today'));
-  assert(getMessageLog().slice(-1)[0].text.includes('smell'), 'Asks about smell');
-
-  await simulateMessage(phone, 'Yes', 'interactive', btn('mort_smell_yes', 'Yes'));
-  assert(getMessageLog().slice(-1)[0].text.includes('body'), 'Asks about body signs');
+  assert(getMessageLog().slice(-1)[0].text.includes('symptoms'), 'Asks about body signs');
 
   await simulateMessage(phone, 'Red body', 'interactive', btn('mort_sign_red', 'Red body'));
 

@@ -5,7 +5,10 @@ const { v4: uuidv4 } = require('uuid');
  * In-memory mock store for local testing without Supabase.
  * Activated automatically when SUPABASE_URL is not set.
  */
-const USE_MOCK = !process.env.SUPABASE_URL || !process.env.SUPABASE_KEY;
+const USE_MOCK = !process.env.SUPABASE_URL || 
+                 !process.env.SUPABASE_KEY || 
+                 process.env.SUPABASE_URL.includes('your-project') || 
+                 process.env.SUPABASE_KEY.startsWith('your_');
 
 const mockStore = {
   farmers: [],

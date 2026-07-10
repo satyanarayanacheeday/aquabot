@@ -699,7 +699,7 @@ function detectEventType(text) {
   // 2. CHECK FOR REPORTING INTENT
   // Keywords must be present, but we also look for "reporting" markers
   // TIGHTENED: We now require words like "have", "seeing", "problem" or "help" to indicate an active issue.
-  const reportingMarkers = ['have', 'seeing', 'found', 'problem', 'help', 'is', 'my', 'issue', 'unaru', 'vundi', 'undi', 'hai', 'mil raha hai'];
+  const reportingMarkers = ['have', 'seeing', 'found', 'problem', 'help', 'is', 'my', 'issue', 'unaru', 'vundi', 'undi', 'hai', 'mil raha hai', 'died', 'dead', 'dying', 'death'];
   const hasReportingMarker = reportingMarkers.some(m => lower.includes(m));
 
   const hasProblemKeywords = lower.includes('died') || lower.includes('dead') || 

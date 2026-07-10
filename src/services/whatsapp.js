@@ -1,4 +1,5 @@
 const axios = require('axios');
+const FormData = require('form-data');
 
 const WHATSAPP_API_URL = 'https://graph.facebook.com/v21.0';
 
@@ -169,7 +170,33 @@ async function sendListMessage(to, bodyText, buttonText, sections) {
  * Download media (image) from WhatsApp
  * Returns the image as a Buffer
  */
+const recordedAudios = new Map();
+
+function saveRecordedAudio(mediaId, buffer) {
+  recordedAudios.set(mediaId, buffer);
+}
+
+const generatedAudios = new Map();
+
+function saveGeneratedAudio(mediaId, buffer) {
+  generatedAudios.set(mediaId, buffer);
+}
+
+function getGeneratedAudio(mediaId) {
+  return generatedAudios.get(mediaId);
+}
+
 async function downloadMedia(mediaId) {
+  if (recordedAudios.has(mediaId)) {
+    console.log(`\n[LOCAL] 📥 Loading recorded audio buffer for: ${mediaId}\n`);
+    return recordedAudios.get(mediaId);
+  }
+
+  if (isTestMode() || (mediaId && mediaId.startsWith('mock_'))) {
+    console.log(`\n[LOCAL] 📥 Mock media download for: ${mediaId}\n`);
+    return Buffer.alloc(10000); // 10KB dummy buffer
+  }
+
   const headers = { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` };
 
   try {
@@ -225,10 +252,96 @@ async function markAsRead(messageId) {
   }
 }
 
+/**
+ * Upload media (audio) to WhatsApp Cloud API
+ * Returns the media_id for use in sending audio messages
+ * @param {Buffer} buffer - The audio file buffer
+ * @param {string} mimeType - MIME type (e.g., 'audio/wav', 'audio/ogg')
+ * @param {string} filename - Filename with extension
+ * @returns {Promise<string>} media_id from WhatsApp
+ */
+async function uploadMediaToWhatsApp(buffer, mimeType, filename) {
+  if (isTestMode()) {
+    const mediaId = 'mock_media_id_' + Date.now();
+    console.log(`\n[LOCAL] 📤 Mock media upload: ${filename} (${buffer.length} bytes, ${mimeType})\n`);
+    saveGeneratedAudio(mediaId, buffer);
+    return mediaId;
+  }
+
+  const url = `${WHATSAPP_API_URL}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/media`;
+
+  const form = new FormData();
+  form.append('messaging_product', 'whatsapp');
+  form.append('file', buffer, {
+    filename: filename,
+    contentType: mimeType,
+  });
+  form.append('type', mimeType);
+
+  try {
+    const response = await axios.post(url, form, {
+      headers: {
+        ...form.getHeaders(),
+        Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+      },
+      timeout: 30000,
+    });
+
+    const mediaId = response.data.id;
+    console.log(`✅ Media uploaded: ${mediaId}`);
+    return mediaId;
+  } catch (error) {
+    console.error('❌ Failed to upload media:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
+ * Send an audio message via WhatsApp Cloud API
+ * @param {string} to - Recipient phone number
+ * @param {string} mediaId - Media ID from uploadMediaToWhatsApp
+ */
+async function sendAudioMessage(to, mediaId) {
+  if (isTestMode()) {
+    console.log(`\n[LOCAL] 🔊 Audio reply to ${to} (mediaId: ${mediaId})\n`);
+    emitToTestUI(to, `🔊 [Audio Response]<br><audio controls src="/api/test/audio/${mediaId}"></audio>`);
+    return { ok: true, mocked: true };
+  }
+
+  const url = `${WHATSAPP_API_URL}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+
+  try {
+    const response = await axios.post(
+      url,
+      {
+        messaging_product: 'whatsapp',
+        to,
+        type: 'audio',
+        audio: { id: mediaId },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    console.log(`✅ Audio message sent to ${to}`);
+    return response.data;
+  } catch (error) {
+    console.error(`❌ Failed to send audio to ${to}:`, error.response?.data || error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   sendTextMessage,
   sendButtonMessage,
   sendListMessage,
   downloadMedia,
   markAsRead,
+  uploadMediaToWhatsApp,
+  sendAudioMessage,
+  saveRecordedAudio,
+  getGeneratedAudio,
 };

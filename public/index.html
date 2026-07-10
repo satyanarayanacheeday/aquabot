@@ -102,6 +102,12 @@
     button:hover {
       background-color: #008f6f;
     }
+    #mic-btn {
+      background-color: #3b82f6;
+    }
+    #mic-btn:hover {
+      background-color: #2563eb;
+    }
     .system-msg {
       text-align: center;
       font-size: 0.8rem;
@@ -141,13 +147,14 @@
     </div>
 
     <div class="messages" id="messages-container">
-      <div class="system-msg">Messages are sent locally to your backend. WhatsApp API is bypassed.</div>
+      <div class="system-msg">Local testing. Type your message first, then click <b>🎤</b> to simulate a voice note, or <b>➤</b> for text.</div>
       <!-- Messages will appear here -->
     </div>
 
     <form class="input-area" id="chat-form">
-      <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" />
-      <button type="button" id="send-btn">➤</button>
+      <input type="text" id="message-input" placeholder="Type simulated message..." autocomplete="off" />
+      <button type="button" id="send-btn" title="Send text message">➤</button>
+      <button type="button" id="mic-btn" title="Simulate voice message">🎤</button>
     </form>
   </div>
 
@@ -192,21 +199,25 @@
 
       const sendBtn = document.getElementById('send-btn');
 
-      function sendMessage() {
+      function sendMessage(isAudio = false) {
         const text = input.value.trim();
         if (!text) return;
 
         const phone = phoneInput.value.trim();
 
         // Show user message
-        addMessage(text, 'sent');
+        if (isAudio) {
+          addMessage(`🎤 <i>[Voice Note]</i> ${text}`, 'sent');
+        } else {
+          addMessage(text, 'sent');
+        }
         input.value = '';
 
         // Send to local test endpoint
         fetch('/api/test/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, text })
+          body: JSON.stringify({ phone, text, messageType: isAudio ? 'audio' : 'text' })
         }).then(res => {
           if (!res.ok) addMessage('⚠️ Error: Server returned ' + res.status, 'received');
         }).catch(err => {
@@ -216,7 +227,86 @@
 
       sendBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        sendMessage();
+        sendMessage(false);
+      });
+
+      let mediaRecorder = null;
+      let audioChunks = [];
+      let isRecording = false;
+
+      const micBtn = document.getElementById('mic-btn');
+
+      async function toggleRecording() {
+        if (!isRecording) {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+              if (event.data.size > 0) {
+                audioChunks.push(event.data);
+              }
+            };
+
+            mediaRecorder.onstop = async () => {
+              const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+              
+              const reader = new FileReader();
+              reader.readAsDataURL(audioBlob);
+              reader.onloadend = () => {
+                const base64Audio = reader.result.split(',')[1];
+                sendAudioBlob(base64Audio, 'audio/webm');
+              };
+
+              stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            micBtn.innerHTML = '🔴';
+            micBtn.title = 'Stop and send voice note';
+            input.placeholder = 'Recording... Click 🔴 to send!';
+            input.disabled = true;
+
+          } catch (err) {
+            alert('Cannot access microphone: ' + err.message);
+            console.error(err);
+          }
+        } else {
+          mediaRecorder.stop();
+          isRecording = false;
+          micBtn.innerHTML = '🎤';
+          micBtn.title = 'Simulate voice message';
+          input.placeholder = 'Type simulated message...';
+          input.disabled = false;
+        }
+      }
+
+      function sendAudioBlob(base64Audio, mimeType) {
+        const phone = phoneInput.value.trim();
+
+        addMessage(`🎤 <i>[Voice Note Sent]</i>`, 'sent');
+
+        fetch('/api/test/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, audio: base64Audio, mimeType })
+        }).then(res => {
+          if (!res.ok) addMessage('⚠️ Error: Server returned ' + res.status, 'received');
+        }).catch(err => {
+          addMessage('⚠️ Connection error: ' + err.message, 'received');
+        });
+      }
+
+      micBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (text) {
+          sendMessage(true);
+        } else {
+          toggleRecording();
+        }
       });
 
       input.addEventListener('keypress', (e) => {

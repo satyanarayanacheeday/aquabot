@@ -139,7 +139,7 @@ async function answerQuestion(question, farmerId, preferredLanguage = 'English')
 
     // 6. Final Call
     const conversationSummary = summary ? `\n\n## Previous Conversation Summary\n${summary}` : '';
-    const langInstruction = `\n\n## Language Constraints\nYou MUST reply in **${preferredLanguage}**. Use casual, communicative language.`;
+    const langInstruction = `\n\n## Language Constraints\nYou MUST reply in a style that matches the user's input language, vocabulary, and code-mixing patterns (e.g., Hinglish, Tinglish, mixing English with Hindi or Telugu). If the user asks in standard ${preferredLanguage}, respond in standard ${preferredLanguage}. Keep technical aquaculture terms in English but write the sentence structure to match the user's style naturally.`;
     
     const systemInstruction = SYSTEM_PROMPT +
       conversationSummary +

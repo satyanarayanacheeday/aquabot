@@ -1,5 +1,7 @@
-const { sendTextMessage, sendButtonMessage, sendListMessage, markAsRead, downloadMedia } = require('../services/whatsapp');
-const { getFarmerByPhone, saveChatHistory, updateChatHistory, getLatestHealthScore, getFirstPondByFarmer, getRecentPondLogs } = require('../models/database');
+const { sendTextMessage, sendButtonMessage, sendListMessage, markAsRead, downloadMedia, uploadMediaToWhatsApp, sendAudioMessage } = require('../services/whatsapp');
+const { transcribeAudio, textToSpeech, shouldGenerateAudio, MIN_AUDIO_SIZE_BYTES } = require('../services/audio');
+const eventBus = require('../utils/eventBus');
+const { getFarmerByPhone, updateFarmer, saveChatHistory, updateChatHistory, getLatestHealthScore, getFirstPondByFarmer, getRecentPondLogs } = require('../models/database');
 const { uploadMedia } = require('../services/storage');
 const { startOnboarding, handleOnboardingStep, t: onboardingT } = require('../services/onboarding');
 const { startDailyCheckIn, handleDailyStep, getTodayCheckInType, GROUP_MAP } = require('../services/dailyCheckIn');
@@ -239,7 +241,10 @@ async function handleIncoming(req, res) {
 
       const reply = buttonId || listId || buttonTitle || listTitle || '';
       await handleTextMessage(phone, reply);
-    } else if (['audio', 'document', 'video', 'sticker', 'location', 'contacts'].includes(messageType)) {
+    } else if (messageType === 'audio') {
+      // Voice note — transcribe and process
+      await handleAudioMessage(phone, message.audio, messageId);
+    } else if (['document', 'video', 'sticker', 'location', 'contacts'].includes(messageType)) {
       // User explicitly sent an unsupported media type
       const farmer = await getFarmerByPhone(phone);
       const lang = farmer?.preferred_language || 'English';
@@ -249,6 +254,7 @@ async function handleIncoming(req, res) {
       logger.debug(`Silently ignored message type: ${messageType}`);
     }
   } catch (error) {
+    console.error('CRITICAL ERROR IN WEBHOOK:', error);
     logger.error('Error handling incoming message', { error: error.message, stack: error.stack });
   }
 }
@@ -311,11 +317,11 @@ async function handleTextMessage(phone, text) {
   if (isInFlow(phone)) {
     const state = getState(phone);
     const flow = state.flow;
+    const lang = farmer?.preferred_language || 'English';
 
     // --- NEW: Handle Feed Plan Count Input ---
     if (flow === 'awaiting_feed_count') {
       const { getFeedPlan, parseUserCount } = require('../services/feedPlan');
-      const lang = farmer.preferred_language || 'English';
       const abw = parseUserCount(text);
       
       if (!abw) {
@@ -884,6 +890,131 @@ async function handleImageMessage(phone, imageData) {
 }
 
 /**
+ * Handle audio (voice note) messages
+ * Flow: Download → STT (Sarvam) → Route as text → Capture response → TTS (Sarvam) → Send audio
+ */
+async function handleAudioMessage(phone, audioData, messageId) {
+  logger.info(`🎤 Voice note from ${phone}`);
+
+  const farmer = await getFarmerByPhone(phone);
+  const lang = farmer?.preferred_language || 'English';
+
+  // Must be onboarded to use voice
+  if (!farmer || !farmer.onboarding_complete) {
+    await sendTextMessage(phone, t('msg_setup_first', lang));
+    return;
+  }
+
+  try {
+    // Step 1: Download audio from WhatsApp
+    const audioBuffer = await downloadMedia(audioData.id);
+    const mimeType = audioData.mime_type || 'audio/ogg';
+    logger.info(`📥 Audio downloaded: ${audioBuffer.length} bytes (${mimeType})`);
+
+    // Cost optimization: skip tiny clips (accidental taps)
+    if (audioBuffer.length < MIN_AUDIO_SIZE_BYTES) {
+      await sendTextMessage(phone, t('msg_audio_too_short', lang));
+      return;
+    }
+
+    // Step 2: Send processing indicator
+    await sendTextMessage(phone, t('msg_audio_processing', lang));
+
+    // Step 3: Transcribe via Sarvam STT
+    const sttResult = await transcribeAudio(audioBuffer, mimeType, lang, audioData.id);
+
+    if (sttResult.skipped || !sttResult.transcript || sttResult.transcript.trim() === '') {
+      await sendTextMessage(phone, t('msg_audio_not_understood', lang));
+      return;
+    }
+
+    const transcript = sttResult.transcript.trim();
+    logger.info(`📝 Transcribed: "${transcript.substring(0, 100)}"`);
+
+    // Dynamic language detection & swap based on STT result
+    let activeLang = lang;
+    if (sttResult.languageCode) {
+      const code = sttResult.languageCode.toLowerCase();
+      let newLang = null;
+      if (code.startsWith('te')) newLang = 'Telugu';
+      else if (code.startsWith('hi')) newLang = 'Hindi';
+      else if (code.startsWith('en')) newLang = 'English';
+
+      if (newLang && newLang !== farmer.preferred_language) {
+        logger.info(`🔄 Swapping farmer language from ${farmer.preferred_language} to ${newLang} based on detected voice input`);
+        await updateFarmer(farmer.id, { preferred_language: newLang });
+        activeLang = newLang;
+      }
+    }
+
+    // Step 4: Capture the bot's text response via eventBus
+    // We listen for the next 'message' event targeted at this phone number
+    let capturedResponse = null;
+    const responsePromise = new Promise((resolve) => {
+      const onMessage = ({ to, text }) => {
+        if (to === phone) {
+          capturedResponse = text;
+          eventBus.removeListener('message', onMessage);
+          resolve(text);
+        }
+      };
+      eventBus.on('message', onMessage);
+
+      // Timeout after 15s to prevent memory leak
+      setTimeout(() => {
+        eventBus.removeListener('message', onMessage);
+        resolve(null);
+      }, 15000);
+    });
+
+    // Step 5: Route transcribed text through the existing text pipeline
+    await handleTextMessage(phone, transcript);
+
+    // Step 6: Wait for the bot's response to be captured
+    const responseText = await responsePromise;
+
+    // Save audio interaction to chat history
+    try {
+      await saveChatHistory({
+        farmer_id: farmer.id,
+        message: `[Voice] ${transcript}`,
+        response: responseText || '[No text response captured]',
+        message_type: 'audio',
+      });
+    } catch (err) {
+      logger.warn('Could not save audio chat history', { error: err.message });
+    }
+
+    // Step 7: Generate audio response (with cost optimizations)
+    if (responseText && shouldGenerateAudio(responseText, 'text')) {
+      try {
+        const audioResponseBuffer = await textToSpeech(responseText, activeLang);
+
+        if (audioResponseBuffer) {
+          // Step 8: Upload to WhatsApp and send
+          const mediaId = await uploadMediaToWhatsApp(
+            audioResponseBuffer,
+            'audio/wav',
+            `response_${Date.now()}.wav`
+          );
+          await sendAudioMessage(phone, mediaId);
+          logger.info(`🔊 Audio reply sent to ${phone}`);
+        }
+      } catch (ttsError) {
+        // TTS failure is non-critical — text response was already sent
+        logger.error('TTS/audio reply failed (non-critical)', { error: ttsError.message });
+      }
+    } else {
+      logger.info(`⏭️ Skipped audio reply — shouldGenerateAudio=false`);
+    }
+
+  } catch (error) {
+    logger.error('Audio processing failed', { error: error.message, phone });
+    await sendTextMessage(phone, t('msg_audio_fail', activeLang));
+  }
+}
+
+/**
  * Show pond health score
  */
 async function showHealthScore(phone, farmerId) {
@@ -945,7 +1076,11 @@ function sanitizeInput(text) {
 // ========================
 const translations = {
   English: {
-    msg_unsupported: 'I can understand text messages and images. 📝📸\n\nPlease send a text question or a photo for disease detection.',
+    msg_unsupported: 'I can understand text messages, voice notes, and images. 📝🎤📸\n\nPlease send a text question, voice message, or a photo for disease detection.',
+    msg_audio_processing: '🎤 Processing your voice message...',
+    msg_audio_too_short: '🎤 Your voice message was too short. Please try again with a longer message.',
+    msg_audio_not_understood: '🎤 Sorry, I couldn\'t understand your voice message. Please try again or type your question.',
+    msg_audio_fail: '⚠️ Sorry, I couldn\'t process your voice message right now. Please try typing your question instead.',
     msg_cancelled: '❌ Flow cancelled. You are now back in normal chat mode.',
     msg_setup_first: 'Please complete your setup first! Send any text to get started.',
     msg_analyzing_img: '🔬 Analyzing your image... Please wait.',
@@ -969,7 +1104,11 @@ const translations = {
     msg_help_footer: 'Just start typing! 💬'
   },
   Telugu: {
-    msg_unsupported: 'నేను టెక్స్ట్ సందేశాలు మరియు చిత్రాలను అర్థం చేసుకోగలను. 📝📸\n\nదయచేసి వ్యాధి గుర్తింపు కోసం ప్రశ్న లేదా ఫోటోను పంపండి.',
+    msg_unsupported: 'నేను టెక్స్ట్ సందేశాలు, వాయిస్ నోట్‌లు మరియు చిత్రాలను అర్థం చేసుకోగలను. 📝🎤📸\n\nదయచేసి ప్రశ్న, వాయిస్ మెసేజ్ లేదా వ్యాధి గుర్తింపు కోసం ఫోటోను పంపండి.',
+    msg_audio_processing: '🎤 మీ వాయిస్ మెసేజ్‌ను ప్రాసెస్ చేస్తున్నాను...',
+    msg_audio_too_short: '🎤 మీ వాయిస్ మెసేజ్ చాలా చిన్నగా ఉంది. దయచేసి పొడవైన మెసేజ్‌తో మళ్ళీ ప్రయత్నించండి.',
+    msg_audio_not_understood: '🎤 క్షమించండి, మీ వాయిస్ మెసేజ్ అర్థం కాలేదు. దయచేసి మళ్ళీ ప్రయత్నించండి లేదా మీ ప్రశ్నను టైప్ చేయండి.',
+    msg_audio_fail: '⚠️ క్షమించండి, మీ వాయిస్ మెసేజ్‌ను ప్రాసెస్ చేయడం సాధ్యం కాలేదు. దయచేసి మీ ప్రశ్నను టైప్ చేయండి.',
     msg_cancelled: '❌ ప్రక్రియ రద్దు చేయబడింది. మీరు ఇప్పుడు సాధారణ చాట్ మోడ్‌లో ఉన్నారు.',
     msg_setup_first: 'దయచేసి ముందుగా మీ సెటప్ పూర్తి చేయండి! ప్రారంభించడానికి ఏదైనా టెక్స్ట్ పంపండి.',
     msg_analyzing_img: '🔬 మీ చిత్రాన్ని విశ్లేషిస్తున్నాను... దయచేసి వేచి ఉండండి.',
@@ -993,7 +1132,11 @@ const translations = {
     msg_help_footer: 'టైప్ చేయడం ప్రారంభించండి! 💬'
   },
   Hindi: {
-    msg_unsupported: 'मैं टेक्स्ट संदेशों और छवियों को समझ सकता हूँ। 📝📸\n\nकृपया रोग की पहचान के लिए एक प्रश्न या फोटो भेजें।',
+    msg_unsupported: 'मैं टेक्स्ट संदेश, वॉइस नोट्स और छवियों को समझ सकता हूँ। 📝🎤📸\n\nकृपया प्रश्न, वॉइस मैसेज या रोग की पहचान के लिए फोटो भेजें।',
+    msg_audio_processing: '🎤 आपके वॉइस मैसेज को प्रोसेस कर रहा हूँ...',
+    msg_audio_too_short: '🎤 आपका वॉइस मैसेज बहुत छोटा था। कृपया लंबे मैसेज के साथ पुनः प्रयास करें।',
+    msg_audio_not_understood: '🎤 क्षमा करें, मैं आपका वॉइस मैसेज समझ नहीं पाया। कृपया पुनः प्रयास करें या अपना प्रश्न टाइप करें।',
+    msg_audio_fail: '⚠️ क्षमा करें, आपके वॉइस मैसेज को प्रोसेस नहीं कर सका। कृपया अपना प्रश्न टाइप करें।',
     msg_cancelled: '❌ प्रक्रिया रद्द कर दी गई। अब आप सामान्य चैट मोड में हैं।',
     msg_setup_first: 'कृपया पहले अपना सेटअप पूरा करें! शुरू करने के लिए कोई भी टेक्स्ट भेजें।',
     msg_analyzing_img: '🔬 आपकी छवि का विश्लेषण कर रहा हूँ... कृपया प्रतीक्षा करें।',

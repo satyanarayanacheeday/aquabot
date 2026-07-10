@@ -225,6 +225,7 @@ async function startDailyCheckIn(phone, farmerId, groupType) {
   const farmer = await getFarmerById(farmerId);
   const lang = farmer?.preferred_language || 'English';
 
+  const pond = await getFirstPondByFarmer(farmerId);
   if (!pond) {
     await sendTextMessage(phone, t('err_no_pond', lang));
     return;

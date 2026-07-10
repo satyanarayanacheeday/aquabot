@@ -99,3 +99,18 @@ graph TD
 The entire flow is dynamic across **English**, **Telugu**, and **Hindi**.
 *   All logic services (`dailyCheckIn.js`, `feedPlan.js`, etc.) use the `t()` helper.
 *   No hardcoded strings in the interaction layer.
+
+---
+
+## 9. Voice Message Flow (Indian Languages)
+*Goal: Accessible voice-in/voice-out interaction for Indian farmers.*
+
+User sends a voice note → WhatsApp Media downloaded → **Sarvam STT** (Saaras v3) transcribes it to text → Converted text is routed to the standard text pipeline (triggering onboarding, check-ins, JIT, or RAG) → Bot text response is generated and sent as a text message → Bot text response is converted to speech via **Sarvam TTS** (Bulbul v3) → Audio reply uploaded to WhatsApp and sent back to user.
+
+**Key Optimizations for Cost & Billing:**
+- **Skip TTS for short responses** (<30 characters).
+- **Skip TTS for interactive prompts** (buttons and lists).
+- **In-memory LRU cache** to prevent duplicate TTS calls for common bot answers.
+- **Accidental tap filtering**: Voice notes under 1 second are ignored (with a warning).
+- **Toggle switch**: Global `ENABLE_AUDIO_RESPONSE` env var can disable TTS instantly.
+
