@@ -165,3 +165,10 @@ CREATE POLICY "Service role full access" ON scheduled_followups FOR ALL USING (t
 -- ========================
 ALTER TABLE farmers ADD COLUMN IF NOT EXISTS conversation_summary TEXT;
 ALTER TABLE farmers ADD COLUMN IF NOT EXISTS summary_message_count INTEGER DEFAULT 0;
+
+-- ========================
+-- RE-ENGAGEMENT / DORMANCY TRACKING
+-- ========================
+ALTER TABLE farmers ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE farmers ADD COLUMN IF NOT EXISTS reengagement_stage TEXT; -- null | 'onboarding_nudge' | 'nudge_1' | 'nudge_2' | 'final'
+ALTER TABLE farmers ADD COLUMN IF NOT EXISTS notifications_paused BOOLEAN DEFAULT false;

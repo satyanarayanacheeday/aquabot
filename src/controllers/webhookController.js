@@ -278,7 +278,7 @@ async function handleTextMessage(phone, text) {
   // 1. Check if farmer exists
   const farmer = await getFarmerByPhone(phone);
   const { clearState } = require('../state/conversationState');
-  const { markPendingCheckInsCompleted } = require('../models/database');
+  const { markPendingCheckInsCompleted, touchFarmerActivity, updateFarmer } = require('../models/database');
 
   if (farmer && farmer.onboarding_complete) {
     // Farmer is interacting, clear any skipped automated check-ins in the background
@@ -291,12 +291,27 @@ async function handleTextMessage(phone, text) {
   if (['stop', 'exit', 'cancel', 'menu'].includes(normalizedText)) {
     const lang = farmer?.preferred_language || 'English';
     clearState(phone);
+    if (normalizedText === 'stop' && farmer) {
+      // "STOP" is the WhatsApp opt-out convention — pause proactive reminders,
+      // separately from just cancelling the current flow (exit/cancel/menu don't).
+      updateFarmer(farmer.id, { last_active_at: new Date().toISOString(), notifications_paused: true }).catch(err => {
+        logger.error('Failed to pause notifications', { error: err.message });
+      });
+    }
     if (normalizedText === 'menu') {
       await sendHelpMessage(phone);
     } else {
       await sendTextMessage(phone, t('msg_cancelled', lang));
     }
     return;
+  }
+
+  if (farmer) {
+    // Any other message means the farmer is active — reset the dormancy
+    // clock and un-pause reminders if they'd previously said STOP.
+    touchFarmerActivity(farmer.id).catch(err => {
+      logger.error('Failed to update farmer activity', { error: err.message });
+    });
   }
 
   // 2. Not onboarded → handle onboarding

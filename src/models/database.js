@@ -30,7 +30,14 @@ if (USE_MOCK) {
 
 async function createFarmer(data) {
   if (USE_MOCK) {
-    const farmer = { id: uuidv4(), created_at: new Date().toISOString(), ...data };
+    const farmer = {
+      id: uuidv4(),
+      created_at: new Date().toISOString(),
+      last_active_at: new Date().toISOString(),
+      reengagement_stage: null,
+      notifications_paused: false,
+      ...data,
+    };
     mockStore.farmers.push(farmer);
     return farmer;
   }
@@ -76,6 +83,27 @@ async function getAllFarmers() {
   const { data: farmers, error } = await supabase.from('farmers').select('*').eq('onboarding_complete', true);
   if (error) throw error;
   return farmers || [];
+}
+
+async function getIncompleteOnboardingFarmers() {
+  if (USE_MOCK) {
+    return mockStore.farmers.filter(f => !f.onboarding_complete);
+  }
+  const { data: farmers, error } = await supabase.from('farmers').select('*').eq('onboarding_complete', false);
+  if (error) throw error;
+  return farmers || [];
+}
+
+/**
+ * Mark a farmer as active right now — resets the dormancy clock and
+ * un-pauses reminders (since they're clearly engaging again).
+ */
+async function touchFarmerActivity(farmerId) {
+  return updateFarmer(farmerId, {
+    last_active_at: new Date().toISOString(),
+    reengagement_stage: null,
+    notifications_paused: false,
+  });
 }
 
 // ========================
@@ -379,6 +407,7 @@ async function markPendingCheckInsCompleted(farmerId) {
 
 module.exports = {
   createFarmer, getFarmerByPhone, getFarmerById, updateFarmer, getAllFarmers,
+  getIncompleteOnboardingFarmers, touchFarmerActivity,
   createPond, getPondsByFarmer, getFirstPondByFarmer, getPondById, updatePond,
   insertPondLog, getRecentPondLogs, getAllRecentPondLogs,
   upsertHealthScore, getLatestHealthScore,

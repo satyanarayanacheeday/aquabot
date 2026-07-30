@@ -120,6 +120,8 @@ function startScheduler() {
       const farmers = await getAllFarmers();
       for (const farmer of farmers) {
         try {
+          if (farmer.notifications_paused) continue;
+
           const { generateAdvisory } = require('../services/advisory');
           const advisory = await generateAdvisory(
             farmer.id,
@@ -142,6 +144,23 @@ function startScheduler() {
     }
   }, { timezone: 'Asia/Kolkata' });
 
+  // ════════════════════════════════════════
+  // RE-ENGAGEMENT SWEEP — 11:00 AM every day
+  // Stalled onboarding nudge + tiered dormancy nudges (3/7/21 days,
+  // accelerated to 1/3/7 days for farmers whose last known health
+  // score was red). Skips anyone with notifications_paused = true.
+  // ════════════════════════════════════════
+  cron.schedule('0 11 * * *', async () => {
+    console.log('📤 [Daily 11:00AM] Re-engagement sweep...');
+    try {
+      const { runReengagementSweep } = require('../services/reengagement');
+      await runReengagementSweep();
+      console.log('✅ Re-engagement sweep complete');
+    } catch (err) {
+      console.error('❌ Re-engagement sweep failed:', err.message);
+    }
+  }, { timezone: 'Asia/Kolkata' });
+
   console.log('✅ Scheduler started:');
   console.log('   🍽️ Monday    7:30 AM  → Feed check-in (primary)');
   console.log('   🍽️ Monday    1:30 PM  → Feed nudge');
@@ -153,6 +172,7 @@ function startScheduler() {
   console.log('   📋 Sunday    7:30 AM  → Weekly check-in (primary)');
   console.log('   📋 Sunday    5:30 PM  → Weekly evening resend');
   console.log('   ☀️ Daily     7:00 AM  → Advisory');
+  console.log('   🔍 Daily     11:00 AM → Re-engagement sweep');
   console.log('   🔍 Daily     6:00 PM  → Event follow-ups');
 }
 
@@ -168,6 +188,8 @@ async function sendCheckInReminders(type, mode = 'primary') {
 
     for (const farmer of farmers) {
       try {
+        if (farmer.notifications_paused) continue;
+
         const lang = farmer.preferred_language || 'English';
 
         // Skip farmers who have already completed today's check-in
