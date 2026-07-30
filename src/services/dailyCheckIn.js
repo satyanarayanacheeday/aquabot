@@ -1,7 +1,7 @@
 const { sendTextMessage, sendButtonMessage, sendListMessage } = require('./whatsapp');
 const { getFirstPondByFarmer, insertPondLog, updatePond, saveChatHistory, markPendingCheckInsCompleted, getRecentPondLogs } = require('../models/database');
 const { setState, getState, clearState, updateStateData } = require('../state/conversationState');
-const { calculateHealthScore } = require('./healthScore');
+const { calculateHealthScore, formatHealthScoreBadge } = require('./healthScore');
 const productEngine = require('./productEngine');
 const { findRecentAnswer } = require('../utils/contextHelper');
 const intelligence = require('./intelligence');
@@ -414,9 +414,10 @@ async function finalizeDailyCheckIn(phone, groupType) {
     log_data: data,
   });
 
-  // Calculate and update health score
+  // Calculate and update health score — get the score data for the badge
+  let scoreData = null;
   try {
-    await calculateHealthScore(state.pondId);
+    scoreData = await calculateHealthScore(state.pondId);
   } catch (err) {
     console.warn('⚠️ Health score calculation failed:', err.message);
   }
@@ -433,25 +434,22 @@ async function finalizeDailyCheckIn(phone, groupType) {
     confirmMsg += `\n\n${alerts.join('\n')}`;
   }
 
-  // --- NEW: Recommendation Engine Derived Logic ---
-  let recommendationMsg = "";
+  // Recommendation Engine Derived Logic
+  let recommendationMsg = '';
   const pondSizeValue = productEngine.getPondSizeValue(pond?.pond_size);
 
   if (config.logGroup === 'water') {
-    // IF color = dark/brown/black AND smell = strong -> Ammonia/Organic load issue
     if (data.water_color === 'brown_black' && data.bad_smell === 'strong') {
       const rec = productEngine.getRecommendation('ammonia', { pondSizeValue });
-      recommendationMsg = "\n\n" + productEngine.formatRecommendation(rec);
+      recommendationMsg = '\n\n' + productEngine.formatRecommendation(rec);
     }
   } else if (config.logGroup === 'feed') {
-    // IF feed qty high AND growth = slow (from Friday) -> Poor feed conversion
     try {
       const recentHealthLogs = await getRecentPondLogs(state.pondId, 'health', 1);
       const lastGrowthStatus = recentHealthLogs[0]?.log_data?.growth_status;
-      
       if (lastGrowthStatus === 'slow' && (data.feed_kg === '30-50' || data.feed_kg === '50+')) {
         const rec = productEngine.getRecommendation('slow_growth', { pondSizeValue });
-        recommendationMsg = "\n\n💡 *Cross-Check Insight:* Growth was slow recently despite high feeding. You may have poor feed conversion.\n" + productEngine.formatRecommendation(rec);
+        recommendationMsg = '\n\n💡 *Cross-Check Insight:* Growth was slow recently despite high feeding. You may have poor feed conversion.\n' + productEngine.formatRecommendation(rec);
       }
     } catch (err) {
       console.warn('⚠️ Could not fetch cross-day health data:', err.message);
@@ -468,22 +466,29 @@ async function finalizeDailyCheckIn(phone, groupType) {
     confirmMsg += `\n\n⚠️ *Alert:* ${anomalyAlert}`;
   }
 
-  confirmMsg += `\n\n${t('great_job', lang)} 🎯`;
+  // 🏆 INSTANT VALUE REWARD: Personalized Tip + Health Score Badge
+  const dailyTip = generateDailyTip(config.logGroup, data, lang);
+  if (dailyTip) {
+    confirmMsg += `\n\n${dailyTip}`;
+  }
+
+  // Append compact health score badge
+  if (scoreData) {
+    const badge = formatHealthScoreBadge(scoreData, lang);
+    if (badge) {
+      confirmMsg += `\n\n📊 ${badge}`;
+    }
+  }
 
   // Intelligence: Check for Progressive Onboarding (missing metadata)
   const onboardingQ = await intelligence.getProgressiveOnboardingQuestion(state.pondId, lang);
   if (onboardingQ) {
     confirmMsg += `\n\n💡 ${onboardingQ.prompt}\n(Just reply to answer)`;
-    // Note: We don't change the flow state here to avoid interrupting the completion, 
-    // but the next message from the user will be handled by the AI or we could set a sub-state.
-    // For now, we'll just let the AI handle the answer or log it if the user replies.
   }
-
 
   // Save to chat history and clear pending follow-ups
   try {
     await markPendingCheckInsCompleted(state.farmerId);
-
     const summaryMsg = `[${config.label}] ${formatLogSummary(config.logGroup, data).replace(/\n/g, ' | ').trim()}`;
     await saveChatHistory({
       farmer_id: state.farmerId,
@@ -503,10 +508,66 @@ async function finalizeDailyCheckIn(phone, groupType) {
 // ========================
 
 function getCheckInGreeting(groupType, lang = 'English') {
-  if (groupType === 'daily_feed') return t('greet_feed', lang);
-  if (groupType === 'daily_water') return t('greet_water', lang);
-  if (groupType === 'daily_health') return t('greet_health', lang);
+  if (groupType === 'daily_feed')    return t('greet_feed', lang);
+  if (groupType === 'daily_water')   return t('greet_water', lang);
+  if (groupType === 'daily_health')  return t('greet_health', lang);
   return t('greet_default', lang);
+}
+
+/**
+ * Generate a personalized 1-tip based on the day's check-in answers.
+ * This is the "Instant Value Reward" shown after every check-in completion.
+ */
+function generateDailyTip(logGroup, data, lang = 'English') {
+  if (logGroup === 'feed') {
+    if (data.feed_times === 1) {
+      if (lang === 'Telugu') return '💡 *మేత చిట్కా:* రోజుకు 1 సార్లు మేత వేయడం చాలా తక్కువ. రోజుకు 3-4 సార్లు వేస్తే మంచి పెరుగుదల వస్తుంది!';
+      if (lang === 'Hindi')  return '💡 *चारा सुझाव:* दिन में सिर्फ 1 बार खाना बहुत कम है। दिन में 3-4 बार खिलाने से बेहतर विकास होगा!';
+      return '💡 *Feed Tip:* Feeding only once a day is too low. Feeding 3–4 times a day boosts growth significantly!';
+    }
+    if (data.feed_times === 2) {
+      if (lang === 'Telugu') return '💡 *మేత చిట్కా:* 3-4 సార్లు మేత వేయడం వల్ల మేత వ్యర్థం తగ్గి పెరుగుదల మెరుగవుతుంది.';
+      if (lang === 'Hindi')  return '💡 *चारा सुझाव:* 3-4 बार खिलाने से चारे की बर्बादी कम होती है और बेहतर विकास होता है।';
+      return '💡 *Feed Tip:* Increasing to 3–4 feeds/day reduces wastage and improves growth rate.';
+    }
+    if (lang === 'Telugu') return '✅ *బాగుంది!* మీరు మేతను సరిగ్గా ఇస్తున్నారు. మీ మేత ట్రేలు రోజూ తనిఖీ చేయండి.';
+    if (lang === 'Hindi')  return '✅ *शाबाश!* आप सही ढंग से खिला रहे हैं। रोज़ाना अपने फीड ट्रे जाँचें।';
+    return '✅ *Great work!* You are feeding well. Check your feed trays daily to track actual intake.';
+  }
+
+  if (logGroup === 'water') {
+    if (data.water_color === 'brown_black' || data.bad_smell === 'strong') {
+      if (lang === 'Telugu') return '🚨 *అత్యవసర చర్య:* నీటి రంగు చీకటి / వాసన ఉంది. వెంటనే ఆయేషన్ పెంచండి మరియు 30% మేత తగ్గించండి.';
+      if (lang === 'Hindi')  return '🚨 *तत्काल कार्रवाई:* पानी का रंग गहरा / गंध है। तुरंत वातन बढ़ाएं और 30% चारा कम करें।';
+      return '🚨 *Urgent Action:* Dark water/strong smell detected. Increase all aerators immediately and cut feed by 30%.';
+    }
+    if (data.water_color === 'dark_green') {
+      if (lang === 'Telugu') return '⚠️ *నీటి చిట్కా:* ముదురు ఆకుపచ్చ నీరు ఆల్గే అధికంగా ఉందని సూచిస్తుంది. ప్రోబయోటిక్స్ వేయడం పరిగణించండి.';
+      if (lang === 'Hindi')  return '⚠️ *पानी सुझाव:* गहरा हरा पानी अधिक शैवाल का संकेत है। प्रोबायोटिक्स का उपयोग विचार करें।';
+      return '⚠️ *Water Tip:* Dark green indicates algae bloom. Consider applying probiotics to balance your pond.';
+    }
+    if (lang === 'Telugu') return '✅ *నీరు బాగుంది!* మీ చెరువు నీటి నిర్వహణ సరిగ్గా ఉంది. వారానికి ఒక్కసారి నీటి మార్పు చేయండి.';
+    if (lang === 'Hindi')  return '✅ *पानी अच्छा है!* आपके तालाब का जल प्रबंधन सही है। हफ्ते में एक बार पानी बदलें।';
+    return '✅ *Water looks great!* Your pond management is on track. Do a weekly partial water exchange to maintain quality.';
+  }
+
+  if (logGroup === 'health') {
+    if (data.disease_signs && data.disease_signs !== 'none') {
+      if (lang === 'Telugu') return '🩺 *ఆరోగ్య చిట్కా:* లక్షణాలు కనిపించినప్పుడు నీటి నాణ్యత తనిఖీ చేయండి మరియు మేత 50% తగ్గించండి.';
+      if (lang === 'Hindi')  return '🩺 *स्वास्थ्य सुझाव:* लक्षण दिखने पर पानी की गुणवत्ता जांचें और 50% चारा कम करें।';
+      return '🩺 *Health Tip:* When symptoms appear, test your water quality and reduce feed by 50% immediately.';
+    }
+    if (data.growth_status === 'slow') {
+      if (lang === 'Telugu') return '📈 *పెరుగుదల చిట్కా:* నెమ్మదిగా పెరుగుదలకు DO స్థాయిలు, మేత నాణ్యత, మరియు స్టాకింగ్ సాంద్రతను తనిఖీ చేయండి.';
+      if (lang === 'Hindi')  return '📈 *विकास सुझाव:* धीमी वृद्धि के लिए DO स्तर, चारे की गुणवत्ता और भंडारण घनत्व जांचें।';
+      return '📈 *Growth Tip:* For slow growth, check your DO levels, feed quality, and stocking density — these are the top 3 causes.';
+    }
+    if (lang === 'Telugu') return '✅ *ఆరోగ్యంగా ఉంది!* మీ చెరువు సంకేతాలు సాధారణంగా ఉన్నాయి. ప్రతి శుక్రవారం స్వాస్థ్య తనిఖీ చేయడం కొనసాగించండి.';
+    if (lang === 'Hindi')  return '✅ *स्वस्थ तालाब!* आपके तालाब के संकेत सामान्य हैं। हर शुक्रवार स्वास्थ्य जांच जारी रखें।';
+    return '✅ *Pond looks healthy!* No signs of disease. Keep up your Friday health checks for early detection.';
+  }
+
+  return '';
 }
 
 function generateAlerts(logGroup, data, lang = 'English') {

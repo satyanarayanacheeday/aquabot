@@ -35,6 +35,31 @@ const GROWTH_CURVES = {
   ]
 };
 
+// Natural (background) cumulative survival by DOC, assuming zero reported
+// mortality events. Reported mortality reduces further on top of this —
+// it does not replace it (real ponds never harvest 100% of stocked seed).
+const NATURAL_SURVIVAL_CURVE = [
+  { doc: 0,   survival: 1.00 },
+  { doc: 30,  survival: 0.98 },
+  { doc: 60,  survival: 0.93 },
+  { doc: 90,  survival: 0.89 },
+  { doc: 120, survival: 0.85 },
+];
+
+/**
+ * Estimate natural cumulative survival fraction based on DOC (no reported events)
+ */
+function estimateNaturalSurvival(doc) {
+  const curve = NATURAL_SURVIVAL_CURVE;
+  for (let i = 0; i < curve.length - 1; i++) {
+    if (doc >= curve[i].doc && doc <= curve[i + 1].doc) {
+      const ratio = (doc - curve[i].doc) / (curve[i + 1].doc - curve[i].doc);
+      return curve[i].survival + ratio * (curve[i + 1].survival - curve[i].survival);
+    }
+  }
+  return curve[curve.length - 1].survival;
+}
+
 /**
  * Estimate ABW (Average Body Weight) based on species and DOC
  */
@@ -137,7 +162,9 @@ async function getFeedPlan(farmerId, lang = 'English', userABW = null) {
   const isEstimate = !userABW;
 
   const count = pond.seed_count;
-  const survival = Math.max(0.5, (count - totalMortality) / count); // Floor at 50% for safety
+  const naturalSurvival = estimateNaturalSurvival(doc);
+  const reportedSurvival = (count - totalMortality) / count;
+  const survival = Math.max(0.5, naturalSurvival * reportedSurvival); // Floor at 50% for safety
   const biomassKg = (count * survival * abw) / 1000;
   const baseRate = getFeedingRate(pond.species, abw);
   
@@ -222,7 +249,9 @@ async function getFeedPlan(farmerId, lang = 'English', userABW = null) {
   
   response += `📏 *${t('title_estimates', lang)}:*\n`;
   response += `- ${t('label_abw', lang)}: ~${abw.toFixed(2)}g ${isEstimate ? '(Benchmark)' : '(Actual)'}\n`;
-  response += `- ${t('label_survival', lang)}: ~${(survival * 100).toFixed(0)}%\n`;
+  const survivalPct = survival * 100;
+  const survivalDisplay = survivalPct < 100 ? survivalPct.toFixed(1) : '100';
+  response += `- ${t('label_survival', lang)}: ~${survivalDisplay}%${totalMortality > 0 ? ` (Est. ${totalMortality} lost)` : ''}\n`;
   response += `- ${t('label_biomass', lang)}: ~${biomassKg.toFixed(0)} kg\n\n`;
 
 
